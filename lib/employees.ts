@@ -174,6 +174,8 @@ export async function getOrgData(): Promise<{
   count: number;
 }> {
   const emps = await prisma.employee.findMany({
+    // Exited staff are not part of the live reporting hierarchy.
+    where: { status: { not: "EXITED" } },
     select: {
       id: true,
       eeId: true,
