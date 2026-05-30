@@ -1,0 +1,474 @@
+// Transworld PeopleOps & Payroll Control Portal
+// Prisma schema — v0.1.1 (Foundation + Payroll)
+// Source of truth for the database. `npx prisma migrate dev` generates SQL.
+// Table/column names are mapped to snake_case for clean SQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  OUTSOURCED
+  FRACTIONAL
+  CONSULTANT
+  EXTERNAL_REVIEWER
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  PROBATION
+  ON_LEAVE
+  EXITED
+  SUSPENDED
+}
+
+enum TaxTreatment {
+  PAYE
+  EXEMPT
+  FLAT_RATE
+}
+
+enum JdStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum PayCycleStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  GENERATED
+  LOCKED
+}
+
+enum PayItemReviewStatus {
+  CARRIED_FORWARD
+  CHANGED
+  NEW
+  CONFIRMED
+}
+
+enum DocAccessLevel {
+  EMPLOYEE
+  HR
+  EXEC
+  RESTRICTED
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// ---------- Identity & access ----------
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String?    @map("password_hash")
+  status       String     @default("active")
+  mfaEnabled   Boolean    @default(false) @map("mfa_enabled")
+  roles        UserRole[]
+  employee     Employee?
+  auditLogs    AuditLog[]
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  description String?
+  users       UserRole[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@map("roles")
+}
+
+model Permission {
+  id       String           @id @default(cuid())
+  key      String           @unique
+  label    String
+  roles    RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String @map("user_id")
+  roleId String @map("role_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ---------- Organization ----------
+model Entity {
+  id        String     @id @default(cuid())
+  name      String
+  code      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@map("entities")
+}
+
+model Department {
+  id        String     @id @default(cuid())
+  name      String
+  employees Employee[]
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@map("departments")
+}
+
+model PayCategory {
+  id         String       @id @default(cuid())
+  name       String       @unique // Advisory / Core / Investment / Part-Time
+  code       String       @unique
+  employees  Employee[]
+  payItems   PayItem[]
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  @@map("pay_categories")
+}
+
+// ---------- Job & competency framework ----------
+model JobProfile {
+  id           String                  @id @default(cuid())
+  title        String
+  grade        String?                 // e.g. G1..G4
+  departmentId String?                 @map("department_id")
+  description  String?
+  status       JdStatus                @default(DRAFT)
+  competencies JobProfileCompetency[]
+  employees    Employee[]
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  @@map("job_profiles")
+}
+
+model Competency {
+  id       String                 @id @default(cuid())
+  name     String                 @unique
+  category String?
+  profiles JobProfileCompetency[]
+
+  @@map("competencies")
+}
+
+model JobProfileCompetency {
+  jobProfileId String     @map("job_profile_id")
+  competencyId String     @map("competency_id")
+  level        Int        @default(1)
+  jobProfile   JobProfile @relation(fields: [jobProfileId], references: [id], onDelete: Cascade)
+  competency   Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@id([jobProfileId, competencyId])
+  @@map("job_profile_competencies")
+}
+
+// ---------- People ----------
+model Employee {
+  id               String               @id @default(cuid())
+  eeId             String               @unique @map("ee_id") // EID 1..n
+  fullName         String               @map("full_name")
+  preferredName    String?              @map("preferred_name")
+  workEmail        String?              @map("work_email")
+  phone            String?
+  userId           String?              @unique @map("user_id")
+  entityId         String?              @map("entity_id")
+  departmentId     String?              @map("department_id")
+  jobProfileId     String?              @map("job_profile_id")
+  payCategoryId    String?              @map("pay_category_id")
+  managerId        String?              @map("manager_id")
+  employmentType   EmploymentType       @default(FULL_TIME) @map("employment_type")
+  status           EmploymentStatus     @default(ACTIVE)
+  startDate        DateTime?            @map("start_date")
+  exitDate         DateTime?            @map("exit_date")
+  bankNameMasked   String?              @map("bank_name_masked")
+  bankAcctMasked   String?              @map("bank_acct_masked") // store last 4 only
+
+  user             User?                @relation(fields: [userId], references: [id])
+  entity           Entity?              @relation(fields: [entityId], references: [id])
+  department       Department?          @relation(fields: [departmentId], references: [id])
+  jobProfile       JobProfile?          @relation(fields: [jobProfileId], references: [id])
+  payCategory      PayCategory?         @relation(fields: [payCategoryId], references: [id])
+  manager          Employee?            @relation("EmployeeManager", fields: [managerId], references: [id])
+  reports          Employee[]           @relation("EmployeeManager")
+
+  employmentRecords EmploymentRecord[]
+  compensation      CompensationProfile[]
+  documents         EmployeeDocument[]
+  acknowledgments   PolicyAcknowledgment[]
+  leaveBalances     LeaveBalance[]
+  leaveRequests     LeaveRequest[]
+  payItems          PayItem[]
+
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  @@map("employees")
+}
+
+model EmploymentRecord {
+  id           String           @id @default(cuid())
+  employeeId   String           @map("employee_id")
+  title        String?
+  departmentId String?          @map("department_id")
+  managerId    String?          @map("manager_id")
+  status       EmploymentStatus
+  effectiveDate DateTime        @map("effective_date")
+  note         String?
+  employee     Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  @@map("employment_records")
+}
+
+// Standing payroll INPUTS that carry forward each cycle
+model CompensationProfile {
+  id                String       @id @default(cuid())
+  employeeId        String       @map("employee_id")
+  effectiveDate     DateTime     @map("effective_date")
+  basicSalary       Decimal      @map("basic_salary") @db.Decimal(14, 2)
+  utilityAllowance  Decimal      @default(0) @map("utility_allowance") @db.Decimal(14, 2)
+  quarterlyAllowance Decimal     @default(0) @map("quarterly_allowance") @db.Decimal(14, 2)
+  taxTreatment      TaxTreatment @default(PAYE) @map("tax_treatment")
+  pensionApplicable Boolean      @default(true) @map("pension_applicable")
+  nhfApplicable     Boolean      @default(true) @map("nhf_applicable")
+  isCurrent         Boolean      @default(true) @map("is_current")
+  employee          Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  @@index([employeeId, isCurrent])
+  @@map("compensation_profiles")
+}
+
+// ---------- Documents & policy ----------
+model EmployeeDocument {
+  id          String         @id @default(cuid())
+  employeeId  String         @map("employee_id")
+  category    String
+  fileKey     String         @map("file_key")
+  version     Int            @default(1)
+  expiryDate  DateTime?      @map("expiry_date")
+  accessLevel DocAccessLevel @default(HR) @map("access_level")
+  employee    Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@map("employee_documents")
+}
+
+model Policy {
+  id              String                 @id @default(cuid())
+  title           String
+  version         String                 @default("1.0")
+  fileKey         String?                @map("file_key")
+  isCurrent       Boolean                @default(true) @map("is_current")
+  acknowledgments PolicyAcknowledgment[]
+  createdAt       DateTime               @default(now()) @map("created_at")
+
+  @@map("policies")
+}
+
+model PolicyAcknowledgment {
+  id          String   @id @default(cuid())
+  policyId    String   @map("policy_id")
+  employeeId  String   @map("employee_id")
+  acknowledgedAt DateTime @default(now()) @map("acknowledged_at")
+  policy      Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, employeeId])
+  @@map("policy_acknowledgments")
+}
+
+// ---------- Leave ----------
+model LeaveType {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  daysPerYear Int          @default(0) @map("days_per_year")
+  balances  LeaveBalance[]
+  requests  LeaveRequest[]
+
+  @@map("leave_types")
+}
+
+model LeaveBalance {
+  id          String    @id @default(cuid())
+  employeeId  String    @map("employee_id")
+  leaveTypeId String    @map("leave_type_id")
+  year        Int
+  daysTaken   Decimal   @default(0) @map("days_taken") @db.Decimal(6, 1)
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id])
+
+  @@unique([employeeId, leaveTypeId, year])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id          String             @id @default(cuid())
+  employeeId  String             @map("employee_id")
+  leaveTypeId String             @map("leave_type_id")
+  startDate   DateTime           @map("start_date")
+  endDate     DateTime           @map("end_date")
+  days        Decimal            @db.Decimal(6, 1)
+  status      LeaveRequestStatus @default(PENDING)
+  approverId  String?            @map("approver_id")
+  note        String?
+  employee    Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType   LeaveType          @relation(fields: [leaveTypeId], references: [id])
+  createdAt   DateTime           @default(now()) @map("created_at")
+
+  @@map("leave_requests")
+}
+
+// ---------- Payroll: configurable tax engine ----------
+model TaxRuleSet {
+  id                   String     @id @default(cuid())
+  name                 String
+  effectiveFrom        DateTime   @map("effective_from")
+  exemptThresholdAnnual Decimal   @map("exempt_threshold_annual") @db.Decimal(14, 2)
+  pensionEmployeeRate  Decimal    @map("pension_employee_rate") @db.Decimal(6, 4)
+  pensionEmployerRate  Decimal    @map("pension_employer_rate") @db.Decimal(6, 4)
+  nhfRate              Decimal    @map("nhf_rate") @db.Decimal(6, 4)
+  rentReliefRate       Decimal    @map("rent_relief_rate") @db.Decimal(6, 4)
+  rentReliefCapAnnual  Decimal    @map("rent_relief_cap_annual") @db.Decimal(14, 2)
+  pensionOnBasicOnly   Boolean    @default(true) @map("pension_on_basic_only")
+  isActive             Boolean    @default(false) @map("is_active")
+  bands                TaxBand[]
+  payCycles            PayCycle[]
+  createdAt            DateTime   @default(now()) @map("created_at")
+
+  @@map("tax_rule_sets")
+}
+
+model TaxBand {
+  id           String     @id @default(cuid())
+  taxRuleSetId String     @map("tax_rule_set_id")
+  sequence     Int
+  lowerBound   Decimal    @map("lower_bound") @db.Decimal(14, 2)
+  upperBound   Decimal?   @map("upper_bound") @db.Decimal(14, 2) // null = no ceiling
+  rate         Decimal    @db.Decimal(6, 4)
+  taxRuleSet   TaxRuleSet @relation(fields: [taxRuleSetId], references: [id], onDelete: Cascade)
+
+  @@map("tax_bands")
+}
+
+// ---------- Payroll: cycles & items ----------
+model PayCycle {
+  id                String         @id @default(cuid())
+  label             String         // e.g. "September 2025"
+  periodMonth       Int            @map("period_month")
+  periodYear        Int            @map("period_year")
+  status            PayCycleStatus @default(DRAFT)
+  taxRuleSetId      String?        @map("tax_rule_set_id")
+  carriedForwardFromId String?     @map("carried_forward_from_id")
+  totalGross        Decimal?       @map("total_gross") @db.Decimal(16, 2)
+  totalNet          Decimal?       @map("total_net") @db.Decimal(16, 2)
+  totalEmployerPension Decimal?    @map("total_employer_pension") @db.Decimal(16, 2)
+  totalQuarterly    Decimal?       @map("total_quarterly") @db.Decimal(16, 2)
+  totalPayable      Decimal?       @map("total_payable") @db.Decimal(16, 2)
+  approvedById      String?        @map("approved_by_id")
+  approvedAt        DateTime?      @map("approved_at")
+  generatedAt       DateTime?      @map("generated_at")
+  lockedAt          DateTime?      @map("locked_at")
+  taxRuleSet        TaxRuleSet?    @relation(fields: [taxRuleSetId], references: [id])
+  items             PayItem[]
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  @@unique([periodYear, periodMonth])
+  @@map("pay_cycles")
+}
+
+// Per-employee snapshot for a cycle: inputs carried forward + computed outputs
+model PayItem {
+  id                String              @id @default(cuid())
+  payCycleId        String              @map("pay_cycle_id")
+  employeeId        String              @map("employee_id")
+  payCategoryId     String?             @map("pay_category_id")
+  // Inputs (snapshot)
+  basicSalary       Decimal             @map("basic_salary") @db.Decimal(14, 2)
+  utilityAllowance  Decimal             @default(0) @map("utility_allowance") @db.Decimal(14, 2)
+  quarterlyAllowance Decimal            @default(0) @map("quarterly_allowance") @db.Decimal(14, 2)
+  taxTreatment      TaxTreatment        @default(PAYE) @map("tax_treatment")
+  // Computed outputs
+  grossPay          Decimal             @map("gross_pay") @db.Decimal(14, 2)
+  employeePension   Decimal             @default(0) @map("employee_pension") @db.Decimal(14, 2)
+  nhf               Decimal             @default(0) @db.Decimal(14, 2)
+  taxableIncome     Decimal             @default(0) @map("taxable_income") @db.Decimal(14, 2)
+  payeTax           Decimal             @default(0) @map("paye_tax") @db.Decimal(14, 2)
+  netPay            Decimal             @map("net_pay") @db.Decimal(14, 2)
+  employerPension   Decimal             @default(0) @map("employer_pension") @db.Decimal(14, 2)
+  // Review
+  reviewStatus      PayItemReviewStatus @default(CARRIED_FORWARD) @map("review_status")
+  previousValues    Json?               @map("previous_values")
+  changeNote        String?             @map("change_note")
+  confirmedById     String?             @map("confirmed_by_id")
+  confirmedAt       DateTime?           @map("confirmed_at")
+  payCycle          PayCycle            @relation(fields: [payCycleId], references: [id], onDelete: Cascade)
+  employee          Employee            @relation(fields: [employeeId], references: [id])
+  payCategory       PayCategory?        @relation(fields: [payCategoryId], references: [id])
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  @@unique([payCycleId, employeeId])
+  @@map("pay_items")
+}
+
+// ---------- System ----------
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  ip         String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  title     String
+  body      String?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
+}
