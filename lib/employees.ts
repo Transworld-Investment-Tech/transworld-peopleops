@@ -147,7 +147,7 @@ export async function getEmployeeDetail(id: string) {
       payCategory: true,
       jobProfile: true,
       manager: true,
-      reports: { orderBy: { eeId: "asc" } },
+      reports: { where: { status: { not: "EXITED" } }, orderBy: { eeId: "asc" } },
       documents: { orderBy: { createdAt: "desc" } },
       employmentRecords: { orderBy: { effectiveDate: "desc" } },
     },
@@ -217,3 +217,107 @@ export async function getOrgData(): Promise<{
   const hasHierarchy = emps.some((e) => e.managerId);
   return { roots, hasHierarchy, count: emps.length };
 }
+
+
+// ---------------------------------------------------------------------------
+// Manage editor support (v0.5.0): dropdown options + cycle-safe manager list
+// ---------------------------------------------------------------------------
+export type FormOptions = {
+  departments: { id: string; name: string }[];
+  jobProfiles: { id: string; title: string }[];
+  payCategories: { id: string; name: string }[];
+  managers: { id: string; eeId: string; fullName: string }[];
+};
+
+/**
+ * Eligible managers exclude exited staff and, for an existing employee, the
+ * employee themselves plus all of their descendants (so a reporting cycle
+ * cannot be created from the UI).
+ */
+export async function getEligibleManagers(
+  employeeId?: string
+): Promise<{ id: string; eeId: string; fullName: string }[]> {
+  const all = await prisma.employee.findMany({
+    select: { id: true, eeId: true, fullName: true, managerId: true, status: true },
+  });
+  const excluded = new Set<string>();
+  if (employeeId) {
+    excluded.add(employeeId);
+    const childrenOf = new Map<string, string[]>();
+    for (const e of all) {
+      if (e.managerId) {
+        const arr = childrenOf.get(e.managerId) ?? [];
+        arr.push(e.id);
+        childrenOf.set(e.managerId, arr);
+      }
+    }
+    const stack = [employeeId];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      for (const child of childrenOf.get(cur) ?? []) {
+        if (!excluded.has(child)) {
+          excluded.add(child);
+          stack.push(child);
+        }
+      }
+    }
+  }
+  return all
+    .filter((e) => e.status !== "EXITED" && !excluded.has(e.id))
+    .map((e) => ({ id: e.id, eeId: e.eeId, fullName: e.fullName }))
+    .sort((a, b) => eeNum(a.eeId) - eeNum(b.eeId));
+}
+
+/** Returns the set of an employee's descendant ids (for server-side cycle guard). */
+export async function getDescendantIds(employeeId: string): Promise<Set<string>> {
+  const all = await prisma.employee.findMany({ select: { id: true, managerId: true } });
+  const childrenOf = new Map<string, string[]>();
+  for (const e of all) {
+    if (e.managerId) {
+      const arr = childrenOf.get(e.managerId) ?? [];
+      arr.push(e.id);
+      childrenOf.set(e.managerId, arr);
+    }
+  }
+  const out = new Set<string>();
+  const stack = [employeeId];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    for (const child of childrenOf.get(cur) ?? []) {
+      if (!out.has(child)) {
+        out.add(child);
+        stack.push(child);
+      }
+    }
+  }
+  return out;
+}
+
+/** Dropdown options for the manage editor. */
+export async function getFormOptions(employeeId?: string): Promise<FormOptions> {
+  const [departments, jobProfiles, payCategories, managers] = await Promise.all([
+    prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.jobProfile.findMany({ orderBy: { title: "asc" }, select: { id: true, title: true } }),
+    prisma.payCategory.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    getEligibleManagers(employeeId),
+  ]);
+  return { departments, jobProfiles, payCategories, managers };
+}
+
+export const EMPLOYMENT_TYPES: { value: string; label: string }[] = [
+  { value: "FULL_TIME", label: "Full-time" },
+  { value: "PART_TIME", label: "Part-time" },
+  { value: "CONTRACT", label: "Contract" },
+  { value: "OUTSOURCED", label: "Outsourced" },
+  { value: "FRACTIONAL", label: "Fractional" },
+  { value: "CONSULTANT", label: "Consultant" },
+  { value: "EXTERNAL_REVIEWER", label: "External reviewer" },
+];
+
+export const EMPLOYMENT_STATUSES: { value: string; label: string }[] = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "PROBATION", label: "Probation" },
+  { value: "ON_LEAVE", label: "On leave" },
+  { value: "SUSPENDED", label: "Suspended" },
+  { value: "EXITED", label: "Exited" },
+];

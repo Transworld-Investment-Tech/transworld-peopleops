@@ -35,17 +35,15 @@ export default async function EmployeesPage() {
             across Transworld Investment &amp; Securities (TISL).
           </p>
         </div>
-        <button
-          className="btn btn-pri"
-          disabled
-          title={
-            canManage
-              ? "Adding and editing employees arrives in a later build"
-              : "Requires the Manage employees permission"
-          }
-        >
-          + Add employee
-        </button>
+        {canManage ? (
+          <Link href="/employees/new" className="btn btn-pri">
+            + Add employee
+          </Link>
+        ) : (
+          <button className="btn btn-pri" disabled title="Requires the Manage employees permission">
+            + Add employee
+          </button>
+        )}
       </div>
 
       <EmployeesTabs />

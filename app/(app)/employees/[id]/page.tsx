@@ -55,17 +55,15 @@ export default async function EmployeeProfilePage({
             </span>
           </p>
         </div>
-        <button
-          className="btn"
-          disabled
-          title={
-            canManage
-              ? "Editing arrives in a later build"
-              : "Requires the Manage employees permission"
-          }
-        >
-          Edit
-        </button>
+        {canManage ? (
+          <Link href={`/employees/${emp.id}/edit`} className="btn">
+            Edit
+          </Link>
+        ) : (
+          <button className="btn" disabled title="Requires the Manage employees permission">
+            Edit
+          </button>
+        )}
       </div>
 
       <div className="grid two-col">
