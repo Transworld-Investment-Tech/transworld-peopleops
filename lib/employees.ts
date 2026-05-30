@@ -158,11 +158,16 @@ export type EmployeeDetail = NonNullable<Awaited<ReturnType<typeof getEmployeeDe
 // ---------------------------------------------------------------------------
 // Org chart (built from employees.manager_id self-relation)
 // ---------------------------------------------------------------------------
+// `department` (name) and `employmentType` are carried on the node so the
+// chart can show role + department and tag notable employment types
+// (e.g. Fractional). Both are existing columns — read-only, no schema change.
 export type OrgNode = {
   id: string;
   eeId: string;
   fullName: string;
   title: string | null;
+  department: string | null;
+  employmentType: EmploymentType;
   status: EmploymentStatus;
   managerId: string | null;
   children: OrgNode[];
@@ -182,7 +187,9 @@ export async function getOrgData(): Promise<{
       fullName: true,
       managerId: true,
       status: true,
+      employmentType: true,
       jobProfile: { select: { title: true } },
+      department: { select: { name: true } },
     },
   });
 
@@ -193,6 +200,8 @@ export async function getOrgData(): Promise<{
       eeId: e.eeId,
       fullName: e.fullName,
       title: e.jobProfile?.title ?? null,
+      department: e.department?.name ?? null,
+      employmentType: e.employmentType,
       status: e.status,
       managerId: e.managerId,
       children: [],

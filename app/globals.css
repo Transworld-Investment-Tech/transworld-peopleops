@@ -805,3 +805,264 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* TW-ORGCHART-CSS-V060 — Org chart hybrid layout (leadership spine + exec fan +
+   indented team sub-trees). Appended by the v0.6.0 setup. Additive only:
+   introduces .oc-* classes and reuses the theme palette plus the existing
+   .chip / .b badge styles. It supersedes the v0.3.0 .org-* tree — those classes
+   are no longer emitted by OrgChart.tsx and can be ignored. Safe to leave. */
+
+.oc {
+  --oc-rail: #c4cedd;            /* leadership connectors (navy-tinted)        */
+  --oc-rail-team: var(--line);   /* team sub-tree rails (light)                */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 8px 2px 6px;
+}
+.oc-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* ---- shared node card ---------------------------------------------------- */
+.oc-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 14px 11px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--oc-accent, var(--muted));
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+.oc-card-main {
+  min-width: 0;
+}
+.oc-name {
+  display: block;
+  font-weight: 600;
+  font-size: 13.5px;
+  line-height: 1.25;
+  color: var(--ink);
+  text-decoration: none;
+}
+.oc-name:hover {
+  color: var(--blue);
+}
+.oc-role {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.oc-role-sep {
+  margin: 0 5px;
+  color: var(--faint);
+}
+.oc-dept {
+  font-weight: 600;
+  color: var(--oc-accent, var(--muted));
+}
+.oc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+.oc-type {
+  font-weight: 600;
+}
+.oc-chip {
+  flex: none;
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--oc-accent, var(--muted)) 35%, transparent);
+}
+
+/* ---- leadership cards (navy "control-room" boxes) ------------------------ */
+.oc-card--lead {
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%);
+  border-color: var(--navy-2);
+  border-left: 3px solid var(--oc-accent, var(--blue));
+  color: #fff;
+}
+.oc-card--lead .oc-name {
+  color: #fff;
+}
+.oc-card--lead .oc-name:hover {
+  color: #cfe0f5;
+}
+.oc-card--lead .oc-role {
+  color: #b7c4da;
+}
+.oc-card--lead .oc-role-sep {
+  color: #6c80a3;
+}
+.oc-card--lead .oc-dept {
+  color: #dbe6f5;
+}
+.oc-card--lead .oc-chip {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+
+.oc-card--team {
+  max-width: 340px;
+}
+
+/* ---- leadership spine (Chairman -> MD ...): centered, vertical connectors - */
+.oc-spine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.oc-spine .oc-card--lead {
+  width: 264px;
+}
+.oc-stem {
+  width: 2px;
+  height: 22px;
+  background: var(--oc-rail);
+}
+
+/* ---- exec fan: connected row off the pivot, each a downward branch -------- */
+.oc-fan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 18px;
+  width: 100%;
+}
+.oc-fan-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 380px;
+  padding-top: 22px; /* room for the bus + the drop into the exec head */
+}
+/* vertical drop from the bus into each exec head */
+.oc-fan-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 22px;
+  background: var(--oc-rail);
+}
+/* horizontal bus across the exec row (half-width at the two ends) */
+.oc-fan-item::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--oc-rail);
+}
+.oc-fan-item:first-child::after {
+  left: 50%;
+  right: 0;
+}
+.oc-fan-item:last-child::after {
+  left: 0;
+  right: 50%;
+}
+.oc-fan-item:only-child::after {
+  display: none;
+}
+.oc-fan-head {
+  display: flex;
+}
+.oc-fan-head .oc-card--lead {
+  width: 100%;
+}
+
+/* ---- indented team sub-tree (recurses to any depth) ---------------------- */
+.oc-sub {
+  list-style: none;
+  margin: 4px 0 0;
+  padding-left: 26px;
+}
+.oc-sub-item {
+  position: relative;
+  padding-top: 8px;
+}
+/* continuous vertical rail (consecutive items stack into one line) */
+.oc-sub-item::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--oc-rail-team);
+}
+/* last child: rail stops at its own elbow rather than continuing down */
+.oc-sub-item:last-child::before {
+  height: 30px;
+}
+/* elbow into the card (aligned to the avatar's vertical center) */
+.oc-sub-item::after {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 30px;
+  width: 14px;
+  height: 2px;
+  background: var(--oc-rail-team);
+}
+
+/* ---- flat fallback (no reporting lines set yet) -------------------------- */
+.oc-flat {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+/* ---- responsive: stack the exec fan into full-width branches ------------- */
+@media (max-width: 860px) {
+  .oc-fan {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .oc-fan-item {
+    max-width: none;
+    padding-top: 0;
+    margin-top: 14px;
+  }
+  .oc-fan-item::before,
+  .oc-fan-item::after {
+    display: none;
+  }
+  .oc-fan-head .oc-card--lead {
+    max-width: 360px;
+  }
+}
+@media (max-width: 520px) {
+  .oc,
+  .oc-block {
+    align-items: stretch;
+  }
+  .oc-spine {
+    align-items: stretch;
+  }
+  .oc-spine .oc-card--lead,
+  .oc-fan-head .oc-card--lead {
+    width: 100%;
+    max-width: none;
+  }
+}
