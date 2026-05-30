@@ -523,3 +523,222 @@ tbody tr:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* TW-EMPLOYEES-CSS-V030 — Employees module (directory, profile, org chart).
+   Appended by the v0.3.0 setup. Additive only: it introduces classes the
+   ported theme did not yet include (.emp/.chip/.bar/.dot/.two-col), plus the
+   tabs, profile key-value rows, document checklist, and org-chart styles.
+   Reuses the existing palette variables. Safe to leave in place. */
+
+/* employee cell (table) */
+.emp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.emp .nm {
+  font-weight: 600;
+  font-size: 13px;
+  display: block;
+}
+.emp .rl {
+  font-size: 11.5px;
+  color: var(--muted);
+  display: block;
+}
+.emp-link {
+  text-decoration: none;
+  color: inherit;
+}
+.emp-link:hover .nm {
+  color: var(--blue);
+}
+
+/* avatar chip (smaller than the topbar avatar) */
+.chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--blue-soft);
+  color: var(--blue);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 12px;
+  flex: none;
+}
+
+/* completeness bar */
+.bar {
+  height: 7px;
+  border-radius: 6px;
+  background: #eaeef3;
+  overflow: hidden;
+  width: 120px;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--green);
+}
+.bar.warn i {
+  background: var(--amber);
+}
+.bar.bad i {
+  background: var(--red);
+}
+.docbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* status dot inside badges */
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+
+/* two-column grid + small text helpers */
+.two-col {
+  grid-template-columns: 1.5fr 1fr;
+}
+.faint {
+  color: var(--faint);
+}
+.muted {
+  color: var(--muted);
+}
+.back-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+}
+.back-link:hover {
+  color: var(--ink);
+}
+
+/* tabs nested inside a module */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
+}
+.tab {
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: 8px 8px 0 0;
+}
+.tab:hover {
+  color: var(--ink);
+  background: #fbfcfe;
+}
+.tab.active {
+  color: var(--navy);
+  border-bottom-color: var(--navy);
+}
+
+/* key-value rows (profile) */
+.kv {
+  display: flex;
+  flex-direction: column;
+}
+.kv .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 13px;
+}
+.kv .row:last-child {
+  border-bottom: none;
+}
+.kv .row .k {
+  color: var(--muted);
+}
+.kv .row .v {
+  font-weight: 500;
+  text-align: right;
+}
+
+/* document checklist + simple list rows */
+.doc-list {
+  display: flex;
+  flex-direction: column;
+}
+.doc-list .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 13px;
+}
+.doc-list .row:last-child {
+  border-bottom: none;
+}
+.doc-list .row .st {
+  margin-left: auto;
+}
+
+/* org chart — flat (no hierarchy) */
+.org-flat {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+.org-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.org-meta {
+  min-width: 0;
+}
+.org-nm {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: none;
+  display: block;
+}
+.org-nm:hover {
+  color: var(--blue);
+}
+.org-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* org chart — hierarchy (indented tree with a connector rail) */
+.org-tree,
+.org-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.org-tree li {
+  margin: 6px 0;
+}
+.org-children {
+  margin-left: 26px;
+  border-left: 2px solid var(--line);
+  padding-left: 16px;
+}
