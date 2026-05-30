@@ -1,6 +1,6 @@
 {
   "name": "transworld-peopleops",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:verify": "tsx prisma/verify.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "auth:bootstrap": "tsx prisma/bootstrap-auth.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
