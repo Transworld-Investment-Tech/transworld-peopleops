@@ -4,6 +4,7 @@ import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { getAppraisalView, RATINGS } from "@/lib/performance";
 import { LEVELS } from "@/lib/jobframework";
 import AppraisalEditor from "@/components/performance/AppraisalEditor";
+import DevelopmentCard from "@/components/performance/DevelopmentCard";
 
 export const metadata = { title: "Appraisal · Transworld PeopleOps" };
 
@@ -14,6 +15,7 @@ export default async function AppraisalPage({
 }) {
   const me = await requirePermission("performance.view");
   const canManage = hasPermission(me, "performance.manage");
+  const canRecommend = hasPermission(me, "learning.recommend");
   const { cycleId, employeeId } = await params;
 
   const view = await getAppraisalView(cycleId, employeeId);
@@ -57,6 +59,13 @@ export default async function AppraisalPage({
         appraisal={view.appraisal}
         ratings={RATINGS.map((r) => ({ value: r.value, label: r.label }))}
         levels={LEVELS.map((l) => ({ value: l.value, label: l.label }))}
+      />
+
+      <DevelopmentCard
+        employeeId={employeeId}
+        cycleId={cycleId}
+        appraisalId={view.appraisal?.id ?? null}
+        canRecommend={canRecommend}
       />
     </>
   );

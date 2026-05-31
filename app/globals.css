@@ -1920,3 +1920,150 @@ tbody tr:hover {
     display: none;
   }
 }
+
+/* TW-LEARNING-CSS-V0120 — Learning & Development. Appended by the v0.12.0
+   setup.sh (additive, marker-guarded). Reuses the theme palette and the existing
+   .card / .kpi / .b badge / .bar / .cyc-tab / .field / .chip conventions; adds a
+   few .ln-* helpers for the library table, markdown body, and recommend list. */
+
+/* completion cell (bar + % label) in the library table */
+.ln-prog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+}
+.ln-prog .bar {
+  flex: 1;
+}
+.ln-prog .pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* competency tag chips */
+.ln-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ln-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ln-tag.suggested {
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-weight: 600;
+}
+
+/* module meta row on the read page */
+.ln-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.ln-meta .dot-sep::before {
+  content: "·";
+  margin-right: 14px;
+  color: var(--faint);
+}
+
+/* rendered markdown body */
+.ln-body {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink);
+  max-width: 760px;
+}
+.ln-body h2 {
+  font-family: "Spectral", serif;
+  font-size: 20px;
+  margin: 22px 0 8px;
+}
+.ln-body h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 18px 0 6px;
+}
+.ln-body p {
+  margin: 0 0 12px;
+}
+.ln-body ul,
+.ln-body ol {
+  margin: 0 0 12px 22px;
+}
+.ln-body li {
+  margin: 3px 0;
+}
+.ln-body code {
+  font-family: "IBM Plex Mono", monospace;
+  background: var(--line-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.ln-body a {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+/* recommend / enroll module picker rows */
+.ln-pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.ln-pick.on {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+.ln-pick input {
+  margin-top: 3px;
+}
+.ln-pick .ln-pick-main {
+  flex: 1;
+}
+.ln-pick .ln-pick-title {
+  font-weight: 600;
+}
+.ln-pick .ln-pick-sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* inline action button cluster (start / complete / waive on a record) */
+.ln-rec-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* small stat line used on the handbook + my-learning pages */
+.ln-statline {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+.ln-statline b {
+  color: var(--ink);
+}

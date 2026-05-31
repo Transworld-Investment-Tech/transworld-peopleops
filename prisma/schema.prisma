@@ -648,3 +648,67 @@ model CompChangeRequest {
   @@index([status])
   @@map("comp_change_requests")
 }
+
+// TW-LEARNING-MODELS-V0120 — Learning & Development (v0.12.0). Appended to
+// schema.prisma by setup.sh (marker-guarded, idempotent). Mirrors
+// public.learning_modules / public.learning_module_competencies /
+// public.learning_records created by supabase/migrations/0005_add_learning.sql.
+// Following the cross-module convention (scorecards / performance / compensation):
+// cross-entity references (competencies, employees, users, appraisals) are FKs in
+// SQL only; here they stay bare columns so Competency / Employee / User / Appraisal
+// are untouched. Relations are modeled only within this module. Ids are
+// app-generated cuid; status / source are plain Strings (CHECK-constrained in the
+// migration). NOTE: setup.sh ALSO injects handbook columns into the EXISTING
+// Policy model in place (see marker TW-LEARNING-POLICY-COLS-V0120).
+model LearningModule {
+  id               String                     @id @default(cuid())
+  title            String
+  category         String
+  summary          String?
+  body             String?
+  estimatedMinutes Int?                       @map("estimated_minutes")
+  status           String                     @default("DRAFT")
+  createdById      String?                    @map("created_by_id")
+  competencies     LearningModuleCompetency[]
+  records          LearningRecord[]
+  createdAt        DateTime                   @default(now()) @map("created_at")
+  updatedAt        DateTime                   @updatedAt @map("updated_at")
+
+  @@map("learning_modules")
+}
+
+model LearningModuleCompetency {
+  moduleId     String         @map("module_id")
+  competencyId String         @map("competency_id")
+  module       LearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@id([moduleId, competencyId])
+  @@index([competencyId])
+  @@map("learning_module_competencies")
+}
+
+model LearningRecord {
+  id              String         @id @default(cuid())
+  moduleId        String         @map("module_id")
+  employeeId      String         @map("employee_id")
+  source          String         @default("SELF")
+  status          String         @default("ASSIGNED")
+  assignedAt      DateTime       @default(now()) @map("assigned_at")
+  dueDate         DateTime?      @map("due_date")
+  startedAt       DateTime?      @map("started_at")
+  completedAt     DateTime?      @map("completed_at")
+  reflection      String?
+  score           Int?
+  recommendedById String?        @map("recommended_by_id")
+  appraisalId     String?        @map("appraisal_id")
+  notes           String?
+  module          LearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@unique([moduleId, employeeId])
+  @@index([employeeId])
+  @@index([moduleId])
+  @@index([status])
+  @@map("learning_records")
+}
