@@ -339,6 +339,7 @@ model LeaveBalance {
   employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id])
 
+  daysEntitled       Decimal   @default(0) @map("days_entitled") @db.Decimal(6, 1)
   @@unique([employeeId, leaveTypeId, year])
   @@map("leave_balances")
 }
@@ -357,6 +358,12 @@ model LeaveRequest {
   leaveType   LeaveType          @relation(fields: [leaveTypeId], references: [id])
   createdAt   DateTime           @default(now()) @map("created_at")
 
+  managerStatus      String             @default("PENDING") @map("manager_status")
+  managerReviewerId  String?            @map("manager_reviewer_id")
+  managerReviewedAt  DateTime?          @map("manager_reviewed_at")
+  managerNote        String?            @map("manager_note")
+  decidedAt          DateTime?          @map("decided_at")
+  decisionNote       String?            @map("decision_note")
   @@map("leave_requests")
 }
 
