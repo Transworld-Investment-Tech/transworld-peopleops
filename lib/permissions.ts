@@ -1,12 +1,17 @@
 // Single source of truth for access control and navigation.
 // - PERMISSIONS: the catalog seeded into the `permissions` table by auth:bootstrap.
 // - ROLE_PERMISSIONS: which permission keys each seeded role receives.
-// - NAV: the 13-module sidebar (matching the approved mock-up), each item gated
-//   by a permission. buildNav() returns only the sections/items a user may see.
+// - NAV: the sidebar (matching the approved mock-up), each item gated by a
+//   permission. buildNav() returns only the sections/items a user may see.
 // - MODULE_BY_SLUG: lets a route enforce the same permission a nav item implies.
 //
 // This file contains data only (no React, no server imports) so it can be
 // imported both by the Next.js app and by the standalone bootstrap script.
+//
+// v0.13.0 — Staff login provisioning / admin.users:
+//   * `admin.users` already existed in the catalog (count stays 24). This
+//     release GRANTS it to HR_ADMIN (in addition to SUPER_ADMIN via "*") and
+//     adds the "Administration -> User Management" sidebar entry.
 
 export type Permission = { key: string; label: string };
 
@@ -76,6 +81,10 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payroll.view",
     "evidence.view",
     "payslips.view_own",
+    // v0.13.0: HR operator can provision/link staff logins and reset passwords.
+    // (Role *assignment* inside the screen is further gated to SUPER_ADMIN in
+    // the server action — HR_ADMIN can create/link users but cannot elevate.)
+    "admin.users",
   ],
   FINANCE: [
     "dashboard.view",
@@ -162,6 +171,7 @@ const I = {
   payslips: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h9l5 5V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M14 2.5V8h5M8.5 13h7M8.5 17h5"/></svg>`,
   evidence: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2.5 4 6v5c0 5 3.4 8.6 8 10.5C16.6 19.6 20 16 20 11V6Z"/><path d="m9 11.5 2 2 4-4.5"/></svg>`,
   controls: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 7.5h18M6.5 7.5 5 18M17.5 7.5 19 18M3.5 18h17"/></svg>`,
+  admin: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><circle cx="18" cy="16.5" r="2.4"/><path d="M18 11.6v1.4M18 20v1.4M22.2 16.5h-1.4M15.2 16.5h-1.4"/></svg>`,
 };
 
 export const NAV: NavSection[] = [
@@ -206,6 +216,12 @@ export const NAV: NavSection[] = [
     items: [
       { slug: "evidence", label: "Evidence Vault", perm: "evidence.view", icon: I.evidence },
       { slug: "controls", label: "Internal Controls", perm: "controls.view", icon: I.controls },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      { slug: "admin/users", label: "User Management", perm: "admin.users", icon: I.admin },
     ],
   },
 ];

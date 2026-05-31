@@ -1,5 +1,7 @@
 // Server component. Replaces the prototype "Viewing as…" switcher with the
-// real signed-in identity and a working sign-out backed by a server action.
+// real signed-in identity, a link to change your own password, and a working
+// sign-out backed by a server action.
+import Link from "next/link";
 import { logoutAction } from "@/lib/auth/actions";
 import { ROLE_LABELS } from "@/lib/permissions";
 
@@ -37,6 +39,9 @@ export default function Topbar({
             <div className="who-roles">{roleText}</div>
           </div>
         </div>
+        <Link className="btn" href="/account/password">
+          Change password
+        </Link>
         <form action={logoutAction}>
           <button className="btn" type="submit">
             Sign out
