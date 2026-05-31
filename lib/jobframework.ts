@@ -44,14 +44,19 @@ export function levelLabel(n: number): string {
 
 /** Job-profile rows for the list: counts of required competencies + holders. */
 export async function getJobProfilesForList() {
-  const [profiles, departments] = await Promise.all([
+  const [profiles, departments, scorecards] = await Promise.all([
     prisma.jobProfile.findMany({
       include: { _count: { select: { employees: true, competencies: true } } },
       orderBy: [{ title: "asc" }],
     }),
     prisma.department.findMany({ select: { id: true, name: true } }),
+    prisma.scorecard.findMany({
+      where: { status: "PUBLISHED" },
+      select: { jobProfileId: true },
+    }),
   ]);
   const deptName = new Map(departments.map((d) => [d.id, d.name]));
+  const scored = new Set(scorecards.map((s) => s.jobProfileId));
   return profiles.map((p) => ({
     id: p.id,
     title: p.title,
@@ -60,6 +65,7 @@ export async function getJobProfilesForList() {
     department: p.departmentId ? deptName.get(p.departmentId) ?? null : null,
     competencyCount: p._count.competencies,
     employeeCount: p._count.employees,
+    hasScorecard: scored.has(p.id),
   }));
 }
 

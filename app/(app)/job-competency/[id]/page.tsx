@@ -6,6 +6,7 @@ import { getLatestDocument, prettySize } from "@/lib/documents";
 import { storageConfigured } from "@/lib/storage";
 import { empInitials, statusBadge } from "@/lib/employees";
 import JobDescriptionCard from "@/components/jobcompetency/JobDescriptionCard";
+import { getScorecard, scorecardStatusBadge } from "@/lib/scorecards";
 import type { EmploymentStatus } from "@prisma/client";
 
 export const metadata = { title: "Job profile · Transworld PeopleOps" };
@@ -36,6 +37,9 @@ export default async function JobProfilePage({
         }),
       }
     : null;
+
+  const scorecard = await getScorecard(p.id);
+  const scb = scorecard ? scorecardStatusBadge(scorecard.status) : null;
 
   return (
     <>
@@ -97,6 +101,49 @@ export default async function JobProfilePage({
                 </span>
               ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Scorecard</h3>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {scb ? (
+              <span className={"b " + scb.cls}>
+                <span className="dot" />
+                {scb.label}
+              </span>
+            ) : null}
+            {canManage ? (
+              <Link href={`/job-competency/${p.id}/scorecard/edit`} className="btn">
+                {scorecard ? "Edit scorecard" : "Create scorecard"}
+              </Link>
+            ) : null}
+          </div>
+        </div>
+        <div className="card-pad">
+          {!scorecard ? (
+            <p className="faint">No scorecard yet.</p>
+          ) : (
+            <>
+              {scorecard.mission ? <p className="sc-mission">{scorecard.mission}</p> : null}
+              {scorecard.outcomes.length === 0 ? (
+                <p className="faint">No outcomes defined.</p>
+              ) : (
+                <ol className="sc-outcomes">
+                  {scorecard.outcomes.map((o) => (
+                    <li className="sc-outcome" key={o.id}>
+                      <div className="sc-o-head">
+                        <span className="sc-o-title">{o.title}</span>
+                        {o.weight !== null ? <span className="sc-o-weight">{o.weight}%</span> : null}
+                      </div>
+                      {o.measure ? <div className="sc-o-measure">{o.measure}</div> : null}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -1279,3 +1279,155 @@ tbody tr:hover {
 .doc-upload input[type="file"]::file-selector-button:hover {
   border-color: #d3dbe6;
 }
+
+/* TW-SCORECARD-CSS-V090 — role scorecard display + editor. Additive only;
+   reuses the theme palette and existing .card / .btn / .field conventions. */
+
+/* --- display (profile detail) --- */
+.sc-mission {
+  margin: 0 0 14px;
+  max-width: 70ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+.sc-outcomes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  counter-reset: sc;
+}
+.sc-outcome {
+  position: relative;
+  padding: 10px 12px 10px 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  counter-increment: sc;
+}
+.sc-outcome::before {
+  content: counter(sc);
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sc-o-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.sc-o-title {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 14px;
+}
+.sc-o-weight {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.sc-o-measure {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* --- editor --- */
+.sc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.sc-row-n {
+  flex: none;
+  width: 22px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 700;
+}
+.sc-row-fields {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 80px;
+  gap: 8px;
+}
+.sc-row-fields input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  min-width: 0;
+}
+.sc-row-fields input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 168, 0.15);
+}
+.sc-in-weight {
+  text-align: center;
+}
+.sc-remove {
+  flex: none;
+  width: 30px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.sc-remove:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+.sc-add {
+  margin-top: 12px;
+}
+.sc-danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .sc-row-fields {
+    grid-template-columns: 1fr;
+  }
+}

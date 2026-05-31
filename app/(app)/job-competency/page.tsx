@@ -94,7 +94,10 @@ export default async function JobProfilesPage() {
                     </td>
                     <td>{r.grade ?? "—"}</td>
                     <td>{r.department ?? "—"}</td>
-                    <td className="mono">{r.competencyCount}</td>
+                    <td className="mono">
+                      {r.competencyCount}
+                      {r.hasScorecard ? <span className="faint"> · 1 scorecard</span> : null}
+                    </td>
                     <td className="mono">{r.employeeCount}</td>
                     <td>
                       <span className={"b " + s.cls}>

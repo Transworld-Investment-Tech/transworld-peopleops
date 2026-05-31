@@ -493,3 +493,33 @@ model Document {
   @@index([entityType, entityId])
   @@map("documents")
 }
+
+// TW-SCORECARD-MODELS-V090 — structured role scorecards (mission + measurable
+// outcomes). Mirrors public.scorecards / public.scorecard_outcomes created by
+// supabase/migrations/0002_add_scorecards.sql. job_profile_id is a bare column
+// (its FK is enforced in SQL) so the JobProfile model is left untouched.
+model Scorecard {
+  id           String             @id @default(cuid())
+  jobProfileId String             @unique @map("job_profile_id")
+  mission      String?
+  status       String             @default("DRAFT")
+  outcomes     ScorecardOutcome[]
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  @@map("scorecards")
+}
+
+model ScorecardOutcome {
+  id          String    @id @default(cuid())
+  scorecardId String    @map("scorecard_id")
+  position    Int       @default(0)
+  title       String
+  measure     String?
+  weight      Int?
+  scorecard   Scorecard @relation(fields: [scorecardId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([scorecardId])
+  @@map("scorecard_outcomes")
+}
