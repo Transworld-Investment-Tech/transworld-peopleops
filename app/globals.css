@@ -1671,3 +1671,252 @@ tbody tr:hover {
   font-size: 12.5px;
   color: var(--muted);
 }
+
+/* TW-COMPENSATION-CSS-V0110 — Compensation module helpers (additive; reuses the
+   existing theme tokens and shares .sc-row-n / .sc-remove / .sc-add from the
+   scorecard editor). Slip-style breakdown, checkbox groups, review controls,
+   band/tax-band row editors, and the request from→to delta. */
+
+/* pending-count pill on the Change requests sub-tab */
+.comp-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 7px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--amber);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* provisional breakdown slip */
+.comp-slip {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.comp-slip-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--blue-soft);
+}
+.comp-slip-h h4 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--navy);
+}
+.comp-slip-body {
+  padding: 8px 18px 14px;
+}
+.comp-slip-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  font-size: 13px;
+}
+.comp-slip-lab {
+  color: var(--muted);
+}
+.comp-slip-val {
+  color: var(--ink);
+  white-space: nowrap;
+}
+.comp-slip-row.sub .comp-slip-val {
+  color: var(--red);
+}
+.comp-slip-row.net {
+  border-top: 1px solid var(--line-2);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+.comp-slip-row.net .comp-slip-lab,
+.comp-slip-row.net .comp-slip-val {
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 14px;
+}
+.comp-slip-row.muted .comp-slip-lab,
+.comp-slip-row.muted .comp-slip-val {
+  color: var(--faint);
+}
+.comp-slip-sep {
+  height: 1px;
+  background: var(--line-2);
+  margin: 8px 0;
+}
+.comp-slip-notes {
+  margin: 0;
+  padding: 12px 18px;
+  list-style: none;
+  border-top: 1px solid var(--line-2);
+  background: var(--bg);
+}
+.comp-slip-notes li {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 2px 0 2px 16px;
+  position: relative;
+}
+.comp-slip-notes li::before {
+  content: "•";
+  position: absolute;
+  left: 2px;
+  color: var(--faint);
+}
+.comp-slip-foot {
+  margin: 0;
+  padding: 10px 18px 14px;
+  font-size: 11.5px;
+  color: var(--faint);
+  border-top: 1px solid var(--line-2);
+}
+
+/* checkbox groups (benefits / options) */
+.comp-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding-top: 4px;
+}
+.comp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.comp-check input {
+  width: 15px;
+  height: 15px;
+}
+
+/* exec sign-off control */
+.comp-review {
+  border-top: 1px dashed var(--line);
+  padding-top: 14px;
+}
+.comp-review-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.comp-selfapprove {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+/* band + tax-band row editors */
+.comp-band-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comp-band-head,
+.comp-band-row {
+  display: grid;
+  grid-template-columns: 80px 1.4fr 1fr 1fr 1fr 30px;
+  gap: 8px;
+  align-items: center;
+}
+.comp-taxband-head,
+.comp-taxband-row {
+  grid-template-columns: 30px 1fr 1fr 1fr 30px;
+}
+.comp-band-head {
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+  padding: 0 2px;
+}
+.comp-band-row input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  min-width: 0;
+}
+.comp-band-row input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 168, 0.15);
+}
+
+/* request from -> to delta */
+.comp-delta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.comp-delta-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 22px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.comp-delta-lab {
+  color: var(--faint);
+  font-size: 12px;
+}
+.comp-delta-from {
+  color: var(--muted);
+}
+.comp-delta-arrow {
+  color: var(--faint);
+  text-align: center;
+}
+.comp-delta-to {
+  color: var(--ink);
+}
+.comp-delta-row.changed .comp-delta-to {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+/* per-rule-set action row on the tax page */
+.comp-ruleset-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .comp-band-head {
+    display: none;
+  }
+  .comp-band-row,
+  .comp-taxband-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .comp-delta-row {
+    grid-template-columns: 1fr;
+  }
+  .comp-delta-arrow {
+    display: none;
+  }
+}

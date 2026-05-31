@@ -266,6 +266,8 @@ model CompensationProfile {
   pensionApplicable Boolean      @default(true) @map("pension_applicable")
   nhfApplicable     Boolean      @default(true) @map("nhf_applicable")
   isCurrent         Boolean      @default(true) @map("is_current")
+  flatTaxRate       Decimal?     @map("flat_tax_rate") @db.Decimal(6, 4)
+  annualRentPaid    Decimal?     @map("annual_rent_paid") @db.Decimal(14, 2)
   employee          Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   createdAt         DateTime     @default(now()) @map("created_at")
 
@@ -594,4 +596,55 @@ model AppraisalItem {
 
   @@index([appraisalId])
   @@map("appraisal_items")
+}
+
+// TW-COMPENSATION-MODELS-V0110 — Compensation module (v0.11.0).
+// Appended to schema.prisma by setup.sh (marker-guarded, idempotent). Two new
+// models. Following the cross-module convention (see scorecards / performance):
+// cross-entity references (employees, users, compensation_profiles) are FKs in
+// SQL only; here they stay bare columns so Employee / User / CompensationProfile
+// are not touched. Ids are app-generated cuid; status / tax treatment are plain
+// Strings (CHECK-constrained in the migration). NOTE: setup.sh also injects two
+// columns (flatTaxRate, annualRentPaid) into the EXISTING CompensationProfile
+// model in place — they cannot be added by appending a new block.
+
+model SalaryBand {
+  id        String   @id @default(cuid())
+  grade     String   @unique
+  label     String
+  minAmount Decimal  @map("min_amount") @db.Decimal(14, 2)
+  midpoint  Decimal  @db.Decimal(14, 2)
+  maxAmount Decimal  @map("max_amount") @db.Decimal(14, 2)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("salary_bands")
+}
+
+model CompChangeRequest {
+  id                 String    @id @default(cuid())
+  employeeId         String    @map("employee_id")
+  basicSalary        Decimal   @map("basic_salary") @db.Decimal(14, 2)
+  utilityAllowance   Decimal   @default(0) @map("utility_allowance") @db.Decimal(14, 2)
+  quarterlyAllowance Decimal   @default(0) @map("quarterly_allowance") @db.Decimal(14, 2)
+  taxTreatment       String    @default("PAYE") @map("tax_treatment")
+  flatTaxRate        Decimal?  @map("flat_tax_rate") @db.Decimal(6, 4)
+  annualRentPaid     Decimal?  @map("annual_rent_paid") @db.Decimal(14, 2)
+  pensionApplicable  Boolean   @default(true) @map("pension_applicable")
+  nhfApplicable      Boolean   @default(true) @map("nhf_applicable")
+  effectiveDate      DateTime  @map("effective_date")
+  reason             String?
+  status             String    @default("PENDING")
+  requestedById      String?   @map("requested_by_id")
+  requestedAt        DateTime  @default(now()) @map("requested_at")
+  decidedById        String?   @map("decided_by_id")
+  decidedAt          DateTime? @map("decided_at")
+  decisionNote       String?   @map("decision_note")
+  appliedProfileId   String?   @map("applied_profile_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("comp_change_requests")
 }
