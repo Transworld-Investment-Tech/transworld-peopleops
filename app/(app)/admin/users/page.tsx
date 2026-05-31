@@ -104,11 +104,20 @@ export default async function UserManagementPage() {
               return (
                 <tr key={u.id}>
                   <td>
-                    <span className="nm">{u.name}</span>
-                    <span className="rl mono">{u.email}</span>
-                    {u.id === me.id && (
-                      <span className="faint" style={{ fontSize: 11.5 }}> (you)</span>
-                    )}
+                    <div className="emp">
+                      <div>
+                        <span className="nm">
+                          {u.name}
+                          {u.id === me.id && (
+                            <span className="faint" style={{ fontSize: 11.5, fontWeight: 400 }}>
+                              {" "}
+                              (you)
+                            </span>
+                          )}
+                        </span>
+                        <span className="rl mono">{u.email}</span>
+                      </div>
+                    </div>
                   </td>
                   <td>
                     {u.employee ? (
