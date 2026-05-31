@@ -296,6 +296,11 @@ model Policy {
   version         String                 @default("1.0")
   fileKey         String?                @map("file_key")
   isCurrent       Boolean                @default(true) @map("is_current")
+  category       String                 @default("HANDBOOK")
+  summary        String?
+  body           String?
+  effectiveDate  DateTime?              @map("effective_date")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
   acknowledgments PolicyAcknowledgment[]
   createdAt       DateTime               @default(now()) @map("created_at")
 
