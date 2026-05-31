@@ -103,6 +103,11 @@ export default async function LeavePage() {
                   {r.typeName} · {r.dateRange} · {fmtDays(r.days)} day{r.days === 1 ? "" : "s"}
                   {r.note ? ` · “${r.note}”` : ""}
                 </p>
+                <p style={{ margin: "0 0 10px" }}>
+                  <Link href={`/leave/${r.id}`} className="jc-link">
+                    View / modify →
+                  </Link>
+                </p>
                 <LeaveManagerReview requestId={r.id} />
               </div>
             ))}
@@ -159,14 +164,19 @@ export default async function LeavePage() {
                       </p>
                     ) : null}
 
+                    <p style={{ margin: "10px 0 0" }}>
+                      <Link href={`/leave/${r.id}`} className="jc-link">
+                        View / modify →
+                      </Link>
+                    </p>
+
                     {r.canDecide ? (
                       <div style={{ marginTop: 12 }}>
                         <LeaveDecision requestId={r.id} selfApproval={r.selfApproval} />
                       </div>
                     ) : r.awaitingManager ? (
                       <p className="hint" style={{ marginTop: 12 }}>
-                        Waiting on {r.employeeName.split(" ")[0]}’s line manager to review before you
-                        can decide.
+                        Waiting on {r.firstName}’s line manager to review before you can decide.
                       </p>
                     ) : null}
 
@@ -207,7 +217,9 @@ export default async function LeavePage() {
                   return (
                     <tr key={r.id}>
                       <td>
-                        <EmpCell r={r} />
+                        <Link href={`/leave/${r.id}`} className="jc-link" style={{ textDecoration: "none" }}>
+                          <EmpCell r={r} />
+                        </Link>
                       </td>
                       <td>{r.typeName}</td>
                       <td>{r.dateRange}</td>
@@ -298,7 +310,14 @@ export default async function LeavePage() {
                           <td>
                             <span className={`b ${sb.cls}`}>{sb.label}</span>
                           </td>
-                          <td>{r.canCancel ? <LeaveCancel requestId={r.id} /> : null}</td>
+                          <td>
+                            <span style={{ display: "inline-flex", gap: 10, alignItems: "center" }}>
+                              <Link href={`/leave/${r.id}`} className="jc-link">
+                                View
+                              </Link>
+                              {r.canCancel ? <LeaveCancel requestId={r.id} /> : null}
+                            </span>
+                          </td>
                         </tr>
                       );
                     })}

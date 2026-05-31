@@ -298,7 +298,113 @@ export async function cancelLeaveAction(_prev: FormState, fd: FormData): Promise
 }
 
 // ---------------------------------------------------------------------------
-// 5) Edit a per-employee entitlement (HR) — Balances editor
+// 5) Modify a pending request (owner, line manager, or HR)
+// ---------------------------------------------------------------------------
+export async function editLeaveAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireUser();
+  const requestId = s(fd.get("requestId"));
+  if (!requestId) return { ok: false, error: "Missing request." };
+
+  const req = await prisma.leaveRequest.findUnique({
+    where: { id: requestId },
+    select: {
+      id: true,
+      status: true,
+      managerStatus: true,
+      employeeId: true,
+      leaveTypeId: true,
+      startDate: true,
+      endDate: true,
+      days: true,
+      employee: { select: { managerId: true, userId: true } },
+    },
+  });
+  if (!req) return { ok: false, error: "Request not found." };
+
+  // Authorization: requester, their line manager, or HR — while still pending.
+  const myEmp = await prisma.employee.findUnique({
+    where: { userId: me.id },
+    select: { id: true },
+  });
+  const isOwner = req.employee.userId === me.id;
+  const isLineManager = !!myEmp && req.employee.managerId === myEmp.id;
+  const canManage = me.permissions.has("leave.manage");
+  if (!isOwner && !isLineManager && !canManage) redirect("/access-denied");
+  if (req.status !== "PENDING") return { ok: false, error: "Only a pending request can be modified." };
+
+  const leaveTypeId = s(fd.get("leaveTypeId"));
+  const startDate = parseDateUTC(fd.get("startDate"));
+  const endDate = parseDateUTC(fd.get("endDate"));
+  const half = s(fd.get("half")) === "on" || s(fd.get("half")) === "1";
+  const note = nz(fd.get("note"));
+
+  const fieldErrors: Record<string, string> = {};
+  if (!leaveTypeId) fieldErrors.leaveTypeId = "Choose a leave type.";
+  if (!startDate) fieldErrors.startDate = "Start date is required.";
+  if (!endDate) fieldErrors.endDate = "End date is required.";
+  if (startDate && endDate && endDate.getTime() < startDate.getTime())
+    fieldErrors.endDate = "End date can’t be before the start date.";
+  if (half && startDate && endDate && startDate.getTime() !== endDate.getTime())
+    fieldErrors.half = "A half day applies to a single date only.";
+  if (Object.keys(fieldErrors).length) return { ok: false, fieldErrors };
+
+  const type = await prisma.leaveType.findUnique({ where: { id: leaveTypeId }, select: { id: true } });
+  if (!type) return { ok: false, fieldErrors: { leaveTypeId: "Unknown leave type." } };
+
+  const days = computeRequestDays(startDate!, endDate!, half);
+  if (days <= 0) {
+    return { ok: false, fieldErrors: { startDate: "That range contains no working days (weekends are excluded)." } };
+  }
+
+  // A material change (type, dates, or day count) invalidates any line-manager
+  // review, so it goes back for re-review — keeping the two-stage control honest.
+  const materialChange =
+    leaveTypeId !== req.leaveTypeId ||
+    startDate!.getTime() !== req.startDate.getTime() ||
+    endDate!.getTime() !== req.endDate.getTime() ||
+    days !== Number(req.days);
+  const resetReview = materialChange && req.managerStatus !== "PENDING";
+
+  await prisma.leaveRequest.update({
+    where: { id: requestId },
+    data: {
+      leaveTypeId,
+      startDate: startDate!,
+      endDate: endDate!,
+      days,
+      note,
+      ...(resetReview
+        ? {
+            managerStatus: "PENDING",
+            managerReviewerId: null,
+            managerReviewedAt: null,
+            managerNote: null,
+          }
+        : {}),
+    },
+  });
+
+  await writeAudit({
+    actorId: me.id,
+    action: "leaverequest.edit",
+    entityType: "leave_request",
+    entityId: requestId,
+    metadata: {
+      employeeId: req.employeeId,
+      byOwner: isOwner,
+      materialChange,
+      reset_manager_review: resetReview,
+      days,
+    },
+  });
+
+  revalidatePath("/leave");
+  revalidatePath(`/leave/${requestId}`);
+  redirect(`/leave/${requestId}`);
+}
+
+// ---------------------------------------------------------------------------
+// 6) Edit a per-employee entitlement (HR) — Balances editor
 // ---------------------------------------------------------------------------
 const entitlementSchema = z.object({
   employeeId: z.string().min(1),
@@ -339,7 +445,7 @@ export async function saveEntitlementAction(_prev: FormState, fd: FormData): Pro
 }
 
 // ---------------------------------------------------------------------------
-// 6) Create / edit a leave type + its default entitlement (HR) — Types editor
+// 7) Create / edit a leave type + its default entitlement (HR) — Types editor
 // ---------------------------------------------------------------------------
 const typeSchema = z.object({
   id: z.string().optional(),

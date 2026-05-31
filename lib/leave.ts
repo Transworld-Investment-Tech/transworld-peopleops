@@ -25,6 +25,15 @@ function personName(e: { preferredName: string | null; fullName: string }): stri
   return e.preferredName?.trim() || e.fullName;
 }
 
+/** A friendly given name from a preferred name or a "LAST, FIRST MIDDLE" full name. */
+export function firstName(e: { preferredName: string | null; fullName: string }): string {
+  const pref = e.preferredName?.trim();
+  if (pref) return pref.split(/\s+/)[0];
+  const fn = (e.fullName || "").trim();
+  if (fn.includes(",")) return (fn.split(",")[1] ?? "").trim().split(/\s+/)[0] || fn;
+  return fn.split(/\s+/)[0] || fn;
+}
+
 /** Days shown without trailing ".0" but keeping ".5" for half days. */
 export function fmtDays(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
@@ -120,8 +129,10 @@ export type RequestRow = {
   id: string;
   employeeId: string;
   employeeName: string;
+  firstName: string;
   eeId: string;
   initials: string;
+  leaveTypeId: string;
   typeName: string;
   startDate: Date;
   endDate: Date;
@@ -144,6 +155,7 @@ export type RequestRow = {
   canDecide: boolean; // HR may take the final decision now
   awaitingManager: boolean; // HR is blocked until the manager reviews
   canCancel: boolean;
+  canEdit: boolean; // owner / line manager / HR may modify while pending
 };
 
 type RawRequest = {
@@ -257,8 +269,10 @@ async function hydrateRows(
       id: r.id,
       employeeId: r.employeeId,
       employeeName: personName(r.employee),
+      firstName: firstName(r.employee),
       eeId: r.employee.eeId,
       initials: empInitials(r.employee.fullName),
+      leaveTypeId: r.leaveTypeId,
       typeName: r.leaveType.name,
       startDate: r.startDate,
       endDate: r.endDate,
@@ -280,6 +294,7 @@ async function hydrateRows(
       canDecide: viewer.canManage && isPending && (!needsManager || managerReviewed),
       awaitingManager,
       canCancel: isPending && (isOwner || viewer.canManage),
+      canEdit: isPending && (isOwner || isLineManager || viewer.canManage),
     };
   });
 }
@@ -563,4 +578,84 @@ export async function getLeaveTypeOptions(): Promise<LeaveTypeRow[]> {
     name: t.name,
     daysPerYear: num(t.daysPerYear),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Single request detail (the /leave/[requestId] view + modify page)
+// ---------------------------------------------------------------------------
+
+export type RequestDetail = {
+  row: RequestRow;
+  /** UTC date-only strings for prefilling <input type="date">. */
+  startInput: string;
+  endInput: string;
+  /** Whether the stored request is a half day on a single date. */
+  isHalf: boolean;
+  typeOptions: LeaveTypeRow[];
+  /** The employee's balance for this leave type / year, for context. */
+  balanceForType: { entitled: number; taken: number; remaining: number } | null;
+};
+
+function toDateInput(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Detail for one request. Returns null if it doesn't exist. View access is
+ * row-level: the requester, their line manager, or anyone with leave.manage.
+ * Returns { allowed: false } when the signed-in user may not see it so the page
+ * can redirect to /access-denied.
+ */
+export async function getLeaveRequestDetail(
+  me: CurrentUser,
+  requestId: string
+): Promise<{ allowed: true; detail: RequestDetail } | { allowed: false } | null> {
+  const viewer = await resolveViewer(me);
+
+  const raw = await prisma.leaveRequest.findUnique({
+    where: { id: requestId },
+    include: REQUEST_INCLUDE,
+  });
+  if (!raw) return null;
+
+  const isOwner = raw.employee.userId === me.id;
+  const isLineManager = !!viewer.employeeId && raw.employee.managerId === viewer.employeeId;
+  if (!isOwner && !isLineManager && !viewer.canManage) return { allowed: false };
+
+  const [row] = await hydrateRows([raw as unknown as RawRequest], me, viewer);
+
+  const year = raw.startDate.getUTCFullYear();
+  const [typeOptions, bal] = await Promise.all([
+    getLeaveTypeOptions(),
+    prisma.leaveBalance.findUnique({
+      where: {
+        employeeId_leaveTypeId_year: {
+          employeeId: raw.employeeId,
+          leaveTypeId: raw.leaveTypeId,
+          year,
+        },
+      },
+      select: { daysEntitled: true, daysTaken: true },
+    }),
+  ]);
+
+  const balanceForType = bal
+    ? {
+        entitled: num(bal.daysEntitled),
+        taken: num(bal.daysTaken),
+        remaining: num(bal.daysEntitled) - num(bal.daysTaken),
+      }
+    : null;
+
+  return {
+    allowed: true,
+    detail: {
+      row,
+      startInput: toDateInput(raw.startDate),
+      endInput: toDateInput(raw.endDate),
+      isHalf: num(raw.days) === 0.5 && raw.startDate.getTime() === raw.endDate.getTime(),
+      typeOptions,
+      balanceForType,
+    },
+  };
 }
