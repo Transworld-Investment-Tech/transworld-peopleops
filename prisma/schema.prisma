@@ -523,3 +523,75 @@ model ScorecardOutcome {
   @@index([scorecardId])
   @@map("scorecard_outcomes")
 }
+
+
+// TW-PERFORMANCE-MODELS-V0100 — Performance & Development. Mirrors
+// public.appraisal_cycles / public.appraisals / public.appraisal_items created by
+// supabase/migrations/0003_add_performance.sql. Cross-entity references
+// (employee_id, job_profile_id, scorecard_id, reviewer_id) are bare columns here
+// (their FKs are enforced in SQL) so Employee / JobProfile / Scorecard / User are
+// left untouched. Relations are modeled only within this module.
+model AppraisalCycle {
+  id          String      @id @default(cuid())
+  name        String
+  periodStart DateTime?   @map("period_start")
+  periodEnd   DateTime?   @map("period_end")
+  stage       String      @default("GOAL_SETTING")
+  status      String      @default("OPEN")
+  appraisals  Appraisal[]
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@map("appraisal_cycles")
+}
+
+model Appraisal {
+  id                String          @id @default(cuid())
+  cycleId           String          @map("cycle_id")
+  employeeId        String          @map("employee_id")
+  jobProfileId      String?         @map("job_profile_id")
+  scorecardId       String?         @map("scorecard_id")
+  selfStatus        String          @default("PENDING") @map("self_status")
+  selfSummary       String?         @map("self_summary")
+  selfSubmittedAt   DateTime?       @map("self_submitted_at")
+  managerStatus     String          @default("PENDING") @map("manager_status")
+  managerSummary    String?         @map("manager_summary")
+  developmentPlan   String?         @map("development_plan")
+  overallRating     String?         @map("overall_rating")
+  reviewerId        String?         @map("reviewer_id")
+  managerReviewedAt DateTime?       @map("manager_reviewed_at")
+  cycle             AppraisalCycle  @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  items             AppraisalItem[]
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  @@unique([cycleId, employeeId])
+  @@index([cycleId])
+  @@index([employeeId])
+  @@map("appraisals")
+}
+
+model AppraisalItem {
+  id            String    @id @default(cuid())
+  appraisalId   String    @map("appraisal_id")
+  kind          String
+  position      Int       @default(0)
+  label         String
+  measure       String?
+  target        String?
+  weight        Int?
+  expectedLevel Int?      @map("expected_level")
+  selfActual    String?   @map("self_actual")
+  selfRating    String?   @map("self_rating")
+  selfLevel     Int?      @map("self_level")
+  selfNote      String?   @map("self_note")
+  actual        String?
+  rating        String?
+  assessedLevel Int?      @map("assessed_level")
+  managerNote   String?   @map("manager_note")
+  appraisal     Appraisal @relation(fields: [appraisalId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([appraisalId])
+  @@map("appraisal_items")
+}

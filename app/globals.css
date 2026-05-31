@@ -1431,3 +1431,243 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* TW-PERFORMANCE-CSS-V0100 — Performance & Development. Appended by the v0.10.0
+   setup.sh. Additive only; reuses the theme palette and existing .card / .btn /
+   .field / .b badge conventions. Adds the cycle pipeline stepper (not previously
+   in the app CSS), cycle picker/controls, and the two-sided appraisal editor. */
+
+/* --- pipeline stepper --- */
+.pipe {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--line-2);
+}
+.pipe-seg {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.pipe-seg:last-child {
+  flex: 0 0 auto;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.step .num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: #eef1f5;
+  color: var(--faint);
+  border: 1px solid var(--line);
+}
+.step.done {
+  color: var(--ink);
+}
+.step.done .num {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.step.cur {
+  color: var(--ink);
+}
+.step.cur .num {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+.ln {
+  flex: 1 1 24px;
+  height: 2px;
+  min-width: 18px;
+  margin: 0 12px;
+  background: var(--line);
+}
+.ln.done {
+  background: var(--green);
+}
+
+/* --- cycle picker + meta + controls --- */
+.cyc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.cyc-tab {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+.cyc-tab:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.cyc-tab.active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.cyc-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.cyc-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cyc-ctl {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+}
+.cyc-ctl select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+}
+.cyc-ctl select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 168, 0.15);
+}
+
+/* --- appraisal editor --- */
+.appr-sub {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 16px 0 10px;
+}
+.appr-sub:first-child {
+  margin-top: 0;
+}
+.appr-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+.appr-item-h {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.appr-kra {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 14px;
+}
+.appr-kpi {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.appr-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+.appr-fields .field.full {
+  grid-column: 1 / -1;
+}
+.appr-self-ro {
+  font-size: 12.5px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 10px;
+}
+.appr-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line-2);
+}
+
+/* --- appraisal read-only list (viewers / submitted self) --- */
+.appr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.appr-ro {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+}
+.appr-ro-h {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.appr-kind {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+.appr-ro-b {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.appr-note {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
