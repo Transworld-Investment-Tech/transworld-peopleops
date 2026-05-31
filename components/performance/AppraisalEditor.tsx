@@ -4,6 +4,7 @@ import {
   startAppraisalAction,
   saveSelfAction,
   saveReviewAction,
+  unsubmitSelfAction,
   type FormState,
 } from "@/lib/performance-actions";
 
@@ -101,6 +102,7 @@ export default function AppraisalEditor({
   const [rows, setRows] = useState<Row[]>(() => (appraisal ? appraisal.items.map(toRow) : []));
   const [selfState, selfAction, selfPending] = useActionState(saveSelfAction, EMPTY);
   const [reviewState, reviewAction, reviewPending] = useActionState(saveReviewAction, EMPTY);
+  const [unsubState, unsubAction, unsubPending] = useActionState(unsubmitSelfAction, EMPTY);
 
   // ---- Not started -------------------------------------------------------
   if (!appraisal) {
@@ -206,6 +208,15 @@ export default function AppraisalEditor({
             </ul>
             {appraisal.selfSummary ? (
               <p className="sc-mission" style={{ marginTop: 10 }}>{appraisal.selfSummary}</p>
+            ) : null}
+            {canManage && selfSubmitted ? (
+              <form action={unsubAction} style={{ marginTop: 12 }}>
+                <input type="hidden" name="appraisalId" value={appraisal.id} />
+                <button type="submit" className="btn" disabled={unsubPending}>
+                  {unsubPending ? "Reopening…" : "Reopen self-assessment"}
+                </button>
+                {unsubState.error ? <div className="form-err" style={{ marginTop: 8 }}>{unsubState.error}</div> : null}
+              </form>
             ) : null}
           </div>
         ) : (

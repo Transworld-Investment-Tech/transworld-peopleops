@@ -343,3 +343,71 @@ export async function saveReviewAction(_prev: FormState, fd: FormData): Promise<
   revalidatePath("/performance");
   redirect(`/performance/${appraisal.cycleId}/${appraisal.employeeId}`);
 }
+
+// ---------------------------------------------------------------------------
+// Reopen a submitted self-assessment (v0.10.1)
+// ---------------------------------------------------------------------------
+export async function unsubmitSelfAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requirePermission("performance.manage");
+  const appraisalId = String(fd.get("appraisalId") ?? "");
+  if (!appraisalId) return { ok: false, error: "Missing appraisal." };
+
+  const appraisal = await prisma.appraisal.findUnique({
+    where: { id: appraisalId },
+    select: { id: true, cycleId: true, employeeId: true, selfStatus: true },
+  });
+  if (!appraisal) return { ok: false, error: "Appraisal not found." };
+  if (appraisal.selfStatus !== "SUBMITTED")
+    return { ok: false, error: "Self-assessment is not submitted." };
+
+  // Reopen for editing; entered values are kept so they can be revised and resubmitted.
+  await prisma.appraisal.update({
+    where: { id: appraisalId },
+    data: { selfStatus: "PENDING", selfSubmittedAt: null },
+  });
+
+  await writeAudit({
+    actorId: me.id,
+    action: "appraisal.self_unsubmit",
+    entityType: "appraisal",
+    entityId: appraisalId,
+    metadata: null,
+  });
+
+  revalidatePath(`/performance/${appraisal.cycleId}/${appraisal.employeeId}`);
+  revalidatePath("/performance");
+  redirect(`/performance/${appraisal.cycleId}/${appraisal.employeeId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Delete a review cycle (v0.10.1) — removes the cycle and, via cascade, all of
+// its appraisals and appraisal items. Guarded by a typed-name confirmation.
+// ---------------------------------------------------------------------------
+export async function deleteCycleAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requirePermission("performance.manage");
+  const cycleId = String(fd.get("cycleId") ?? "");
+  const confirmName = String(fd.get("confirmName") ?? "").trim();
+  if (!cycleId) return { ok: false, error: "Missing cycle." };
+
+  const cycle = await prisma.appraisalCycle.findUnique({
+    where: { id: cycleId },
+    select: { id: true, name: true, _count: { select: { appraisals: true } } },
+  });
+  if (!cycle) return { ok: false, error: "Cycle not found." };
+  if (confirmName !== cycle.name)
+    return { ok: false, error: `Type the cycle name (“${cycle.name}”) exactly to confirm deletion.` };
+
+  // Cascades to appraisals + appraisal_items (ON DELETE CASCADE in the schema).
+  await prisma.appraisalCycle.delete({ where: { id: cycleId } });
+
+  await writeAudit({
+    actorId: me.id,
+    action: "appraisalcycle.delete",
+    entityType: "appraisal_cycle",
+    entityId: cycleId,
+    metadata: { name: cycle.name, appraisals: cycle._count.appraisals },
+  });
+
+  revalidatePath("/performance");
+  redirect("/performance");
+}

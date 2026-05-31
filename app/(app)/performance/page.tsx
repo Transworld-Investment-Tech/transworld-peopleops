@@ -146,7 +146,7 @@ async function PerformanceCycle({
           </span>
           {canManage ? (
             <CycleControls
-              cycle={{ id: selected.id, stage: selected.stage, status: selected.status }}
+              cycle={{ id: selected.id, name: selected.name, stage: selected.stage, status: selected.status }}
               stages={CYCLE_STAGES.map((s) => ({ value: s.value, label: s.label }))}
               statuses={CYCLE_STATUSES.map((s) => ({ value: s.value, label: s.label }))}
             />
