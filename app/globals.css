@@ -1209,3 +1209,73 @@ tbody tr:hover {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(37, 99, 168, 0.15);
 }
+
+/* TW-DOCUMENTS-CSS-V080 — document cards (job descriptions, later evidence/staff
+   files). Additive only; reuses the theme palette and existing .card / .btn /
+   .note conventions. Safe to leave. */
+
+.doc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.doc-ic {
+  font-size: 22px;
+  line-height: 1;
+  flex: none;
+}
+.doc-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.doc-name {
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-name:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
+.doc-sub {
+  font-size: 12px;
+  color: var(--faint);
+}
+.doc-actions {
+  margin-left: auto;
+  flex: none;
+}
+.doc-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.doc-upload input[type="file"] {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 100%;
+}
+.doc-upload input[type="file"]::file-selector-button {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 12px;
+  margin-right: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+}
+.doc-upload input[type="file"]::file-selector-button:hover {
+  border-color: #d3dbe6;
+}

@@ -472,3 +472,24 @@ model Notification {
 
   @@map("notifications")
 }
+
+// TW-DOCUMENTS-MODEL-V080 — reusable file/document registry (Supabase Storage).
+// Mirrors public.documents created by supabase/migrations/0001_add_documents.sql.
+// Keep this block and the SQL migration in lockstep. `id` is app-generated (cuid),
+// matching the rest of the schema; the DB column has no default.
+model Document {
+  id           String   @id @default(cuid())
+  bucket       String
+  path         String   @unique
+  filename     String
+  contentType  String?  @map("content_type")
+  sizeBytes    Int?     @map("size_bytes")
+  category     String?
+  entityType   String   @map("entity_type")
+  entityId     String   @map("entity_id")
+  uploadedById String?  @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("documents")
+}

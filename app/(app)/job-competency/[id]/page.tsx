@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { getJobProfileDetail, jdStatusBadge, levelLabel } from "@/lib/jobframework";
+import { getLatestDocument, prettySize } from "@/lib/documents";
+import { storageConfigured } from "@/lib/storage";
 import { empInitials, statusBadge } from "@/lib/employees";
+import JobDescriptionCard from "@/components/jobcompetency/JobDescriptionCard";
 import type { EmploymentStatus } from "@prisma/client";
 
 export const metadata = { title: "Job profile · Transworld PeopleOps" };
@@ -19,6 +22,20 @@ export default async function JobProfilePage({
   if (!p) notFound();
   const s = jdStatusBadge(p.status);
   const subtitle = [p.grade ? `Grade ${p.grade}` : null, p.department].filter(Boolean).join(" · ");
+
+  const jd = await getLatestDocument("job_profile", p.id, "JOB_DESCRIPTION");
+  const storageReady = storageConfigured();
+  const jdView = jd
+    ? {
+        filename: jd.filename,
+        sizeLabel: prettySize(jd.sizeBytes),
+        uploadedAt: jd.createdAt.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }),
+      }
+    : null;
 
   return (
     <>
@@ -55,6 +72,13 @@ export default async function JobProfilePage({
           )}
         </div>
       </div>
+
+      <JobDescriptionCard
+        profileId={p.id}
+        canManage={canManage}
+        doc={jdView}
+        storageReady={storageReady}
+      />
 
       <div className="card mt">
         <div className="card-h">
