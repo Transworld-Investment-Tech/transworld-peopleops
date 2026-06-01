@@ -67,8 +67,8 @@ export default async function PerformancePage({
               <div className="card-pad">
                 <div className="appr-sub">Goal-setting</div>
                 <p className="faint" style={{ marginTop: 0 }}>
-                  Set each person’s goals for the cycle on their scorecard — open a name below to add goals
-                  at the goal-setting stage.
+                  Staff draft their own goals in My Performance and submit them; line managers review,
+                  agree, and seal them in My Team.
                 </p>
               </div>
             </div>

@@ -275,7 +275,7 @@ export default async function MyPerformancePage() {
       </div>
 
       <div className="faint" style={{ fontSize: 11.5, marginTop: 14 }}>
-        Goals, development objectives, and improvement plans are set by HR / your manager. Questions?{" "}
+        You draft your own goals here and submit them to your line manager to agree. Your development plan and any improvement plan are set with your manager. Questions?{" "}
         <Link href="/leave" className="jc-link">
           Contact HR
         </Link>
