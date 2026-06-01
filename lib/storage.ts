@@ -56,3 +56,14 @@ export async function removeObject(path: string): Promise<void> {
   const { error } = await client().storage.from(STORAGE_BUCKET).remove([path]);
   if (error) throw new Error(`Storage delete failed: ${error.message}`);
 }
+
+/** Download an object's bytes (server-side), so a route can serve it with an
+ *  explicit, correct Content-Type rather than relying on the storage host. */
+export async function downloadObject(path: string): Promise<Buffer> {
+  const { data, error } = await client().storage.from(STORAGE_BUCKET).download(path);
+  if (error || !data) {
+    throw new Error(`Storage download failed: ${error?.message ?? "no data"}`);
+  }
+  const ab = await data.arrayBuffer();
+  return Buffer.from(ab);
+}
