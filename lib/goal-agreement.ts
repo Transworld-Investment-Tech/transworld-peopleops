@@ -37,6 +37,8 @@ export function reviewStateBadge(s: string): { cls: string; label: string } {
       return { cls: "b-amb", label: "Changes requested" };
     case "DRAFT":
       return { cls: "b-gry", label: "Draft" };
+    case "NOT_STARTED":
+      return { cls: "b-gry", label: "Not started" };
     default:
       return { cls: "b-gry", label: s };
   }
@@ -293,4 +295,123 @@ export async function getGoalSettingOverview(cycleId: string) {
     else counts.draft += 1;
   }
   return counts;
+}
+
+// ---------------------------------------------------------------------------
+// HR stewardship: per-person goal-setting roster for a cycle (read-only).
+// Covers every active employee — including those who haven't started — with
+// their line manager, review state, goal count, acknowledgment, and mid-cycle
+// amendment count. HR sees this to steward the process; HR never approves.
+// ---------------------------------------------------------------------------
+export type GoalSettingRosterRow = {
+  employeeId: string;
+  eeId: string;
+  name: string;
+  managerName: string | null;
+  reviewState: string; // includes "NOT_STARTED" when no sheet exists yet
+  goalCount: number;
+  acknowledged: boolean;
+  amendmentCount: number;
+};
+
+export async function getGoalSettingRoster(cycleId: string): Promise<{
+  counts: {
+    total: number;
+    notStarted: number;
+    draft: number;
+    submitted: number;
+    changes: number;
+    approved: number;
+    acknowledged: number;
+  };
+  rows: GoalSettingRosterRow[];
+}> {
+  const employees = await prisma.employee.findMany({
+    where: { status: { in: ["ACTIVE", "PROBATION"] } },
+    select: { id: true, eeId: true, fullName: true, preferredName: true, managerId: true },
+    orderBy: { eeId: "asc" },
+  });
+  const empIds = employees.map((e) => e.id);
+
+  const [sheets, goalGroups] = await Promise.all([
+    prisma.goalSheet.findMany({ where: { cycleId, employeeId: { in: empIds } } }),
+    empIds.length
+      ? prisma.performanceGoal.groupBy({
+          by: ["employeeId"],
+          where: { cycleId, employeeId: { in: empIds } },
+          _count: { _all: true },
+        })
+      : Promise.resolve([] as { employeeId: string; _count: { _all: number } }[]),
+  ]);
+
+  const sheetByEmp = new Map<string, (typeof sheets)[number]>(
+    sheets.map((s) => [s.employeeId, s] as const)
+  );
+  const goalCountByEmp = new Map<string, number>(
+    goalGroups.map((g) => [g.employeeId, g._count._all] as const)
+  );
+
+  // amendment counts per sheet -> per employee
+  const sheetIds = sheets.map((s) => s.id);
+  const amendGroups = sheetIds.length
+    ? await prisma.goalAmendment.groupBy({
+        by: ["sheetId"],
+        where: { sheetId: { in: sheetIds } },
+        _count: { _all: true },
+      })
+    : [];
+  const amendBySheet = new Map<string, number>(
+    amendGroups.map((a) => [a.sheetId, a._count._all] as const)
+  );
+
+  // line-manager names
+  const managerIds = Array.from(
+    new Set(employees.map((e) => e.managerId).filter((x): x is string => !!x))
+  );
+  const managers = managerIds.length
+    ? await prisma.employee.findMany({
+        where: { id: { in: managerIds } },
+        select: { id: true, fullName: true, preferredName: true },
+      })
+    : [];
+  const managerNameById = new Map<string, string>(
+    managers.map((m) => [m.id, personName(m)] as const)
+  );
+
+  const counts = {
+    total: employees.length,
+    notStarted: 0,
+    draft: 0,
+    submitted: 0,
+    changes: 0,
+    approved: 0,
+    acknowledged: 0,
+  };
+
+  const rows: GoalSettingRosterRow[] = employees.map((e) => {
+    const sheet = sheetByEmp.get(e.id);
+    const reviewState = sheet?.reviewState ?? "NOT_STARTED";
+    const acknowledged = !!sheet?.ackAt;
+    const amendmentCount = sheet ? amendBySheet.get(sheet.id) ?? 0 : 0;
+
+    if (reviewState === "APPROVED") counts.approved += 1;
+    else if (reviewState === "SUBMITTED") counts.submitted += 1;
+    else if (reviewState === "CHANGES_REQUESTED") counts.changes += 1;
+    else if (reviewState === "DRAFT") counts.draft += 1;
+    else counts.notStarted += 1;
+    if (acknowledged) counts.acknowledged += 1;
+
+    return {
+      employeeId: e.id,
+      eeId: e.eeId,
+      name: personName(e),
+      managerName: e.managerId ? managerNameById.get(e.managerId) ?? null : null,
+      reviewState,
+      goalCount: goalCountByEmp.get(e.id) ?? 0,
+      acknowledged,
+      amendmentCount,
+    };
+  });
+
+  return { counts, rows };
 }

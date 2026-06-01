@@ -11,6 +11,7 @@ import {
   ratingBadge,
 } from "@/lib/performance";
 import { getGoalsOverview } from "@/lib/performance-toolkit";
+import { getGoalSettingRoster, reviewStateBadge } from "@/lib/goal-agreement";
 import CycleControls from "@/components/performance/CycleControls";
 
 export const metadata = { title: "Performance · Transworld PeopleOps" };
@@ -158,6 +159,7 @@ async function PerformanceCycle({
     getRoster(selected.id),
     getGoalsOverview(selected.id),
   ]);
+  const goalSetting = canManage ? await getGoalSettingRoster(selected.id) : null;
   const started = roster.filter((r) => r.appraisalId).length;
   const finalized = roster.filter((r) => r.status.key === "FINALIZED").length;
   const goalsByEmp = new Map(goalsOverview.map((g) => [g.employeeId, g] as const));
@@ -214,6 +216,75 @@ async function PerformanceCycle({
           ) : null}
         </div>
       </div>
+
+      {goalSetting ? (
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card-h">
+            <h3>Goal-setting status — {selected.name}</h3>
+            <span className="hint">
+              {goalSetting.counts.approved} of {goalSetting.counts.total} agreed &amp; sealed
+            </span>
+          </div>
+          <div className="card-pad">
+            <p className="faint" style={{ marginTop: 0 }}>
+              How goal-setting is progressing across the firm. Staff draft and submit; line managers
+              review, agree, and seal. This view is read-only — agreement and sign-off happen between
+              each person and their line manager.
+            </p>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 6 }}>
+              <span className="b b-gry">Not started {goalSetting.counts.notStarted}</span>
+              <span className="b b-gry">Draft {goalSetting.counts.draft}</span>
+              <span className="b b-blu">Submitted {goalSetting.counts.submitted}</span>
+              <span className="b b-amb">Changes requested {goalSetting.counts.changes}</span>
+              <span className="b b-grn">Approved &amp; sealed {goalSetting.counts.approved}</span>
+              <span className="b b-grn">Acknowledged {goalSetting.counts.acknowledged}</span>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Line manager</th>
+                <th>Goals</th>
+                <th>Acknowledged</th>
+                <th>Amendments</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {goalSetting.rows.map((r) => {
+                const sb = reviewStateBadge(r.reviewState);
+                return (
+                  <tr key={r.employeeId}>
+                    <td>{r.name}</td>
+                    <td>{r.managerName ?? <span className="faint">— unset</span>}</td>
+                    <td className="mono">{r.goalCount}</td>
+                    <td>
+                      {r.reviewState === "APPROVED" ? (
+                        r.acknowledged ? (
+                          <span className="b b-grn">Yes</span>
+                        ) : (
+                          <span className="b b-amb">Pending</span>
+                        )
+                      ) : (
+                        <span className="faint">—</span>
+                      )}
+                    </td>
+                    <td className="mono">{r.amendmentCount > 0 ? r.amendmentCount : <span className="faint">—</span>}</td>
+                    <td>
+                      <span className={"b " + sb.cls}>
+                        <span className="dot" />
+                        {sb.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
 
       <div className="card">
         <div className="card-h">
