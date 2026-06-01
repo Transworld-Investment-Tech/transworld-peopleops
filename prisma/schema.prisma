@@ -724,3 +724,81 @@ model LearningRecord {
   @@index([status])
   @@map("learning_records")
 }
+
+// ---------------------------------------------------------------------------
+// v0.16.0 — Recruitment + Onboarding (appended models; no existing model edited)
+// Applied to the DB via supabase/migrations/0007_add_recruitment_onboarding.sql,
+// then mirrored here. Relations exist only BETWEEN these new models; references
+// to existing tables (departments, job_profiles, employees) are bare columns
+// (FK enforced in SQL only), matching the Leave convention.
+// setup.sh appends this block to prisma/schema.prisma (marker-guarded, idempotent).
+// ---------------------------------------------------------------------------
+
+model JobOpening {
+  id           String      @id @default(cuid())
+  code         String      @unique
+  title        String
+  grade        String?
+  departmentId String?     @map("department_id")
+  jobProfileId String?     @map("job_profile_id")
+  headcount    Int         @default(1)
+  status       String      @default("OPEN")
+  notes        String?
+  openedAt     DateTime    @default(now()) @map("opened_at")
+  closedAt     DateTime?   @map("closed_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  candidates   Candidate[]
+
+  @@map("job_openings")
+}
+
+model Candidate {
+  id              String     @id @default(cuid())
+  openingId       String     @map("opening_id")
+  fullName        String     @map("full_name")
+  email           String?
+  phone           String?
+  source          String?
+  stage           String     @default("SOURCED")
+  stageNote       String?    @map("stage_note")
+  interviewAt     DateTime?  @map("interview_at")
+  hiredEmployeeId String?    @map("hired_employee_id")
+  appliedAt       DateTime   @default(now()) @map("applied_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  opening         JobOpening @relation(fields: [openingId], references: [id], onDelete: Cascade)
+
+  @@index([openingId])
+  @@index([stage])
+  @@map("candidates")
+}
+
+model OnboardingPlan {
+  id                  String           @id @default(cuid())
+  employeeId          String           @unique @map("employee_id")
+  startDate           DateTime?        @map("start_date")
+  probationMonths     Int              @default(3) @map("probation_months")
+  review30ScheduledAt DateTime?        @map("review_30_scheduled_at")
+  status              String           @default("IN_PROGRESS")
+  completedAt         DateTime?        @map("completed_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  tasks               OnboardingTask[]
+
+  @@map("onboarding_plans")
+}
+
+model OnboardingTask {
+  id        String         @id @default(cuid())
+  planId    String         @map("plan_id")
+  label     String
+  category  String?
+  status    String         @default("PENDING")
+  dueDate   DateTime?      @map("due_date")
+  sortOrder Int            @default(0) @map("sort_order")
+  doneAt    DateTime?      @map("done_at")
+  createdAt DateTime       @default(now()) @map("created_at")
+  plan      OnboardingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@map("onboarding_tasks")
+}

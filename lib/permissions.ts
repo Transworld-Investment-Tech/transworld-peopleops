@@ -12,6 +12,12 @@
 //   * `admin.users` already existed in the catalog (count stays 24). This
 //     release GRANTS it to HR_ADMIN (in addition to SUPER_ADMIN via "*") and
 //     adds the "Administration -> User Management" sidebar entry.
+//
+// v0.16.0 — Recruitment + Onboarding:
+//   * Adds `recruitment.manage` and `onboarding.manage` (the *.view keys already
+//     existed and stay granted to EXEC + HR_ADMIN). Both manage keys are granted
+//     to HR_ADMIN (SUPER_ADMIN holds everything via "*"). Permission count
+//     24 -> 26; re-run `npm run auth:bootstrap` after this release.
 
 export type Permission = { key: string; label: string };
 
@@ -24,7 +30,9 @@ export const PERMISSIONS: Permission[] = [
   { key: "leave.view", label: "View leave" },
   { key: "leave.manage", label: "Manage leave" },
   { key: "recruitment.view", label: "View recruitment" },
+  { key: "recruitment.manage", label: "Manage recruitment" },
   { key: "onboarding.view", label: "View onboarding" },
+  { key: "onboarding.manage", label: "Manage onboarding" },
   { key: "performance.view", label: "View performance" },
   { key: "performance.manage", label: "Manage performance & appraisals" },
   { key: "learning.view", label: "View learning & development" },
@@ -70,7 +78,9 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "leave.view",
     "leave.manage",
     "recruitment.view",
+    "recruitment.manage",
     "onboarding.view",
+    "onboarding.manage",
     "performance.view",
     "performance.manage",
     "learning.view",
