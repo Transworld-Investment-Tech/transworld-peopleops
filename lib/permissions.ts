@@ -18,6 +18,13 @@
 //     existed and stay granted to EXEC + HR_ADMIN). Both manage keys are granted
 //     to HR_ADMIN (SUPER_ADMIN holds everything via "*"). Permission count
 //     24 -> 26; re-run `npm run auth:bootstrap` after this release.
+//
+// v0.17.0 — Staff & Hire Document Layer:
+//   * Adds `documents.manage` (HR authoring/generate/issue, granted to HR_ADMIN)
+//     and `documents.view_own` (every staff member views/signs/uploads their own,
+//     granted to all real-person roles). Adds the "People -> My Documents" and
+//     "Administration -> Document Templates" sidebar entries. Permission count
+//     26 -> 28; re-run `npm run auth:bootstrap` after this release.
 
 export type Permission = { key: string; label: string };
 
@@ -48,12 +55,15 @@ export const PERMISSIONS: Permission[] = [
   { key: "evidence.view", label: "View evidence vault" },
   { key: "controls.view", label: "View internal controls" },
   { key: "admin.users", label: "Administer users & roles" },
+  { key: "documents.manage", label: "Manage staff documents & templates" },
+  { key: "documents.view_own", label: "View, sign & upload own documents" },
 ];
 
 // "*" means every permission (granted to SUPER_ADMIN).
 export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   SUPER_ADMIN: "*",
   EXEC: [
+    "documents.view_own",
     "dashboard.view",
     "employees.view",
     "jobframework.view",
@@ -70,6 +80,8 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "controls.view",
   ],
   HR_ADMIN: [
+    "documents.manage",
+    "documents.view_own",
     "dashboard.view",
     "employees.view",
     "employees.manage",
@@ -97,6 +109,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "admin.users",
   ],
   FINANCE: [
+    "documents.view_own",
     "dashboard.view",
     "employees.view",
     "compensation.view",
@@ -107,6 +120,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payslips.view_own",
   ],
   COMPLIANCE: [
+    "documents.view_own",
     "dashboard.view",
     "employees.view",
     "learning.view",
@@ -115,6 +129,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payslips.view_own",
   ],
   INTERNAL_CONTROL: [
+    "documents.view_own",
     "dashboard.view",
     "employees.view",
     "payroll.view",
@@ -123,6 +138,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payslips.view_own",
   ],
   MANAGER: [
+    "documents.view_own",
     "dashboard.view",
     "employees.view",
     "leave.view",
@@ -132,6 +148,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payslips.view_own",
   ],
   EMPLOYEE: [
+    "documents.view_own",
     "dashboard.view",
     "leave.view",
     "learning.view",
@@ -181,6 +198,7 @@ const I = {
   payslips: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h9l5 5V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M14 2.5V8h5M8.5 13h7M8.5 17h5"/></svg>`,
   evidence: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2.5 4 6v5c0 5 3.4 8.6 8 10.5C16.6 19.6 20 16 20 11V6Z"/><path d="m9 11.5 2 2 4-4.5"/></svg>`,
   controls: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 7.5h18M6.5 7.5 5 18M17.5 7.5 19 18M3.5 18h17"/></svg>`,
+  docs: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h8l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M13 2.5V7h4M8.5 12h7M8.5 16h7"/></svg>`,
   admin: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><circle cx="18" cy="16.5" r="2.4"/><path d="M18 11.6v1.4M18 20v1.4M22.2 16.5h-1.4M15.2 16.5h-1.4"/></svg>`,
 };
 
@@ -197,6 +215,7 @@ export const NAV: NavSection[] = [
       { slug: "employees", label: "Employees", perm: "employees.view", icon: I.emp },
       { slug: "job-competency", label: "Job & Competency", perm: "jobframework.view", icon: I.roles },
       { slug: "leave", label: "Leave", perm: "leave.view", icon: I.leave },
+      { slug: "my-documents", label: "My Documents", perm: "documents.view_own", icon: I.docs },
     ],
   },
   {
@@ -232,6 +251,7 @@ export const NAV: NavSection[] = [
     label: "Administration",
     items: [
       { slug: "admin/users", label: "User Management", perm: "admin.users", icon: I.admin },
+      { slug: "admin/templates", label: "Document Templates", perm: "documents.manage", icon: I.docs },
     ],
   },
 ];

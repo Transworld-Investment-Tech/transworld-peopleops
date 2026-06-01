@@ -11,6 +11,19 @@ import {
   barClass,
   fmtDate,
 } from "@/lib/employees";
+import {
+  getStaffDocuments,
+  getPresentCategories,
+  statusBadge as docStatusBadge,
+  sourceBadge as docSourceBadge,
+  prettySize,
+  fmtDate as docFmtDate,
+  fmtDateTime,
+  DOC_CATEGORIES,
+} from "@/lib/staff-documents";
+import { getActiveTemplates, kindLabel } from "@/lib/document-templates";
+import { storageConfigured } from "@/lib/storage";
+import StaffDocumentsPanel, { type DocView } from "@/components/documents/StaffDocumentsPanel";
 
 export const metadata = { title: "Employee · Transworld PeopleOps" };
 
@@ -34,8 +47,44 @@ export default async function EmployeeProfilePage({
   });
 
   const canManage = hasPermission(me, "employees.manage");
+  const canManageDocs = hasPermission(me, "documents.manage");
   const s = statusBadge(emp.status);
-  const comp = docCompleteness(emp.documents.map((d) => d.category));
+
+  const [presentCategories, staffDocs, templates] = await Promise.all([
+    getPresentCategories(emp.id),
+    getStaffDocuments(emp.id),
+    getActiveTemplates(),
+  ]);
+  const comp = docCompleteness(presentCategories);
+  const storageReady = storageConfigured();
+
+  const docViews: DocView[] = staffDocs.map((d) => {
+    const sb = docStatusBadge(d.status);
+    const src = docSourceBadge(d.source);
+    return {
+      id: d.id,
+      title: d.title,
+      category: d.category,
+      statusCls: sb.cls,
+      statusLabel: sb.label,
+      sourceCls: src.cls,
+      sourceLabel: src.label,
+      sizeLabel: prettySize(d.sizeBytes),
+      createdAt: docFmtDate(d.createdAt),
+      expiry: d.expiryDate ? docFmtDate(d.expiryDate) : null,
+      hasFile: Boolean(d.fileKey),
+      isGeneratedDraft: d.source === "GENERATED" && d.status === "DRAFT",
+      awaiting: d.status === "AWAITING_SIGNATURE",
+      signerName: d.signerName ?? null,
+      signedAt: d.signedAt ? fmtDateTime(d.signedAt) : null,
+    };
+  });
+  const templateOpts = templates.map((t) => ({
+    id: t.id,
+    name: t.name,
+    kindLabel: kindLabel(t.kind),
+  }));
+  const categoryOpts = DOC_CATEGORIES.map((c) => ({ key: c.key, label: c.label }));
 
   return (
     <>
@@ -187,8 +236,7 @@ export default async function EmployeeProfilePage({
             </div>
             {comp.have === 0 && (
               <div className="faint" style={{ fontSize: 12, marginTop: 12 }}>
-                No documents are on file yet. Document upload and storage arrive
-                in the Documents &amp; policies build.
+                No required documents on file yet. Add them in the Documents panel below.
               </div>
             )}
           </div>
@@ -218,6 +266,15 @@ export default async function EmployeeProfilePage({
           </div>
         </div>
       </div>
+
+      <StaffDocumentsPanel
+        employeeId={emp.id}
+        canManage={canManageDocs}
+        storageReady={storageReady}
+        docs={docViews}
+        templates={templateOpts}
+        categories={categoryOpts}
+      />
 
       <div className="card mt">
         <div className="card-h">

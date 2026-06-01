@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { getOpeningDetail, stageBadge, fmtDate } from "@/lib/recruitment";
+import { getActiveTemplates, kindLabel } from "@/lib/document-templates";
+import { getCandidateDocsLite, statusBadge as docStatusBadge } from "@/lib/staff-documents";
+import GenerateDocControl, { type DocLite } from "@/components/documents/GenerateDocControl";
 import {
   AddCandidateForm,
   CandidateStageControl,
@@ -20,6 +23,23 @@ export default async function PipelinePage({
   const { openingId } = await params;
   const d = await getOpeningDetail(openingId);
   if (!d) notFound();
+
+  const offerColumn = d.columns.find((c) => c.stage === "OFFER");
+  const offerCandidateIds = offerColumn?.candidates.map((c) => c.id) ?? [];
+  const offerTemplates = canManage
+    ? (await getActiveTemplates())
+        .filter((t) => t.kind === "OFFER_LETTER")
+        .map((t) => ({ id: t.id, name: t.name, kindLabel: kindLabel(t.kind) }))
+    : [];
+  const candDocs =
+    canManage && offerCandidateIds.length
+      ? await getCandidateDocsLite(offerCandidateIds)
+      : new Map<string, { id: string; title: string; status: string; source: string; fileKey: string | null }[]>();
+  const docLites = (candidateId: string): DocLite[] =>
+    (candDocs.get(candidateId) ?? []).map((r: { id: string; title: string; status: string; source: string; fileKey: string | null }) => {
+      const sb = docStatusBadge(r.status);
+      return { id: r.id, title: r.title, statusCls: sb.cls, statusLabel: sb.label, hasFile: Boolean(r.fileKey) };
+    });
 
   const sub = [d.departmentName, d.jobProfileTitle].filter(Boolean).join(" · ");
 
@@ -88,6 +108,19 @@ export default async function PipelinePage({
                       ) : null}
                       {canManage ? (
                         <CandidateStageControl candidateId={c.id} openingId={d.id} stage={c.stage} />
+                      ) : null}
+                      {canManage && col.stage === "OFFER" ? (
+                        <div style={{ marginTop: 8, borderTop: "1px dashed var(--line)", paddingTop: 8 }}>
+                          <div className="faint" style={{ fontSize: 11.5, marginBottom: 4 }}>
+                            Offer letter
+                          </div>
+                          <GenerateDocControl
+                            candidateId={c.id}
+                            templates={offerTemplates}
+                            docs={docLites(c.id)}
+                            allowUpload
+                          />
+                        </div>
                       ) : null}
                     </div>
                   ))

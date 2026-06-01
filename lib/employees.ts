@@ -19,10 +19,13 @@ import type { EmploymentStatus, EmploymentType } from "@prisma/client";
 export const REQUIRED_DOC_CATEGORIES: string[] = [
   "Signed contract",
   "Means of identification",
+  "Utility bill",
+  "Résumé / CV",
   "Tax (TIN)",
   "Pension (RSA / PenCom)",
   "Bank details",
   "Guarantor / reference",
+  "Next of kin",
 ];
 
 // ---------------------------------------------------------------------------

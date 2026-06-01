@@ -802,3 +802,65 @@ model OnboardingTask {
   @@index([planId])
   @@map("onboarding_tasks")
 }
+
+
+// TW-STAFFDOCS-MODELS-V0170 — Staff & Hire Document Layer (v0.17.0).
+// Mirrors public.document_templates / public.staff_documents created by
+// supabase/migrations/0008_add_staff_documents.sql.
+//
+// Cross-entity references to EXISTING tables (employee_id, candidate_id,
+// signed_by_id, uploaded_by_id, created_by_id) are BARE columns — their FKs are
+// enforced in SQL only — so the Employee / Candidate / User models are NOT
+// edited. The only real Prisma relation is DocumentTemplate <-> StaffDocument.
+// Status vocabularies are CHECK-constrained TEXT in SQL (house "status as text").
+
+model DocumentTemplate {
+  id                String          @id @default(cuid())
+  key               String          @unique
+  name              String
+  kind              String          @default("OTHER") // OFFER_LETTER|EMPLOYMENT_CONTRACT|GUARANTOR_FORM|NEXT_OF_KIN|OTHER
+  bodyHtml          String          @map("body_html")
+  requiresSignature Boolean         @default(true) @map("requires_signature")
+  isActive          Boolean         @default(true) @map("is_active")
+  version           Int             @default(1)
+  createdById       String?         @map("created_by_id")
+  documents         StaffDocument[]
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  @@map("document_templates")
+}
+
+model StaffDocument {
+  id                String            @id @default(cuid())
+  employeeId        String?           @map("employee_id")
+  candidateId       String?           @map("candidate_id")
+  templateId        String?           @map("template_id")
+  template          DocumentTemplate? @relation(fields: [templateId], references: [id])
+  category          String
+  kind              String?
+  title             String
+  source            String            @default("UPLOADED") // GENERATED|UPLOADED
+  status            String            @default("UPLOADED") // DRAFT|AWAITING_SIGNATURE|SIGNED|UPLOADED|VOID
+  fileKey           String?           @map("file_key")
+  bodyHtml          String?           @map("body_html")
+  contentType       String?           @map("content_type")
+  sizeBytes         Int?              @map("size_bytes")
+  accessLevel       String            @default("HR") @map("access_level") // EMPLOYEE|HR|EXEC|RESTRICTED
+  expiryDate        DateTime?         @map("expiry_date")
+  requiresSignature Boolean           @default(false) @map("requires_signature")
+  signedAt          DateTime?         @map("signed_at")
+  signedById        String?           @map("signed_by_id")
+  signerName        String?           @map("signer_name")
+  signerIp          String?           @map("signer_ip")
+  version           Int               @default(1)
+  uploadedById      String?           @map("uploaded_by_id")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  @@index([employeeId])
+  @@index([candidateId])
+  @@index([status])
+  @@index([templateId])
+  @@map("staff_documents")
+}

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { getOnboardingDetail, taskStatusBadge, fmtDate } from "@/lib/onboarding";
+import { getActiveTemplates, kindLabel } from "@/lib/document-templates";
+import GenerateDocControl from "@/components/documents/GenerateDocControl";
 import {
   SeedDefaultTasksButton,
   TaskAddForm,
@@ -78,6 +80,10 @@ export default async function OnboardingDetailPage({
         ? `Due in ${p.daysUntilReview} day${p.daysUntilReview === 1 ? "" : "s"}`
         : "Overdue";
 
+  const docTemplates = canManage
+    ? (await getActiveTemplates()).map((t) => ({ id: t.id, name: t.name, kindLabel: kindLabel(t.kind) }))
+    : [];
+
   return (
     <>
       <div className="page-h">
@@ -92,6 +98,25 @@ export default async function OnboardingDetailPage({
           ← All plans
         </Link>
       </div>
+
+      {canManage ? (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-h">
+            <h3>Documents</h3>
+            <span className="hint">generate the new hire&apos;s paperwork</span>
+          </div>
+          <div className="card-pad">
+            <GenerateDocControl employeeId={d.employee.id} templates={docTemplates} />
+            <div className="faint" style={{ fontSize: 12, marginTop: 10 }}>
+              Documents that need a signature are sent to{" "}
+              <Link href={`/employees/${d.employee.id}`} className="jc-link">
+                {d.employee.name}&apos;s record
+              </Link>{" "}
+              and to their My Documents page to sign.
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div
         style={{

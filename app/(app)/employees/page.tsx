@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import EmployeesTabs from "@/components/employees/EmployeesTabs";
+import { getPresentCategoriesByEmployee } from "@/lib/staff-documents";
 import {
   getEmployeesForList,
   empInitials,
@@ -17,9 +18,8 @@ export default async function EmployeesPage() {
   const canManage = hasPermission(me, "employees.manage");
   const rows = await getEmployeesForList();
 
-  const completeness = rows.map((r) =>
-    docCompleteness(r.documents.map((d) => d.category))
-  );
+  const catMap = await getPresentCategoriesByEmployee(rows.map((r) => r.id));
+  const completeness = rows.map((r) => docCompleteness(catMap.get(r.id) ?? []));
   const total = rows.length;
   const active = rows.filter((r) => r.status === "ACTIVE").length;
   const probation = rows.filter((r) => r.status === "PROBATION").length;

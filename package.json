@@ -1,6 +1,6 @@
 {
   "name": "transworld-peopleops",
-  "version": "0.14.0",
+  "version": "0.17.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,7 +18,8 @@
     "jobframework:populate": "tsx prisma/jobframework-populate.ts",
     "learning:populate": "tsx prisma/learning-populate.ts",
     "users:populate": "tsx prisma/users-populate.ts",
-    "leave:populate": "tsx prisma/leave-populate.ts"
+    "leave:populate": "tsx prisma/leave-populate.ts",
+    "document-templates:populate": "tsx prisma/document-templates-populate.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
