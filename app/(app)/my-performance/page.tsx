@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requirePermission } from "@/lib/auth/rbac";
 import {
   getMyPerformance,
-  goalStatusBadge,
   devStatusBadge,
   pipStatusBadge,
   pipResultBadge,
@@ -10,8 +9,16 @@ import {
   fmtDateTime,
   weekRangeLabel,
 } from "@/lib/performance-toolkit";
+import {
+  getMyGoalSetting,
+  AMENDMENT_KINDS,
+  fmtDate as fmtDateGA,
+  fmtDateTime as fmtDateTimeGA,
+} from "@/lib/goal-agreement";
 import WeeklyReportForm from "@/components/performance/WeeklyReportForm";
 import PipAcknowledge from "@/components/performance/PipAcknowledge";
+import MyGoalsEditor from "@/components/performance/MyGoalsEditor";
+import AmendmentsPanel from "@/components/performance/AmendmentsPanel";
 
 export const metadata = { title: "My performance · Transworld PeopleOps" };
 
@@ -22,6 +29,7 @@ function isoDay(d: Date): string {
 export default async function MyPerformancePage() {
   const me = await requirePermission("performance.self");
   const data = await getMyPerformance(me.id);
+  const gs = await getMyGoalSetting(me.id);
 
   if (!data.linked) {
     return (
@@ -47,7 +55,7 @@ export default async function MyPerformancePage() {
     );
   }
 
-  const { employee, cycle, goals, weekly, thisWeek, thisWeekReport, devPlans, pips } = data;
+  const { employee, cycle, weekly, thisWeek, thisWeekReport, devPlans, pips } = data;
 
   return (
     <>
@@ -140,40 +148,58 @@ export default async function MyPerformancePage() {
         </div>
       </div>
 
-      {/* Goals */}
-      <div className="card" style={{ marginBottom: 18 }}>
-        <div className="card-h">
-          <h3>My goals{cycle ? ` — ${cycle.name}` : ""}</h3>
-          <span className="hint">{goals.length}</span>
-        </div>
-        <div className="card-pad">
-          {goals.length === 0 ? (
-            <p className="faint" style={{ marginTop: 0 }}>
-              No goals set for this cycle yet. Your manager sets these at goal-setting.
-            </p>
-          ) : (
-            <div className="appr-list">
-              {goals.map((g) => {
-                const sb = goalStatusBadge(g.status);
-                return (
-                  <div className="appr-ro" key={g.id}>
-                    <div className="appr-ro-h">
-                      <span className="appr-kra">{g.title}</span>
-                      <span className={`b ${sb.cls}`}>{sb.label}</span>
-                    </div>
-                    <div className="faint" style={{ fontSize: 12.5 }}>
-                      {[g.measure ? `KPI · ${g.measure}` : null, g.target ? `Target ${g.target}` : null, g.weight != null ? `${g.weight}%` : null, g.dueDate ? `Due ${fmtDate(g.dueDate)}` : null]
-                        .filter(Boolean)
-                        .join(" · ") || "—"}
-                    </div>
-                    {g.description ? <div className="appr-note">{g.description}</div> : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Goals — employee-driven, manager-approved, sealed */}
+      {gs.linked && gs.cycle ? (
+        <>
+          <MyGoalsEditor
+            cycleName={gs.cycle.name}
+            managerName={gs.manager?.name ?? null}
+            sheet={
+              gs.sheet
+                ? {
+                    id: gs.sheet.id,
+                    reviewState: gs.sheet.reviewState,
+                    changesNote: gs.sheet.changesNote,
+                    agreementNote: gs.sheet.agreementNote,
+                    approvedAt: gs.sheet.approvedAt ? fmtDateTimeGA(gs.sheet.approvedAt) : null,
+                    ackName: gs.sheet.ackName,
+                    ackAt: gs.sheet.ackAt ? fmtDateTimeGA(gs.sheet.ackAt) : null,
+                  }
+                : null
+            }
+            goals={gs.goals.map((g) => ({
+              id: g.id,
+              title: g.title,
+              description: g.description,
+              measure: g.measure,
+              target: g.target,
+              weight: g.weight,
+              dueDate: g.dueDate ? g.dueDate.toISOString().slice(0, 10) : null,
+              status: g.status,
+            }))}
+            defaultName={gs.employee.fullName}
+          />
+
+          {gs.sheet?.sealed ? (
+            <AmendmentsPanel
+              employeeId={gs.employee.id}
+              sealed={true}
+              midCycleOpen={gs.cycle.stage !== "GOAL_SETTING"}
+              asManager={false}
+              kinds={AMENDMENT_KINDS.map((k) => ({ value: k.value, label: k.label }))}
+              amendments={gs.amendments.map((a) => ({
+                id: a.id,
+                kind: a.kind,
+                body: a.body,
+                newMeasure: a.newMeasure,
+                newTarget: a.newTarget,
+                createdAt: fmtDateGA(a.createdAt),
+                by: null,
+              }))}
+            />
+          ) : null}
+        </>
+      ) : null}
 
       {/* Development plan */}
       <div className="card" style={{ marginBottom: 18 }}>

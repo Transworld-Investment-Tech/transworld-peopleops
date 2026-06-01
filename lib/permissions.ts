@@ -34,6 +34,15 @@
 //     via "*"). Adds the "People -> My Performance" sidebar entry. The existing
 //     `performance.view` / `performance.manage` keys are unchanged. Permission
 //     count 28 -> 29; re-run `npm run auth:bootstrap` after this release.
+//
+// v0.18.1 — Goal agreement & sign-off:
+//   * Adds `performance.team` (a line manager reviews, agrees, and seals the
+//     goals of their own direct reports, resolved from the org chart
+//     `employee.managerId`; HR does not approve). Granted to MANAGER ("Line
+//     Manager") and to SUPER_ADMIN via "*". Adds the "People -> My Team"
+//     sidebar entry (perm `performance.team`). The existing performance keys
+//     are unchanged. Permission count 29 -> 30; role-permission links
+//     116 -> 118 (MANAGER + SUPER_ADMIN). Re-run `npm run auth:bootstrap`.
 
 export type Permission = { key: string; label: string };
 
@@ -52,6 +61,7 @@ export const PERMISSIONS: Permission[] = [
   { key: "performance.view", label: "View performance" },
   { key: "performance.manage", label: "Manage performance & appraisals" },
   { key: "performance.self", label: "View & contribute to own performance" },
+  { key: "performance.team", label: "Review & agree own team’s goals" },
   { key: "learning.view", label: "View learning & development" },
   { key: "learning.manage", label: "Manage learning & development" },
   { key: "learning.recommend", label: "Recommend development modules" },
@@ -155,6 +165,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   MANAGER: [
     "documents.view_own",
     "performance.self",
+    "performance.team",
     "dashboard.view",
     "employees.view",
     "leave.view",
@@ -234,6 +245,7 @@ export const NAV: NavSection[] = [
       { slug: "leave", label: "Leave", perm: "leave.view", icon: I.leave },
       { slug: "my-documents", label: "My Documents", perm: "documents.view_own", icon: I.docs },
       { slug: "my-performance", label: "My Performance", perm: "performance.self", icon: I.perf },
+      { slug: "my-team", label: "My Team", perm: "performance.team", icon: I.emp },
     ],
   },
   {
