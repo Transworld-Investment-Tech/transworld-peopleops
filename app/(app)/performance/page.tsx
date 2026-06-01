@@ -10,6 +10,7 @@ import {
   stageIndex,
   ratingBadge,
 } from "@/lib/performance";
+import { getGoalsOverview } from "@/lib/performance-toolkit";
 import CycleControls from "@/components/performance/CycleControls";
 
 export const metadata = { title: "Performance · Transworld PeopleOps" };
@@ -30,6 +31,7 @@ export default async function PerformancePage({
 }) {
   const me = await requirePermission("performance.view");
   const canManage = hasPermission(me, "performance.manage");
+  const canSelf = hasPermission(me, "performance.self");
   const { cycle: cycleParam } = await searchParams;
 
   const cycles = await getCycles();
@@ -53,6 +55,61 @@ export default async function PerformancePage({
         ) : null}
       </div>
 
+      {/* Toolkit */}
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="card-h">
+          <h3>Toolkit</h3>
+          <span className="hint">goal-setting · weekly reporting · development · improvement</span>
+        </div>
+        <div className="card-pad">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>
+            <div className="card" style={{ margin: 0 }}>
+              <div className="card-pad">
+                <div className="appr-sub">Goal-setting</div>
+                <p className="faint" style={{ marginTop: 0 }}>
+                  Set each person’s goals for the cycle on their scorecard — open a name below to add goals
+                  at the goal-setting stage.
+                </p>
+              </div>
+            </div>
+            <div className="card" style={{ margin: 0 }}>
+              <div className="card-pad">
+                <div className="appr-sub">Weekly reporting</div>
+                <p className="faint" style={{ marginTop: 0 }}>
+                  Staff file weekly check-ins in My Performance.
+                </p>
+                {canSelf ? (
+                  <Link href="/my-performance" className="jc-link">
+                    Go to My Performance →
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+            <div className="card" style={{ margin: 0 }}>
+              <div className="card-pad">
+                <div className="appr-sub">Development plan</div>
+                <p className="faint" style={{ marginTop: 0 }}>
+                  Trackable development objectives live on each person’s scorecard, beside the appraisal.
+                </p>
+              </div>
+            </div>
+            <div className="card" style={{ margin: 0 }}>
+              <div className="card-pad">
+                <div className="appr-sub">Improvement plan (PIP)</div>
+                <p className="faint" style={{ marginTop: 0 }}>
+                  Formal improvement plans with expectations, review dates, and staff acknowledgment.
+                </p>
+                {canManage ? (
+                  <Link href="/performance/pip" className="jc-link">
+                    Open the PIP workspace →
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {!selected ? (
         <div className="card">
           <div className="card-pad">
@@ -61,7 +118,7 @@ export default async function PerformancePage({
               <div>
                 <b>No review cycle yet.</b>
                 {canManage
-                  ? " Use “Open review cycle” to start the first one (e.g. Q2 2026). Each appraisable employee then gets a scorecard seeded from their role."
+                  ? " Use “Open review cycle” to start the first one (e.g. H2 2026, stage Goal setting). Each appraisable employee then gets a scorecard seeded from their role, and you can set their goals."
                   : " Ask an HR admin to open the first review cycle."}
               </div>
             </div>
@@ -97,9 +154,13 @@ async function PerformanceCycle({
   canManage: boolean;
   fmt: (a: Date | null, b: Date | null) => string | null;
 }) {
-  const roster = await getRoster(selected.id);
+  const [roster, goalsOverview] = await Promise.all([
+    getRoster(selected.id),
+    getGoalsOverview(selected.id),
+  ]);
   const started = roster.filter((r) => r.appraisalId).length;
   const finalized = roster.filter((r) => r.status.key === "FINALIZED").length;
+  const goalsByEmp = new Map(goalsOverview.map((g) => [g.employeeId, g] as const));
   const cur = stageIndex(selected.stage);
   const range = fmt(selected.periodStart, selected.periodEnd);
 
@@ -177,6 +238,7 @@ async function PerformanceCycle({
                 <th>Employee</th>
                 <th>Role</th>
                 <th>Grade</th>
+                <th>Goals</th>
                 <th>Overall</th>
                 <th>Status</th>
               </tr>
@@ -184,6 +246,7 @@ async function PerformanceCycle({
             <tbody>
               {roster.map((r) => {
                 const rb = ratingBadge(r.overallRating);
+                const g = goalsByEmp.get(r.employeeId);
                 return (
                   <tr key={r.employeeId}>
                     <td>
@@ -196,6 +259,13 @@ async function PerformanceCycle({
                     </td>
                     <td>{r.role ?? "—"}</td>
                     <td className="mono">{r.grade ?? "—"}</td>
+                    <td>
+                      {g && g.total > 0 ? (
+                        <span className="faint">{g.total} set</span>
+                      ) : (
+                        <span className="faint">—</span>
+                      )}
+                    </td>
                     <td>{rb ? <span className={"b " + rb.cls}>{rb.label}</span> : <span className="faint">—</span>}</td>
                     <td>
                       <span className={"b " + r.status.cls}>

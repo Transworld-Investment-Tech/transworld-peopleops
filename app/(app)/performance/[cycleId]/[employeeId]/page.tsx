@@ -3,10 +3,22 @@ import { notFound } from "next/navigation";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { getAppraisalView, RATINGS } from "@/lib/performance";
 import { LEVELS } from "@/lib/jobframework";
+import {
+  getGoalsForEmployee,
+  getDevelopmentPlans,
+  GOAL_STATUSES,
+  DEV_STATUSES,
+} from "@/lib/performance-toolkit";
 import AppraisalEditor from "@/components/performance/AppraisalEditor";
 import DevelopmentCard from "@/components/performance/DevelopmentCard";
+import GoalsPanel from "@/components/performance/GoalsPanel";
+import DevelopmentPlanEditor from "@/components/performance/DevelopmentPlanEditor";
 
 export const metadata = { title: "Appraisal · Transworld PeopleOps" };
+
+function isoDay(d: Date | null | undefined): string | null {
+  return d ? d.toISOString().slice(0, 10) : null;
+}
 
 export default async function AppraisalPage({
   params,
@@ -20,6 +32,11 @@ export default async function AppraisalPage({
 
   const view = await getAppraisalView(cycleId, employeeId);
   if (!view) notFound();
+
+  const [goals, devItems] = await Promise.all([
+    getGoalsForEmployee(employeeId, cycleId),
+    getDevelopmentPlans(employeeId, view.appraisal?.id ?? null),
+  ]);
 
   return (
     <>
@@ -51,6 +68,24 @@ export default async function AppraisalPage({
         </div>
       ) : null}
 
+      <GoalsPanel
+        cycleId={cycleId}
+        cycleName={view.cycle.name}
+        employeeId={employeeId}
+        canManage={canManage}
+        goals={goals.map((g) => ({
+          id: g.id,
+          title: g.title,
+          description: g.description,
+          measure: g.measure,
+          target: g.target,
+          weight: g.weight,
+          dueDate: isoDay(g.dueDate),
+          status: g.status,
+        }))}
+        statuses={GOAL_STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+      />
+
       <AppraisalEditor
         cycleId={cycleId}
         employeeId={employeeId}
@@ -59,6 +94,22 @@ export default async function AppraisalPage({
         appraisal={view.appraisal}
         ratings={RATINGS.map((r) => ({ value: r.value, label: r.label }))}
         levels={LEVELS.map((l) => ({ value: l.value, label: l.label }))}
+      />
+
+      <DevelopmentPlanEditor
+        employeeId={employeeId}
+        cycleId={cycleId}
+        appraisalId={view.appraisal?.id ?? null}
+        canManage={canManage}
+        items={devItems.map((d) => ({
+          id: d.id,
+          objective: d.objective,
+          action: d.action,
+          support: d.support,
+          targetDate: isoDay(d.targetDate),
+          status: d.status,
+        }))}
+        statuses={DEV_STATUSES.map((s) => ({ value: s.value, label: s.label }))}
       />
 
       <DevelopmentCard

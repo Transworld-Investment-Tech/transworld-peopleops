@@ -25,6 +25,15 @@
 //     granted to all real-person roles). Adds the "People -> My Documents" and
 //     "Administration -> Document Templates" sidebar entries. Permission count
 //     26 -> 28; re-run `npm run auth:bootstrap` after this release.
+//
+// v0.18.0 — Performance toolkit:
+//   * Adds `performance.self` (every staff member views their own goals, files
+//     weekly reports, reads their development plan, and acknowledges an
+//     improvement plan), granted to all real-person roles — the same set that
+//     holds `documents.view_own` (NOT AUDITOR_RO; SUPER_ADMIN holds everything
+//     via "*"). Adds the "People -> My Performance" sidebar entry. The existing
+//     `performance.view` / `performance.manage` keys are unchanged. Permission
+//     count 28 -> 29; re-run `npm run auth:bootstrap` after this release.
 
 export type Permission = { key: string; label: string };
 
@@ -42,6 +51,7 @@ export const PERMISSIONS: Permission[] = [
   { key: "onboarding.manage", label: "Manage onboarding" },
   { key: "performance.view", label: "View performance" },
   { key: "performance.manage", label: "Manage performance & appraisals" },
+  { key: "performance.self", label: "View & contribute to own performance" },
   { key: "learning.view", label: "View learning & development" },
   { key: "learning.manage", label: "Manage learning & development" },
   { key: "learning.recommend", label: "Recommend development modules" },
@@ -64,6 +74,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   SUPER_ADMIN: "*",
   EXEC: [
     "documents.view_own",
+    "performance.self",
     "dashboard.view",
     "employees.view",
     "jobframework.view",
@@ -82,6 +93,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   HR_ADMIN: [
     "documents.manage",
     "documents.view_own",
+    "performance.self",
     "dashboard.view",
     "employees.view",
     "employees.manage",
@@ -110,6 +122,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   ],
   FINANCE: [
     "documents.view_own",
+    "performance.self",
     "dashboard.view",
     "employees.view",
     "compensation.view",
@@ -121,6 +134,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   ],
   COMPLIANCE: [
     "documents.view_own",
+    "performance.self",
     "dashboard.view",
     "employees.view",
     "learning.view",
@@ -130,6 +144,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   ],
   INTERNAL_CONTROL: [
     "documents.view_own",
+    "performance.self",
     "dashboard.view",
     "employees.view",
     "payroll.view",
@@ -139,6 +154,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   ],
   MANAGER: [
     "documents.view_own",
+    "performance.self",
     "dashboard.view",
     "employees.view",
     "leave.view",
@@ -149,6 +165,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   ],
   EMPLOYEE: [
     "documents.view_own",
+    "performance.self",
     "dashboard.view",
     "leave.view",
     "learning.view",
@@ -216,6 +233,7 @@ export const NAV: NavSection[] = [
       { slug: "job-competency", label: "Job & Competency", perm: "jobframework.view", icon: I.roles },
       { slug: "leave", label: "Leave", perm: "leave.view", icon: I.leave },
       { slug: "my-documents", label: "My Documents", perm: "documents.view_own", icon: I.docs },
+      { slug: "my-performance", label: "My Performance", perm: "performance.self", icon: I.perf },
     ],
   },
   {
