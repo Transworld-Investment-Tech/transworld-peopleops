@@ -1146,3 +1146,85 @@ model BonusTrancheEvent {
   @@index([eventType])
   @@map("bonus_tranche_events")
 }
+
+// schema-append/raise-models.prisma (v0.22.0) — REFERENCE COPY.
+// setup.sh appends this block to prisma/schema.prisma (marker-guarded on
+// "model RaiseCycle", idempotent), then runs `prisma generate`. It mirrors the
+// public.raise_cycles / public.raise_items tables created by
+// supabase/migrations/0014_add_raise_mechanism.sql.
+//
+// Cross-module convention (see bonus / compensation): cross-entity references to
+// EXISTING tables (employees, users, compensation_profiles) are BARE columns here —
+// their FKs are enforced in SQL only — so Employee / User / CompensationProfile stay
+// untouched. The only real Prisma relation is RaiseCycle <-> RaiseItem (both new).
+// Ids are app-generated cuid; status / bandFlag are plain Strings (CHECK-constrained
+// in the migration; no new Postgres enums).
+
+// TW-RAISE-MODELS-V0220
+model RaiseCycle {
+  id                  String      @id @default(cuid())
+  label               String
+  status              String      @default("DRAFT")
+  milestoneLabel      String      @map("milestone_label")
+  revenueTarget       Decimal     @map("revenue_target") @db.Decimal(16, 2)
+  raisePercent        Decimal     @map("raise_percent") @db.Decimal(6, 4)
+  revenueObserved     Decimal?    @map("revenue_observed") @db.Decimal(16, 2)
+  revenueConfirmed    Decimal?    @map("revenue_confirmed") @db.Decimal(16, 2)
+  effectiveDate       DateTime    @map("effective_date")
+  confirmedNote       String?     @map("confirmed_note")
+  confirmedById       String?     @map("confirmed_by_id")
+  preparedById        String?     @map("prepared_by_id")
+  submittedById       String?     @map("submitted_by_id")
+  submittedAt         DateTime?   @map("submitted_at")
+  reviewedById        String?     @map("reviewed_by_id")
+  reviewedAt          DateTime?   @map("reviewed_at")
+  approvedById        String?     @map("approved_by_id")
+  approvedAt          DateTime?   @map("approved_at")
+  appliedAt           DateTime?   @map("applied_at")
+  lockedAt            DateTime?   @map("locked_at")
+  totalEmployees      Int?        @map("total_employees")
+  totalAnnualIncrease Decimal?    @map("total_annual_increase") @db.Decimal(16, 2)
+  totalNewAnnual      Decimal?    @map("total_new_annual") @db.Decimal(16, 2)
+  items               RaiseItem[]
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("raise_cycles")
+}
+
+model RaiseItem {
+  id               String     @id @default(cuid())
+  raiseCycleId     String     @map("raise_cycle_id")
+  raiseCycle       RaiseCycle @relation(fields: [raiseCycleId], references: [id], onDelete: Cascade)
+  employeeId       String     @map("employee_id")
+  eeId             String     @map("ee_id")
+  employeeName     String     @map("employee_name")
+  grade            String?
+  oldBasic         Decimal    @map("old_basic") @db.Decimal(14, 2)
+  oldUtility       Decimal    @map("old_utility") @db.Decimal(14, 2)
+  oldQuarterly     Decimal    @map("old_quarterly") @db.Decimal(14, 2)
+  oldAnnualTotal   Decimal    @map("old_annual_total") @db.Decimal(16, 2)
+  newBasic         Decimal    @map("new_basic") @db.Decimal(14, 2)
+  newUtility       Decimal    @map("new_utility") @db.Decimal(14, 2)
+  newQuarterly     Decimal    @map("new_quarterly") @db.Decimal(14, 2)
+  newAnnualTotal   Decimal    @map("new_annual_total") @db.Decimal(16, 2)
+  annualIncrease   Decimal    @map("annual_increase") @db.Decimal(16, 2)
+  bandMin          Decimal?   @map("band_min") @db.Decimal(14, 2)
+  bandMid          Decimal?   @map("band_mid") @db.Decimal(14, 2)
+  bandMax          Decimal?   @map("band_max") @db.Decimal(14, 2)
+  bandFlag         String     @default("WITHIN") @map("band_flag")
+  included         Boolean    @default(true)
+  excludeReason    String?    @map("exclude_reason")
+  capApplied       Boolean    @default(false) @map("cap_applied")
+  appliedProfileId String?    @map("applied_profile_id")
+  note             String?
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  @@unique([raiseCycleId, employeeId])
+  @@index([raiseCycleId])
+  @@index([employeeId])
+  @@map("raise_items")
+}
+

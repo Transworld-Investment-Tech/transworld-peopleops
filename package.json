@@ -1,6 +1,6 @@
 {
   "name": "transworld-peopleops",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -23,7 +23,8 @@
     "salary-bands:populate": "tsx prisma/salary-bands-populate.ts",
     "payroll:test": "tsx lib/payroll.test.ts",
     "bonus:test": "tsx lib/bonus.test.ts",
-    "bonus-ledger:test": "tsx lib/bonus-ledger.test.ts"
+    "bonus-ledger:test": "tsx lib/bonus-ledger.test.ts",
+    "raise:test": "tsx lib/raise.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
