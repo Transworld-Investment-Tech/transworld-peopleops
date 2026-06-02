@@ -1,49 +1,25 @@
 {
   "name": "transworld-peopleops",
-  "version": "0.19.1",
+  "version": "0.19.2",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "postinstall": "prisma generate",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:verify": "tsx prisma/verify.ts",
-    "db:studio": "prisma studio",
-    "auth:bootstrap": "tsx prisma/bootstrap-auth.ts",
-    "org:bootstrap": "tsx prisma/org-bootstrap.ts",
-    "jobframework:populate": "tsx prisma/jobframework-populate.ts",
-    "learning:populate": "tsx prisma/learning-populate.ts",
-    "users:populate": "tsx prisma/users-populate.ts",
-    "leave:populate": "tsx prisma/leave-populate.ts",
+    "dev": "next dev", "build": "next build", "start": "next start", "lint": "next lint",
+    "postinstall": "prisma generate", "db:generate": "prisma generate", "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts", "db:verify": "tsx prisma/verify.ts", "db:studio": "prisma studio",
+    "auth:bootstrap": "tsx prisma/bootstrap-auth.ts", "org:bootstrap": "tsx prisma/org-bootstrap.ts",
+    "jobframework:populate": "tsx prisma/jobframework-populate.ts", "learning:populate": "tsx prisma/learning-populate.ts",
+    "users:populate": "tsx prisma/users-populate.ts", "leave:populate": "tsx prisma/leave-populate.ts",
     "document-templates:populate": "tsx prisma/document-templates-populate.ts",
-    "salary-bands:populate": "tsx prisma/salary-bands-populate.ts",
-    "payroll:test": "tsx lib/payroll.test.ts"
+    "salary-bands:populate": "tsx prisma/salary-bands-populate.ts", "payroll:test": "tsx lib/payroll.test.ts"
   },
   "prisma": { "seed": "tsx prisma/seed.ts" },
   "dependencies": {
-    "@prisma/client": "^6.2.0",
-    "@supabase/supabase-js": "^2.106.2",
-    "bcryptjs": "^2.4.3",
-    "next": "^15.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "xlsx": "^0.18.5",
-    "zod": "^3.24.1"
+    "@prisma/client": "^6.2.0", "@supabase/supabase-js": "^2.106.2", "bcryptjs": "^2.4.3",
+    "next": "^15.1.0", "react": "^19.0.0", "react-dom": "^19.0.0", "xlsx": "^0.18.5", "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^22.10.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "prisma": "^6.2.0",
-    "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "@types/bcryptjs": "^2.4.6", "@types/node": "^22.10.0", "@types/react": "^19.0.0", "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20", "postcss": "^8.4.49", "prisma": "^6.2.0", "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2", "typescript": "^5.7.2"
   }
 }

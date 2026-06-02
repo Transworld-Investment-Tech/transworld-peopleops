@@ -30,7 +30,7 @@ export default async function PayCyclePage({ params }: { params: Promise<{ cycle
     : "—";
 
   return (
-    <>
+    <div className="pay-wide">
       <div className="page-h">
         <div>
           <h1 className="serif">{cycle.label}</h1>
@@ -64,6 +64,6 @@ export default async function PayCyclePage({ params }: { params: Promise<{ cycle
         allConfirmed={cycle.allConfirmed}
         isQuarterMonth={cycle.isQuarterMonth}
       />
-    </>
+    </div>
   );
 }
