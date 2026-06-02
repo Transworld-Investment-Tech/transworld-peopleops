@@ -17,6 +17,11 @@ import {
   type TaxBandInput,
   type TaxTreatmentValue,
 } from "@/lib/payroll";
+import {
+  compaRatio,
+  bandFlagFor,
+  type BandFlag,
+} from "@/lib/raise";
 
 // ---------------------------------------------------------------------------
 // Vocabularies
@@ -668,4 +673,185 @@ export async function getCompChangeRequests(status?: string): Promise<ChangeRequ
       current: curByEmp.get(r.employeeId) ?? null,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Compa-ratio + pay-band position (WS6 Part 1)
+// ---------------------------------------------------------------------------
+// Where each person sits against their grade band, and their compa-ratio
+// (monthly gross / grade midpoint). Pure derivation over data we already store
+// and version: current compensation profiles (monthly gross = basic + utility,
+// the firm's band / compa-ratio basis) and the salary_bands table. Nothing is
+// persisted here — CR and band position are deterministic functions of those
+// two inputs, and point-in-time evidence is already sealed elsewhere (locked
+// raise cycles carry band flags; locked payroll cycles carry gross). Reuses the
+// settled raise engine (lib/raise.ts) for compaRatio + bandFlagFor.
+
+/** Compa-ratio above this is surfaced for COO awareness (Ops Manual B1.3). */
+export const CR_COO_AWARE = 1.15;
+
+export type PositioningRow = {
+  employeeId: string;
+  eeId: string;
+  name: string;
+  role: string | null;
+  grade: string | null;
+  hasProfile: boolean;
+  monthlyGross: number | null; // basic + utility (band / compa-ratio basis)
+  band: { min: number; midpoint: number; max: number } | null;
+  compaRatio: number | null; // null when no band/midpoint
+  bandFlag: BandFlag | null; // null when no band to compare against
+  cooAware: boolean; // compaRatio > CR_COO_AWARE
+};
+
+export type GradePositionSummary = {
+  grade: string;
+  label: string;
+  band: { min: number; midpoint: number; max: number };
+  positioned: number; // staff in this grade with a current profile + band
+  avgCompaRatio: number | null;
+  aboveMid: number;
+  aboveMax: number;
+  belowMin: number;
+};
+
+export type CompensationPositioning = {
+  rows: PositioningRow[];
+  gradeSummaries: GradePositionSummary[];
+  cooAware: PositioningRow[]; // the awareness list (CR > threshold)
+  ungraded: { eeId: string; name: string }[]; // profiled but no grade/band
+  unprofiled: { eeId: string; name: string }[]; // no current profile
+  crThreshold: number;
+  hasActiveRuleSet: boolean;
+};
+
+/** Firmwide positioning view: one row per non-exited employee, plus per-grade
+ * roll-ups and the COO-awareness list. Composes the two existing reads
+ * (register + bands) and the pure raise engine — no new query, no schema. */
+export async function getCompensationPositioning(): Promise<CompensationPositioning> {
+  const [register, bands] = await Promise.all([
+    getCompensationRegister(),
+    getSalaryBands(),
+  ]);
+  const bandByGrade = new Map(bands.map((b) => [b.grade, b] as const));
+
+  const rows: PositioningRow[] = register.rows.map((r) => {
+    const sb = r.grade ? bandByGrade.get(r.grade) ?? null : null;
+    const gross = r.hasProfile ? r.gross : null;
+    const band = sb ? { min: sb.min, midpoint: sb.midpoint, max: sb.max } : null;
+    const cr = gross !== null && band ? compaRatio(gross, band.midpoint) : null;
+    const flag = gross !== null && band ? bandFlagFor(gross, band) : null;
+    return {
+      employeeId: r.employeeId,
+      eeId: r.eeId,
+      name: r.name,
+      role: r.role,
+      grade: r.grade,
+      hasProfile: r.hasProfile,
+      monthlyGross: gross,
+      band,
+      compaRatio: cr,
+      bandFlag: flag,
+      cooAware: cr !== null && cr > CR_COO_AWARE,
+    };
+  });
+
+  // Per-grade roll-up over positioned rows that have a band.
+  const gradeSummaries: GradePositionSummary[] = bands.map((b) => {
+    const inGrade = rows.filter(
+      (row) => row.grade === b.grade && row.monthlyGross !== null && row.band,
+    );
+    const crs = inGrade
+      .map((row) => row.compaRatio)
+      .filter((x): x is number => x !== null);
+    const avg =
+      crs.length > 0
+        ? Math.round((crs.reduce((s, x) => s + x, 0) / crs.length) * 1000) / 1000
+        : null;
+    return {
+      grade: b.grade,
+      label: b.label,
+      band: { min: b.min, midpoint: b.midpoint, max: b.max },
+      positioned: inGrade.length,
+      avgCompaRatio: avg,
+      aboveMid: inGrade.filter((row) => row.bandFlag === "ABOVE_MID").length,
+      aboveMax: inGrade.filter((row) => row.bandFlag === "ABOVE_MAX").length,
+      belowMin: inGrade.filter((row) => row.bandFlag === "BELOW_MIN").length,
+    };
+  });
+
+  const cooAware = rows.filter((r) => r.cooAware);
+  const ungraded = rows
+    .filter((r) => r.hasProfile && !r.band)
+    .map((r) => ({ eeId: r.eeId, name: r.name }));
+  const unprofiled = rows
+    .filter((r) => !r.hasProfile)
+    .map((r) => ({ eeId: r.eeId, name: r.name }));
+
+  return {
+    rows,
+    gradeSummaries,
+    cooAware,
+    ungraded,
+    unprofiled,
+    crThreshold: CR_COO_AWARE,
+    hasActiveRuleSet: register.hasActiveRuleSet,
+  };
+}
+
+export type EmployeePositioning = {
+  grade: string | null;
+  monthlyGross: number | null;
+  band: { min: number; midpoint: number; max: number; label: string } | null;
+  compaRatio: number | null;
+  bandFlag: BandFlag | null;
+  cooAware: boolean;
+  crThreshold: number;
+};
+
+/** Band positioning for one employee, from the grade + monthly gross the detail
+ * page already holds (basic + utility). One small band lookup; no profile
+ * re-fetch. Returns nulls gracefully when there is no profile or no band. */
+export async function getEmployeePositioning(
+  grade: string | null,
+  monthlyGross: number | null,
+): Promise<EmployeePositioning> {
+  let band: EmployeePositioning["band"] = null;
+  if (grade) {
+    const b = await prisma.salaryBand.findFirst({ where: { grade } });
+    if (b) {
+      band = {
+        min: num(b.minAmount),
+        midpoint: num(b.midpoint),
+        max: num(b.maxAmount),
+        label: b.label,
+      };
+    }
+  }
+  if (monthlyGross === null || !band) {
+    return {
+      grade,
+      monthlyGross,
+      band,
+      compaRatio: null,
+      bandFlag: null,
+      cooAware: false,
+      crThreshold: CR_COO_AWARE,
+    };
+  }
+  const cr = compaRatio(monthlyGross, band.midpoint);
+  const flag = bandFlagFor(monthlyGross, {
+    min: band.min,
+    midpoint: band.midpoint,
+    max: band.max,
+  });
+  return {
+    grade,
+    monthlyGross,
+    band,
+    compaRatio: cr,
+    bandFlag: flag,
+    cooAware: cr !== null && cr > CR_COO_AWARE,
+    crThreshold: CR_COO_AWARE,
+  };
 }

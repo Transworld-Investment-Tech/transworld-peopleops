@@ -8,7 +8,9 @@ import {
   treatmentBadge,
   type ProfileView,
   type CompFields as CompFieldsData,
+  getEmployeePositioning,
 } from "@/lib/compensation";
+import { bandFlagBadge } from "@/lib/raise-cycle";
 import PayBreakdown from "@/components/compensation/PayBreakdown";
 import CompProfileForm from "@/components/compensation/CompProfileForm";
 import CompChangeRequestForm from "@/components/compensation/CompChangeRequestForm";
@@ -95,6 +97,10 @@ export default async function EmployeeCompensationPage({
   const { employee, role, grade, payCategory, current, versions, hasActiveRuleSet, breakdown, pending, pendingPreview } =
     data;
 
+  const monthlyGross = current ? current.basicSalary + current.utilityAllowance : null;
+  const positioning = await getEmployeePositioning(grade, monthlyGross);
+  const positionFlagBadge = positioning.bandFlag ? bandFlagBadge(positioning.bandFlag) : null;
+
   return (
     <>
       <div className="page-h">
@@ -150,6 +156,68 @@ export default async function EmployeeCompensationPage({
           </div>
         </div>
       )}
+
+      {current && positioning.band ? (
+        <div className="card mt">
+          <div className="card-h">
+            <h3>Band positioning</h3>
+            <span className="hint">{positioning.band.label}</span>
+          </div>
+          <div className="card-pad">
+            <div className="kpis">
+              <div className="kpi">
+                <span className="lab">Monthly gross</span>
+                <span className="val mono">{fmtNaira(positioning.monthlyGross)}</span>
+              </div>
+              <div className="kpi">
+                <span className="lab">Band (min · mid · max)</span>
+                <span className="val mono">
+                  {fmtNaira(positioning.band.min)} · {fmtNaira(positioning.band.midpoint)} ·{" "}
+                  {fmtNaira(positioning.band.max)}
+                </span>
+              </div>
+              <div className="kpi">
+                <span className="lab">Compa-ratio</span>
+                <span className="val">
+                  <span className="mono">
+                    {positioning.compaRatio === null ? "—" : positioning.compaRatio.toFixed(2)}
+                  </span>
+                  {positioning.cooAware ? (
+                    <span className="b b-red" style={{ marginLeft: 6 }}>
+                      Above {positioning.crThreshold.toFixed(2)}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+              <div className="kpi">
+                <span className="lab">Position</span>
+                <span className="val">
+                  {positionFlagBadge ? (
+                    <span className={`b ${positionFlagBadge.cls}`}>{positionFlagBadge.label}</span>
+                  ) : (
+                    <span className="faint">—</span>
+                  )}
+                </span>
+              </div>
+            </div>
+            <p className="faint" style={{ marginTop: 10, marginBottom: 0 }}>
+              Compa-ratio is monthly gross ÷ grade midpoint. Awareness only — it doesn’t change pay.
+            </p>
+          </div>
+        </div>
+      ) : current && grade && !positioning.band ? (
+        <div className="card mt">
+          <div className="card-pad">
+            <div className="note">
+              <span>ℹ</span>
+              <div>
+                No salary band defined for grade <span className="mono">{grade}</span> — set one under
+                Salary bands to see positioning.
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {breakdown ? (
         <div style={{ marginTop: 18 }}>
