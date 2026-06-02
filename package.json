@@ -1,6 +1,6 @@
 {
   "name": "transworld-peopleops",
-  "version": "0.17.1",
+  "version": "0.19.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,7 +19,9 @@
     "learning:populate": "tsx prisma/learning-populate.ts",
     "users:populate": "tsx prisma/users-populate.ts",
     "leave:populate": "tsx prisma/leave-populate.ts",
-    "document-templates:populate": "tsx prisma/document-templates-populate.ts"
+    "document-templates:populate": "tsx prisma/document-templates-populate.ts",
+    "salary-bands:populate": "tsx prisma/salary-bands-populate.ts",
+    "payroll:test": "tsx lib/payroll.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -31,6 +33,7 @@
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {

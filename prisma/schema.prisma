@@ -384,6 +384,9 @@ model TaxRuleSet {
   payCycles            PayCycle[]
   createdAt            DateTime   @default(now()) @map("created_at")
 
+  payeOnBasicOnly        Boolean      @default(true) @map("paye_on_basic_only")
+  employerPensionOnGross Boolean      @default(true) @map("employer_pension_on_gross")
+  itfRate                Decimal      @default(0.01) @db.Decimal(6, 4) @map("itf_rate")
   @@map("tax_rule_sets")
 }
 
@@ -457,6 +460,8 @@ model PayItem {
   createdAt         DateTime            @default(now()) @map("created_at")
 
   @@unique([payCycleId, employeeId])
+  itf               Decimal             @default(0) @db.Decimal(14, 2)
+  adjustments       Json?
   @@map("pay_items")
 }
 

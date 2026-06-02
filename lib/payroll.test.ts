@@ -102,5 +102,37 @@ const np = computePay({
 eq("no-pension employee side", np.pensionEmployee, 0);
 eq("no-pension employer side", np.pensionEmployer, 0);
 
+// ── v0.19.0: firm-policy flags (basic-only PAYE, employer pension on gross, ITF) ──
+const firm: TaxRules = {
+  ...rules, payeOnBasicOnly: true, employerPensionOnGross: true, itfRate: 0.01,
+};
+// 25-28: Ezeh — basic 74,243.55, utility 36,666.67 (real Sept-2025 figures).
+const f1 = computePay({
+  basicSalary: 74243.55, utilityAllowance: 36666.67, quarterlyAllowance: 0,
+  taxTreatment: "PAYE", flatTaxRate: null, annualRentPaid: null,
+  pensionApplicable: true, nhfApplicable: true, itfApplicable: true,
+}, firm);
+eq("firm PAYE on basic only -> 0", f1.paye, 0);
+eq("firm employer pension on gross", f1.pensionEmployer, 11091.02);
+eq("firm employee pension on basic", f1.pensionEmployee, 5939.48);
+eq("firm ITF 1% of basic", f1.itf, 742.44);
+// 29: MD with no utility — basic-only PAYE matches the End-of-Month report.
+const f2 = computePay({
+  basicSalary: 173571.80, utilityAllowance: 0, quarterlyAllowance: 0,
+  taxTreatment: "PAYE", flatTaxRate: null, annualRentPaid: null,
+  pensionApplicable: true, nhfApplicable: true, itfApplicable: true,
+}, firm);
+eq("firm MD PAYE (2026)", f2.paye, 13302.01);
+// 30: ITF opt-out zeroes ITF for that row.
+const f3 = computePay({
+  basicSalary: 200000, utilityAllowance: 0, quarterlyAllowance: 0,
+  taxTreatment: "PAYE", flatTaxRate: null, annualRentPaid: null,
+  pensionApplicable: true, nhfApplicable: true, itfApplicable: false,
+}, firm);
+eq("ITF opt-out -> 0", f3.itf, 0);
+// 31: net subtracts ITF (gross - pension - nhf - itf - paye).
+eq("net includes ITF deduction", f1.netPay,
+   f1.monthlyGross - f1.pensionEmployee - f1.nhf - f1.itf - f1.paye);
+
 console.log(`\n${pass}/${pass + fail} checks passed.`);
 if (fail > 0) process.exit(1);

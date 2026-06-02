@@ -107,6 +107,9 @@ type RuleSetRow = {
   rentReliefRate: unknown;
   rentReliefCapAnnual: unknown;
   pensionOnBasicOnly: boolean;
+  payeOnBasicOnly: boolean;
+  employerPensionOnGross: boolean;
+  itfRate: unknown;
   isActive: boolean;
   bands: { id: string; sequence: number; lowerBound: unknown; upperBound: unknown; rate: unknown }[];
 };
@@ -129,6 +132,9 @@ export function rulesFrom(ruleset: RuleSetRow): TaxRules {
     rentReliefRate: num(ruleset.rentReliefRate),
     rentReliefCapAnnual: num(ruleset.rentReliefCapAnnual),
     pensionOnBasicOnly: ruleset.pensionOnBasicOnly,
+    payeOnBasicOnly: ruleset.payeOnBasicOnly,
+    employerPensionOnGross: ruleset.employerPensionOnGross,
+    itfRate: num(ruleset.itfRate),
     bands,
   };
 }
