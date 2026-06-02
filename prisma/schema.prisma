@@ -1038,3 +1038,91 @@ model GoalAmendment {
   @@index([goalId])
   @@map("goal_amendments")
 }
+
+// === TW-BONUS-MODELS-V0200 — Bonus model (WS6 Part 3). Pure-append; appended to
+// prisma/schema.prisma by setup.sh when absent. Cross-entity references
+// (employee, appraisal cycle) are BARE columns — no relations into existing
+// models — so Employee / AppraisalCycle stay untouched (the goal_sheets pattern).
+// Statuses are CHECK-constrained text (the v0.16.x pattern); the CHECK
+// constraints live in supabase/migrations/0012_add_bonus_model.sql. ===
+model BonusRound {
+  id               String       @id @default(cuid())
+  awardYear        Int          @unique @map("award_year")
+  label            String
+  status           String       @default("DRAFT") // DRAFT | IN_REVIEW | APPROVED | LOCKED
+  pbt              Decimal      @default(0) @db.Decimal(16, 2)
+  poolRate         Decimal      @default(0.15) @map("pool_rate") @db.Decimal(6, 4)
+  poolAmount       Decimal      @default(0) @map("pool_amount") @db.Decimal(16, 2)
+  salaryBasis      String       @default("GROSS") @map("salary_basis") // BASIC | GROSS
+  scalingFactor    Decimal      @default(1) @map("scaling_factor") @db.Decimal(8, 6)
+  totalCalculated  Decimal?     @map("total_calculated") @db.Decimal(16, 2)
+  totalAwarded     Decimal?     @map("total_awarded") @db.Decimal(16, 2)
+  paymentMonth     Int          @default(4) @map("payment_month")
+  paymentYear      Int          @map("payment_year")
+  appraisalCycleId String?      @map("appraisal_cycle_id")
+  confirmedNote    String?      @map("confirmed_note")
+  approvedById     String?      @map("approved_by_id")
+  approvedAt       DateTime?    @map("approved_at")
+  lockedAt         DateTime?    @map("locked_at")
+  awards           BonusAward[]
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  @@map("bonus_rounds")
+}
+
+model BonusAward {
+  id              String         @id @default(cuid())
+  bonusRoundId    String         @map("bonus_round_id")
+  employeeId      String         @map("employee_id")
+  eeId            String         @map("ee_id")
+  employeeName    String         @map("employee_name")
+  grade           String
+  targetMonths    Decimal        @map("target_months") @db.Decimal(6, 4)
+  monthlySalary   Decimal        @map("monthly_salary") @db.Decimal(14, 2)
+  targetBonus     Decimal        @map("target_bonus") @db.Decimal(14, 2)
+  multiplier      Decimal        @default(1.0) @db.Decimal(5, 3)
+  integrityGate   Boolean        @default(false) @map("integrity_gate")
+  appraisalRating String?        @map("appraisal_rating")
+  calculatedBonus Decimal        @default(0) @map("calculated_bonus") @db.Decimal(14, 2)
+  awardedBonus    Decimal        @default(0) @map("awarded_bonus") @db.Decimal(14, 2)
+  deferred        Boolean        @default(false)
+  immediateAmount Decimal        @default(0) @map("immediate_amount") @db.Decimal(14, 2)
+  deferredAmount  Decimal        @default(0) @map("deferred_amount") @db.Decimal(14, 2)
+  reviewStatus    String         @default("PENDING") @map("review_status") // PENDING | CONFIRMED
+  note            String?
+  confirmedById   String?        @map("confirmed_by_id")
+  confirmedAt     DateTime?      @map("confirmed_at")
+  bonusRound      BonusRound     @relation(fields: [bonusRoundId], references: [id], onDelete: Cascade)
+  tranches        BonusTranche[]
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@unique([bonusRoundId, employeeId])
+  @@index([bonusRoundId])
+  @@index([employeeId])
+  @@map("bonus_awards")
+}
+
+model BonusTranche {
+  id             String     @id @default(cuid())
+  bonusAwardId   String     @map("bonus_award_id")
+  bonusRoundId   String     @map("bonus_round_id")
+  employeeId     String     @map("employee_id")
+  sequence       Int
+  label          String
+  amount         Decimal    @db.Decimal(14, 2)
+  scheduledMonth Int        @default(4) @map("scheduled_month")
+  scheduledYear  Int        @map("scheduled_year")
+  status         String     @default("SCHEDULED") // SCHEDULED | PAID | CLAWED_BACK | FORFEITED
+  paidAt         DateTime?  @map("paid_at")
+  note           String?
+  bonusAward     BonusAward @relation(fields: [bonusAwardId], references: [id], onDelete: Cascade)
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  @@index([bonusAwardId])
+  @@index([bonusRoundId])
+  @@index([employeeId])
+  @@map("bonus_tranches")
+}

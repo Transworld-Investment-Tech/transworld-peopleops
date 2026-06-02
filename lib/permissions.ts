@@ -44,6 +44,14 @@
 //     are unchanged. Permission count 29 -> 30; role-permission links
 //     116 -> 118 (MANAGER + SUPER_ADMIN). Re-run `npm run auth:bootstrap`.
 
+// v0.20.0 — Bonus model (WS6 Part 3):
+//   * Adds `bonus.view`, `bonus.manage`, `bonus.approve`. FINANCE prepares the
+//     round (`bonus.manage`); EXEC (Remuneration Committee) approves + locks
+//     (`bonus.approve`). HR_ADMIN, COMPLIANCE, INTERNAL_CONTROL and AUDITOR_RO
+//     get read (`bonus.view`); SUPER_ADMIN holds everything via "*". Adds the
+//     "Grow & Reward -> Bonus" sidebar entry. Permission count 30 -> 33;
+//     role-permission links 118 -> 126. Re-run `npm run auth:bootstrap`.
+
 export type Permission = { key: string; label: string };
 
 export const PERMISSIONS: Permission[] = [
@@ -72,6 +80,9 @@ export const PERMISSIONS: Permission[] = [
   { key: "payroll.manage", label: "Manage payroll control" },
   { key: "payroll.approve", label: "Approve payroll" },
   { key: "payslips.view_own", label: "View own payslips" },
+  { key: "bonus.view", label: "View bonus" },
+  { key: "bonus.manage", label: "Manage bonus" },
+  { key: "bonus.approve", label: "Approve bonus" },
   { key: "evidence.view", label: "View evidence vault" },
   { key: "controls.view", label: "View internal controls" },
   { key: "admin.users", label: "Administer users & roles" },
@@ -99,6 +110,8 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payroll.approve",
     "evidence.view",
     "controls.view",
+    "bonus.view",
+    "bonus.approve",
   ],
   HR_ADMIN: [
     "documents.manage",
@@ -129,6 +142,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     // (Role *assignment* inside the screen is further gated to SUPER_ADMIN in
     // the server action — HR_ADMIN can create/link users but cannot elevate.)
     "admin.users",
+    "bonus.view",
   ],
   FINANCE: [
     "documents.view_own",
@@ -139,6 +153,8 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "compensation.manage",
     "payroll.view",
     "payroll.manage",
+    "bonus.view",
+    "bonus.manage",
     "evidence.view",
     "payslips.view_own",
   ],
@@ -151,6 +167,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "evidence.view",
     "controls.view",
     "payslips.view_own",
+    "bonus.view",
   ],
   INTERNAL_CONTROL: [
     "documents.view_own",
@@ -161,6 +178,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "evidence.view",
     "controls.view",
     "payslips.view_own",
+    "bonus.view",
   ],
   MANAGER: [
     "documents.view_own",
@@ -188,6 +206,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payroll.view",
     "evidence.view",
     "controls.view",
+    "bonus.view",
   ],
 };
 
@@ -224,6 +243,7 @@ const I = {
   comp: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>`,
   payroll: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5.5H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>`,
   payslips: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h9l5 5V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M14 2.5V8h5M8.5 13h7M8.5 17h5"/></svg>`,
+  bonus: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="6"/><path d="m9 14.5-2 7 5-3 5 3-2-7"/><path d="M12 6.2l1 2 2.2.3-1.6 1.6.4 2.2L12 11.3l-2 1 .4-2.2L8.8 8.5 11 8.2z"/></svg>`,
   evidence: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2.5 4 6v5c0 5 3.4 8.6 8 10.5C16.6 19.6 20 16 20 11V6Z"/><path d="m9 11.5 2 2 4-4.5"/></svg>`,
   controls: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 7.5h18M6.5 7.5 5 18M17.5 7.5 19 18M3.5 18h17"/></svg>`,
   docs: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h8l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M13 2.5V7h4M8.5 12h7M8.5 16h7"/></svg>`,
@@ -261,6 +281,7 @@ export const NAV: NavSection[] = [
       { slug: "performance", label: "Performance", perm: "performance.view", icon: I.perf },
       { slug: "learning", label: "Learning & Development", perm: "learning.view", icon: I.learn },
       { slug: "compensation", label: "Compensation", perm: "compensation.view", icon: I.comp },
+      { slug: "bonus", label: "Bonus", perm: "bonus.view", icon: I.bonus },
     ],
   },
   {
