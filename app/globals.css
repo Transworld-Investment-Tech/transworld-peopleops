@@ -2119,3 +2119,92 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
 .pay-bar { position: static; bottom: auto; margin-top: 18px; }
 .pay-meta { gap: 14px; }
 @media (max-width: 1200px) { .pay-meta { grid-template-columns: repeat(2, 1fr); } }
+
+/* TW-MYPAYSLIPS-CSS-V0193 — My Payslips (self-service). Additive only; reuses the
+   existing .comp-slip payslip styling, .card/.kpi/.b/.note tokens and the global
+   table styling. Adds (1) a lightweight accordion wrapper around each month's
+   slip and (2) a print stylesheet so a single payslip (or the whole pack) prints
+   cleanly without the app chrome. Marker-guarded + idempotent (appended by
+   setup.sh only when absent). */
+.payslip-d {
+  margin-bottom: 12px;
+}
+.payslip-sum {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  padding: 11px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  list-style: none;
+}
+.payslip-sum::-webkit-details-marker {
+  display: none;
+}
+.payslip-sum::marker {
+  content: "";
+}
+.payslip-sum:hover {
+  border-color: var(--line-2);
+}
+.payslip-month {
+  color: var(--navy);
+  font-size: 15px;
+}
+.payslip-sum-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.payslip-net {
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 14px;
+}
+.payslip-d[open] > .payslip-sum {
+  border-radius: 10px 10px 0 0;
+  border-bottom: 0;
+  box-shadow: none;
+}
+.payslip-d[open] > .comp-slip {
+  border-radius: 0 0 12px 12px;
+}
+
+/* Print: drop the app chrome, expand every payslip, one slip per page block. */
+@media print {
+  .side,
+  .topbar {
+    display: none !important;
+  }
+  .main,
+  .content {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+  .kpis,
+  .sec-t {
+    display: none !important;
+  }
+  .payslip-sum {
+    box-shadow: none;
+    cursor: default;
+  }
+  details.payslip-d > *:not(summary) {
+    display: block !important;
+  }
+  .payslip-d,
+  .comp-slip {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .comp-slip {
+    box-shadow: none;
+    border-radius: 12px;
+  }
+}
