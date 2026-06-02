@@ -52,6 +52,14 @@
 //     "Grow & Reward -> Bonus" sidebar entry. Permission count 30 -> 33;
 //     role-permission links 118 -> 126. Re-run `npm run auth:bootstrap`.
 
+// v0.20.2 — My Bonus (self-service, WS6 Part 3):
+//   * Adds `bonus.view_own` (a staff member views their OWN target bonus,
+//     awards and deferral schedule). Granted to EXEC, HR_ADMIN, FINANCE,
+//     COMPLIANCE, INTERNAL_CONTROL, MANAGER and EMPLOYEE; SUPER_ADMIN holds
+//     everything via "*". NOT granted to AUDITOR_RO. Adds the
+//     "Payroll Control -> My Bonus" sidebar entry. Permission count 33 -> 34;
+//     role-permission links 126 -> 133. Re-run `npm run auth:bootstrap`.
+
 export type Permission = { key: string; label: string };
 
 export const PERMISSIONS: Permission[] = [
@@ -83,6 +91,7 @@ export const PERMISSIONS: Permission[] = [
   { key: "bonus.view", label: "View bonus" },
   { key: "bonus.manage", label: "Manage bonus" },
   { key: "bonus.approve", label: "Approve bonus" },
+  { key: "bonus.view_own", label: "View own bonus" },
   { key: "evidence.view", label: "View evidence vault" },
   { key: "controls.view", label: "View internal controls" },
   { key: "admin.users", label: "Administer users & roles" },
@@ -112,6 +121,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "controls.view",
     "bonus.view",
     "bonus.approve",
+    "bonus.view_own",
   ],
   HR_ADMIN: [
     "documents.manage",
@@ -138,6 +148,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payroll.view",
     "evidence.view",
     "payslips.view_own",
+    "bonus.view_own",
     // v0.13.0: HR operator can provision/link staff logins and reset passwords.
     // (Role *assignment* inside the screen is further gated to SUPER_ADMIN in
     // the server action — HR_ADMIN can create/link users but cannot elevate.)
@@ -157,6 +168,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "bonus.manage",
     "evidence.view",
     "payslips.view_own",
+    "bonus.view_own",
   ],
   COMPLIANCE: [
     "documents.view_own",
@@ -167,6 +179,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "evidence.view",
     "controls.view",
     "payslips.view_own",
+    "bonus.view_own",
     "bonus.view",
   ],
   INTERNAL_CONTROL: [
@@ -178,6 +191,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "evidence.view",
     "controls.view",
     "payslips.view_own",
+    "bonus.view_own",
     "bonus.view",
   ],
   MANAGER: [
@@ -191,6 +205,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "learning.view",
     "learning.recommend",
     "payslips.view_own",
+    "bonus.view_own",
   ],
   EMPLOYEE: [
     "documents.view_own",
@@ -199,6 +214,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "leave.view",
     "learning.view",
     "payslips.view_own",
+    "bonus.view_own",
   ],
   AUDITOR_RO: [
     "dashboard.view",
@@ -289,6 +305,7 @@ export const NAV: NavSection[] = [
     items: [
       { slug: "payroll", label: "Payroll Run", perm: "payroll.view", icon: I.payroll },
       { slug: "payslips", label: "My Payslips", perm: "payslips.view_own", icon: I.payslips },
+      { slug: "my-bonus", label: "My Bonus", perm: "bonus.view_own", icon: I.bonus },
     ],
   },
   {
