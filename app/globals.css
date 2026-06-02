@@ -2067,3 +2067,49 @@ tbody tr:hover {
 .ln-statline b {
   color: var(--ink);
 }
+
+/* TW-PAYROLL-UI-V0191 — Payroll control-room polish. Additive only; reuses the
+   theme palette and existing .card / .btn / .b / .kpi / .field conventions. */
+.btn-xs { padding: 5px 10px; font-size: 12px; border-radius: 7px; }
+.btn-danger { color: var(--red); border-color: #f0c9c3; }
+.btn-danger:hover { background: var(--red-soft); border-color: #e5b0a8; }
+
+.pay-meta { grid-template-columns: repeat(4, 1fr); margin-bottom: 16px; }
+.pay-row-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; }
+.pay-row-actions form { display: inline; }
+td.pay-actions-cell { width: 1%; white-space: nowrap; }
+
+tbody tr.is-confirmed td:first-child { box-shadow: inset 3px 0 0 var(--green); }
+tbody tr.is-changed td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
+.pay-note-inline { color: var(--faint); font-size: 11.5px; margin-top: 2px; }
+
+tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #fafbfc; }
+
+/* sticky action + totals bar */
+.pay-bar { position: sticky; bottom: 14px; margin-top: 16px; }
+.pay-bar .card-pad { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.pay-totals { display: flex; flex-wrap: wrap; gap: 16px 26px; }
+.pay-totals .t .t-lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--faint); font-weight: 600; }
+.pay-totals .t .t-val { font-family: "Spectral", serif; font-size: 18px; font-weight: 600; margin-top: 1px; letter-spacing: -0.2px; }
+.pay-totals .t.payable .t-val { color: var(--navy); }
+.pay-bar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pay-bar-actions form { display: inline; }
+
+/* right-side adjust drawer */
+.pay-drawer-backdrop { position: fixed; inset: 0; background: rgba(11, 31, 58, 0.35); z-index: 60; animation: payFade 0.15s ease; }
+.pay-drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(460px, 94vw); background: var(--card);
+  box-shadow: -10px 0 34px rgba(16, 30, 54, 0.16); z-index: 61; display: flex; flex-direction: column;
+  animation: paySlide 0.2s cubic-bezier(0.22, 1, 0.36, 1); }
+.pay-drawer-h { padding: 17px 20px; border-bottom: 1px solid var(--line-2); display: flex; align-items: center; justify-content: space-between; }
+.pay-drawer-h h3 { font-size: 14px; font-weight: 600; }
+.pay-drawer-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+.pay-drawer-foot { padding: 14px 20px; border-top: 1px solid var(--line-2); display: flex; gap: 10px; justify-content: flex-end; }
+@keyframes paySlide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes payFade { from { opacity: 0; } to { opacity: 1; } }
+
+.pay-adj { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-top: 6px; }
+.pay-adj-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.pay-adj-h b { font-size: 12.5px; }
+.pay-adj-line { display: grid; grid-template-columns: 1fr 96px 110px auto; gap: 8px; margin-bottom: 8px; align-items: center; }
+.pay-adj-line input, .pay-adj-line select { font-family: inherit; font-size: 13px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink); outline: none; }
+.pay-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); font-weight: 600; margin: 6px 0; }

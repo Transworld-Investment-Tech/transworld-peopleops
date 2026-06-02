@@ -17,7 +17,6 @@ export default async function PayCyclePage({ params }: { params: Promise<{ cycle
 
   const b = cycleStateBadge(cycle.status);
 
-  // Pass a serializable, client-safe view of each row.
   const rows = cycle.rows.map((r) => ({
     id: r.id, eeId: r.eeId, name: r.name, grade: r.grade, payCategory: r.payCategory,
     basicSalary: r.basicSalary, utilityAllowance: r.utilityAllowance, quarterlyAllowance: r.quarterlyAllowance,
@@ -25,6 +24,10 @@ export default async function PayCyclePage({ params }: { params: Promise<{ cycle
     employerPension: r.employerPension, netPay: r.netPay, totalPayable: r.totalPayable,
     adjustments: r.adjustments, reviewStatus: r.reviewStatus, changeNote: r.changeNote,
   }));
+
+  const approved = cycle.approvedAt
+    ? `${new Date(cycle.approvedAt).toLocaleDateString("en-US")}${cycle.approvedByName ? ` · ${cycle.approvedByName}` : ""}`
+    : "—";
 
   return (
     <>
@@ -36,27 +39,19 @@ export default async function PayCyclePage({ params }: { params: Promise<{ cycle
             sheet. The portal never pays anyone; HumanManager and Remita stay authoritative.
           </p>
         </div>
-        <div className="page-h-side">
-          <span className={`b ${b.cls}`}>{b.label}</span>
-        </div>
+        <span className={`b ${b.cls}`}>{b.label}</span>
       </div>
 
-      <div className="card">
-        <div className="card-pad">
-          <div className="meta-grid">
-            <div><span className="faint">Tax rules</span><div>{cycle.ruleSetName ?? "—"}</div></div>
-            <div><span className="faint">Confirmed</span><div>{cycle.confirmedCount}/{cycle.rows.length}</div></div>
-            <div><span className="faint">Approved</span><div>{cycle.approvedAt ? `${new Date(cycle.approvedAt).toLocaleDateString("en-US")}${cycle.approvedByName ? ` · ${cycle.approvedByName}` : ""}` : "—"}</div></div>
-            <div><span className="faint">Locked</span><div>{cycle.lockedAt ? new Date(cycle.lockedAt).toLocaleDateString("en-US") : "—"}</div></div>
-          </div>
-          {cycle.status === "LOCKED" ? (
-            <div className="note" style={{ marginTop: 12 }}>
-              <span>🔒</span>
-              <div>This cycle is locked as evidence — permanently read-only.</div>
-            </div>
-          ) : null}
-        </div>
+      <div className="grid kpis pay-meta">
+        <div className="card kpi"><div className="lab">Tax rules</div><div className="val" style={{ fontSize: 16 }}>{cycle.ruleSetName ?? "—"}</div></div>
+        <div className="card kpi"><div className="lab">Confirmed</div><div className="val">{cycle.confirmedCount}<span style={{ fontSize: 16, color: "var(--faint)" }}>/{cycle.rows.length}</span></div></div>
+        <div className="card kpi"><div className="lab">Approved</div><div className="val" style={{ fontSize: 16 }}>{approved}</div></div>
+        <div className="card kpi"><div className="lab">Locked</div><div className="val" style={{ fontSize: 16 }}>{cycle.lockedAt ? new Date(cycle.lockedAt).toLocaleDateString("en-US") : "—"}</div></div>
       </div>
+
+      {cycle.status === "LOCKED" ? (
+        <div className="note"><span>🔒</span><div>This cycle is locked as evidence — permanently read-only.</div></div>
+      ) : null}
 
       <PayRunControls
         cycleId={cycle.id}
