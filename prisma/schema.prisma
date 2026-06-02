@@ -1126,3 +1126,23 @@ model BonusTranche {
   @@index([employeeId])
   @@map("bonus_tranches")
 }
+
+model BonusTrancheEvent {
+  id             String   @id @default(cuid())
+  bonusTrancheId String   @map("bonus_tranche_id")
+  bonusAwardId   String   @map("bonus_award_id")
+  bonusRoundId   String   @map("bonus_round_id")
+  employeeId     String   @map("employee_id")
+  eventType      String   @map("event_type") // PAID | CLAWBACK | FORFEIT | REINSTATE
+  amount         Decimal  @db.Decimal(14, 2)
+  boardOverride  Boolean  @default(false) @map("board_override")
+  reason         String?
+  actorId        String?  @map("actor_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([bonusTrancheId])
+  @@index([bonusRoundId])
+  @@index([employeeId])
+  @@index([eventType])
+  @@map("bonus_tranche_events")
+}

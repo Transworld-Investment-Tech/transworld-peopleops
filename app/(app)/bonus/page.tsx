@@ -26,6 +26,15 @@ export default async function BonusPage() {
       </div>
 
       <div className="card" style={{ marginBottom: 18 }}>
+        <div className="card-pad">
+          <p className="faint" style={{ margin: 0 }}>
+            <Link href="/bonus/deferrals" className="jc-link">Deferrals &amp; payments →</Link> — the
+            cross-year ledger: mark each April&rsquo;s tranches paid, claw back, and handle leavers.
+          </p>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
         <div className="card-h"><h3 className="serif">Bonus rounds</h3></div>
         {home.rounds.length === 0 ? (
           <div className="card-pad"><p className="faint">No bonus rounds yet.</p></div>

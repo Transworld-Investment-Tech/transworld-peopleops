@@ -62,6 +62,19 @@ function AwardCard({ award, eeId }: { award: MyBonusAward; eeId: string }) {
           <span className="comp-slip-val num">{fmtNaira(award.awardedBonus)}</span>
         </div>
 
+        {!award.deferred && award.tranches.length > 0 ? (
+          <div className="comp-slip-row sub">
+            <span className="comp-slip-lab">
+              Payment ({monthLabel(award.tranches[0].scheduledMonth)} {award.tranches[0].scheduledYear})
+            </span>
+            <span className="comp-slip-val">
+              <span className={`b ${trancheStatusBadge(award.tranches[0].status).cls}`}>
+                {trancheStatusBadge(award.tranches[0].status).label}
+              </span>
+            </span>
+          </div>
+        ) : null}
+
         {award.deferred ? (
           <>
             <div className="comp-slip-sep" />
