@@ -1228,3 +1228,89 @@ model RaiseItem {
   @@map("raise_items")
 }
 
+
+// TW-QUALIFICATION-SPONSORSHIP-MODELS-V0240 — Qualification sponsorship (WS6 Part 4, v0.24.0).
+// Appended to schema.prisma by setup.sh (marker-guarded, idempotent). THREE new models
+// mirroring public.qualification_sponsorships / sponsorship_costs / sponsorship_attempts
+// created by supabase/migrations/0015_add_qualification_sponsorship.sql.
+//
+// Following the cross-module convention (see raise / scorecards / performance): cross-entity
+// references to EXISTING tables (employees, learning_modules, staff_documents, users) are BARE
+// columns here (their FKs are enforced in SQL only), so Employee / LearningModule / StaffDocument
+// / User are left untouched. The only real Prisma relations are the new-to-new parent/child
+// QualificationSponsorship <-> SponsorshipCost / SponsorshipAttempt. Ids are app-generated cuid;
+// status vocabularies are plain Strings (CHECK-constrained in the migration).
+
+model QualificationSponsorship {
+  id                  String               @id @default(cuid())
+  employeeId          String               @map("employee_id")
+  eeId                String               @map("ee_id")
+  employeeName        String               @map("employee_name")
+  qualificationName   String               @map("qualification_name")
+  awardingBody        String?              @map("awarding_body")
+  learningModuleId    String?              @map("learning_module_id")
+  agreementDocumentId String?              @map("agreement_document_id")
+  status              String               @default("PROPOSED")
+  bondingMonths       Int?                 @map("bonding_months")
+  bondingStartBasis   String               @default("ON_APPROVAL") @map("bonding_start_basis")
+  bondingWaived       Boolean              @default(false) @map("bonding_waived")
+  repaymentStatus     String               @default("NOT_APPLICABLE") @map("repayment_status")
+  repaymentAmount     Decimal?             @map("repayment_amount") @db.Decimal(16, 2)
+  agreementDate       DateTime?            @map("agreement_date")
+  proposedById        String?              @map("proposed_by_id")
+  approvedById        String?              @map("approved_by_id")
+  withdrawnById       String?              @map("withdrawn_by_id")
+  proposedAt          DateTime?            @map("proposed_at")
+  approvedAt          DateTime?            @map("approved_at")
+  startedAt           DateTime?            @map("started_at")
+  completedAt         DateTime?            @map("completed_at")
+  withdrawnAt         DateTime?            @map("withdrawn_at")
+  note                String?
+  costs               SponsorshipCost[]
+  attempts            SponsorshipAttempt[]
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([learningModuleId])
+  @@map("qualification_sponsorships")
+}
+
+model SponsorshipCost {
+  id            String                   @id @default(cuid())
+  sponsorshipId String                   @map("sponsorship_id")
+  sponsorship   QualificationSponsorship @relation(fields: [sponsorshipId], references: [id], onDelete: Cascade)
+  costType      String                   @map("cost_type")
+  description   String?
+  amount        Decimal                  @db.Decimal(14, 2)
+  incurredDate  DateTime?                @map("incurred_date")
+  paid          Boolean                  @default(false)
+  paidDate      DateTime?                @map("paid_date")
+  waived        Boolean                  @default(false)
+  note          String?
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+
+  @@index([sponsorshipId])
+  @@index([costType])
+  @@map("sponsorship_costs")
+}
+
+model SponsorshipAttempt {
+  id            String                   @id @default(cuid())
+  sponsorshipId String                   @map("sponsorship_id")
+  sponsorship   QualificationSponsorship @relation(fields: [sponsorshipId], references: [id], onDelete: Cascade)
+  levelLabel    String                   @map("level_label")
+  attemptNumber Int?                     @map("attempt_number")
+  sittingDate   DateTime?                @map("sitting_date")
+  outcome       String                   @default("SCHEDULED")
+  score         String?
+  note          String?
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+
+  @@index([sponsorshipId])
+  @@index([outcome])
+  @@map("sponsorship_attempts")
+}

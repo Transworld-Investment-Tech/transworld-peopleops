@@ -11,6 +11,8 @@ import {
   getEmployeePositioning,
 } from "@/lib/compensation";
 import { bandFlagBadge } from "@/lib/raise-cycle";
+import { getEmployeeSponsorships } from "@/lib/sponsorship-reads";
+import { sponsorshipStatusBadge } from "@/lib/sponsorship";
 import PayBreakdown from "@/components/compensation/PayBreakdown";
 import CompProfileForm from "@/components/compensation/CompProfileForm";
 import CompChangeRequestForm from "@/components/compensation/CompChangeRequestForm";
@@ -99,6 +101,7 @@ export default async function EmployeeCompensationPage({
 
   const monthlyGross = current ? current.basicSalary + current.utilityAllowance : null;
   const positioning = await getEmployeePositioning(grade, monthlyGross);
+  const sponsorships = await getEmployeeSponsorships(employeeId);
   const positionFlagBadge = positioning.bandFlag ? bandFlagBadge(positioning.bandFlag) : null;
 
   return (
@@ -292,6 +295,47 @@ export default async function EmployeeCompensationPage({
           />
         </div>
       ) : null}
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Qualification sponsorship</h3>
+          <Link href="/compensation/sponsorship" className="hint">All sponsorships →</Link>
+        </div>
+        <div className="card-pad">
+          {sponsorships.length === 0 ? (
+            <p className="faint" style={{ marginTop: 0 }}>No sponsorships on record.</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Qualification</th>
+                  <th>Status</th>
+                  <th className="num">Committed</th>
+                  <th className="num">Exposure</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sponsorships.map((sp) => {
+                  const sb = sponsorshipStatusBadge(sp.status);
+                  return (
+                    <tr key={sp.id}>
+                      <td>
+                        <Link href={`/compensation/sponsorship/${sp.id}`} className="jc-link">
+                          {sp.qualificationName}
+                        </Link>
+                        {sp.awardingBody ? <div className="faint">{sp.awardingBody}</div> : null}
+                      </td>
+                      <td><span className={`b ${sb.cls}`}>{sb.label}</span></td>
+                      <td className="num mono">{fmtNaira(sp.committed)}</td>
+                      <td className="num mono">{sp.exposure > 0 ? fmtNaira(sp.exposure) : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
 
       {versions.length ? (
         <div className="card mt">

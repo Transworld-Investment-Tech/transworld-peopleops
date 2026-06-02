@@ -10,13 +10,14 @@ const TABS: { key: string; label: string; href: string }[] = [
   { key: "tax", label: "Tax rules", href: "/compensation/tax" },
   { key: "requests", label: "Change requests", href: "/compensation/requests" },
   { key: "raises", label: "Raises", href: "/compensation/raises" },
+  { key: "sponsorship", label: "Sponsorship", href: "/compensation/sponsorship" },
 ];
 
 export default function CompTabs({
   active,
   pendingCount = 0,
 }: {
-  active: "register" | "bands" | "positioning" | "tax" | "requests" | "raises";
+  active: "register" | "bands" | "positioning" | "tax" | "requests" | "raises" | "sponsorship";
   pendingCount?: number;
 }) {
   return (
