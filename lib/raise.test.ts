@@ -42,15 +42,16 @@ eq("raise 93333.33 @5%", raiseAmount(93333.33, 0.05), 98000.0);
 eq("raise 0 @5% -> 0", raiseAmount(0, 0.05), 0);
 eq("raise @0% no change", raiseAmount(74243.55, 0), 74243.55);
 
-// Annual total under the firm pattern (basic×12 + utility×8 + quarterly×4),
-// reconciled against the offer letters.
-// Eunice Ezekiel: ₦1,680,000 total = ₦1,119,999.96 base + ₦560,000.04 allowances.
-// Structured so monthly take-home is constant ₦140,000 (utility = quarterly = 46,666.67).
-eq("Eunice annual total", annualTotal(93333.33, 46666.67, 46666.67), 1_680_000, 0.5);
-// Daniel Ezeh: ₦1,330,922.64 total = ₦890,922.60 base + ₦440,000.04 allowances.
-eq("Daniel annual total", annualTotal(74243.55, 36666.67, 36666.67), 1_330_922.64, 1.0);
-// Sarah Amartey: ₦1,081,366.56 total = ₦721,366.56 base + ₦360,000.00 allowances.
-eq("Sarah annual total", annualTotal(60113.88, 30000, 30000), 1_081_366.56, 1.0);
+// Annual total = monthly gross × 17 (12 monthly + 4 quarterly + 1 thirteenth, each = gross),
+// matching the offer letters. The third arg (stored quarterly) is vestigial and ignored.
+// Eunice Ezekiel: gross 140,000 -> 140,000 × 17 = 2,380,000.
+eq("Eunice annual total", annualTotal(93333.33, 46666.67, 46666.67), 2_380_000, 0.5);
+// Daniel Ezeh: gross 110,910.22 -> × 17 = 1,885,473.74.
+eq("Daniel annual total", annualTotal(74243.55, 36666.67, 36666.67), 1_885_473.74, 1.0);
+// Sarah Amartey: gross 90,113.88 -> × 17 = 1,531,935.96.
+eq("Sarah annual total", annualTotal(60113.88, 30000, 30000), 1_531_935.96, 1.0);
+// Third arg ignored: same gross, different stored quarterly -> same annual total.
+eq("annual total ignores stored quarterly", annualTotal(93333.33, 46666.67, 0), 2_380_000, 0.5);
 
 // Monthly gross excludes quarterly
 eq("monthly gross", monthlyGross(93333.33, 46666.67), 140000);

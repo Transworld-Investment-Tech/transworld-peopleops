@@ -24,10 +24,13 @@
 export const RAISE_PCT_MIN = 0;
 export const RAISE_PCT_MAX = 1; // 100% — a sanity ceiling, not an expected value
 
-// Months per year each component is actually paid, under the firm pattern above.
+// Legacy per-component payment counts from the old 12-month reading. Retained only for
+// reference; annualTotal now uses the canonical 17-month gross basis (see below).
 export const BASIC_MONTHS_PER_YEAR = 12;
-export const UTILITY_MONTHS_PER_YEAR = 8; // 12 − 4 quarter months
+export const UTILITY_MONTHS_PER_YEAR = 8; // 12 − 4 quarter months (legacy)
 export const QUARTERLY_PAYMENTS_PER_YEAR = 4;
+// Canonical: 12 monthly + 4 quarterly + 1 thirteenth, each = one month's gross.
+export const MONTHS_PER_YEAR_TOTAL = 17;
 
 // Fully-loaded conversion (Ops Manual B1.2/B1.3). The firm pays ~17 months of monthly
 // gross per year (12 monthly + 4 quarterly + 1 thirteenth), so the fully-loaded
@@ -73,13 +76,12 @@ export function monthlyGross(basic: number, utility: number): number {
   return round2(basic + utility);
 }
 
-/** Annual total compensation under the firm pay pattern (the headline figure). */
-export function annualTotal(basic: number, utility: number, quarterly: number): number {
-  return round2(
-    basic * BASIC_MONTHS_PER_YEAR +
-      utility * UTILITY_MONTHS_PER_YEAR +
-      quarterly * QUARTERLY_PAYMENTS_PER_YEAR,
-  );
+/** Annual total compensation = monthly gross × 17 (Ops Manual / Handbook canonical pay
+ * structure: 12 monthly + 4 quarterly + 1 thirteenth, each equal to one month's gross =
+ * basic + utility). The stored quarterly component is vestigial and is NOT used here; the
+ * third argument is accepted for call-site compatibility but ignored. */
+export function annualTotal(basic: number, utility: number, _quarterly = 0): number {
+  return round2((basic + utility) * MONTHS_PER_YEAR_TOTAL);
 }
 
 /** Apply the cycle's percentage uniformly to every component. The structure
