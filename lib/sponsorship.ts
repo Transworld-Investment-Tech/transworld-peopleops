@@ -175,7 +175,7 @@ export type ExposureInput = {
   asOf?: Date;
 };
 
-export type ExposurePhase = "NONE" | "AT_RISK" | "BONDING" | "DISCHARGED";
+export type ExposurePhase = "NONE" | "IN_STUDY" | "BONDING" | "DISCHARGED";
 
 export type ExposureResult = {
   committed: number;
@@ -187,17 +187,18 @@ export type ExposureResult = {
 };
 
 /**
- * Outstanding repayment exposure, derived live (WS6 Part 4).
+ * Outstanding repayment exposure, derived live (Ops Manual G4.3).
  *
- * Policy (signed off v0.24.0):
+ * Policy (canonical, v0.26.0):
  *  - No bond (waived, or no/zero bonding months) or WITHDRAWN -> exposure 0.
- *  - Before completion (PROPOSED/APPROVED/IN_PROGRESS): the firm's full committed
- *    outlay to date is at risk — a leaver before they qualify repays it all.
- *  - The bonding window is anchored by bondingStartBasis. Default ON_APPROVAL, so the
- *    window runs from the approval date and INCLUDES the study period; at completion
- *    exposure therefore pro-rates from approval (it steps down to whatever the served
- *    fraction already implies). ON_COMPLETION instead starts the clock at completion.
- *  - During bonding (COMPLETED, asOf within the window): exposure = committed × (1 − f).
+ *  - In study (PROPOSED/APPROVED/IN_PROGRESS, or completed without a recorded completion
+ *    date): the clawback clock has NOT started — exposure 0, phase IN_STUDY. A mid-study
+ *    departure is a manual "COO review required" case resolved at offboarding (WS4), never
+ *    auto-clawed.
+ *  - On completion the bonding window (default 12 months) runs from the confirmed
+ *    completion date (ON_COMPLETION, the canonical default). Exposure pro-rates down across
+ *    it: committed × (remaining months ÷ total months). ON_APPROVAL is retained as a legacy
+ *    option that anchors the window at the approval date instead.
  *  - After the window (served in full): exposure 0 (DISCHARGED).
  */
 export function exposureFor(input: ExposureInput): ExposureResult {
@@ -219,20 +220,35 @@ export function exposureFor(input: ExposureInput): ExposureResult {
       phase: "NONE",
       windowStart: null,
       windowEnd: null,
-      servedFraction: 1,
+      servedFraction: 0,
     };
   }
 
-  const start =
-    input.bondingStartBasis === "ON_COMPLETION" ? input.completedAt : input.approvedAt;
+  // Still in study (Ops Manual G4.3): the clawback clock has NOT started until the
+  // qualification is completed. No automatic exposure is computed — a mid-study departure
+  // is a manual "COO review required" case (resolved at offboarding, WS4), never auto-clawed.
+  if (input.status !== "COMPLETED") {
+    return {
+      committed,
+      exposure: 0,
+      phase: "IN_STUDY",
+      windowStart: null,
+      windowEnd: null,
+      servedFraction: 0,
+    };
+  }
 
-  // Window not yet anchored (e.g. ON_COMPLETION but not completed, or ON_APPROVAL but
-  // not yet approved): the full committed outlay is at risk.
+  // Completed: the bonding window (default 12 months) runs from the confirmed completion
+  // date for the canonical ON_COMPLETION basis; ON_APPROVAL (legacy) anchors at approval.
+  const start =
+    input.bondingStartBasis === "ON_APPROVAL" ? input.approvedAt : input.completedAt;
+
+  // Completed but no completion date recorded yet — treat as not started.
   if (!start) {
     return {
       committed,
-      exposure: committed,
-      phase: "AT_RISK",
+      exposure: 0,
+      phase: "IN_STUDY",
       windowStart: null,
       windowEnd: null,
       servedFraction: 0,
@@ -242,19 +258,8 @@ export function exposureFor(input: ExposureInput): ExposureResult {
   const end = addMonths(start, months);
   const f = elapsedFraction(start, end, asOf);
 
-  // Still in study: full committed amount at risk regardless of any elapsed window.
-  if (input.status !== "COMPLETED") {
-    return {
-      committed,
-      exposure: committed,
-      phase: "AT_RISK",
-      windowStart: start,
-      windowEnd: end,
-      servedFraction: f,
-    };
-  }
-
-  // Completed: pro-rate down across the served fraction of the bonding window.
+  // Pro-rate down across the served fraction of the bonding window:
+  // exposure = committed × (remaining months ÷ total months).
   const exposure = round2(committed * (1 - f));
   return {
     committed,
@@ -268,8 +273,8 @@ export function exposureFor(input: ExposureInput): ExposureResult {
 
 export function exposurePhaseLabel(phase: ExposurePhase): string {
   switch (phase) {
-    case "AT_RISK":
-      return "Full amount at risk";
+    case "IN_STUDY":
+      return "In study — clawback not started";
     case "BONDING":
       return "Bond running";
     case "DISCHARGED":

@@ -1253,7 +1253,7 @@ model QualificationSponsorship {
   agreementDocumentId String?              @map("agreement_document_id")
   status              String               @default("PROPOSED")
   bondingMonths       Int?                 @map("bonding_months")
-  bondingStartBasis   String               @default("ON_APPROVAL") @map("bonding_start_basis")
+  bondingStartBasis   String               @default("ON_COMPLETION") @map("bonding_start_basis")
   bondingWaived       Boolean              @default(false) @map("bonding_waived")
   repaymentStatus     String               @default("NOT_APPLICABLE") @map("repayment_status")
   repaymentAmount     Decimal?             @map("repayment_amount") @db.Decimal(16, 2)

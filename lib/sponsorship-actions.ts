@@ -72,8 +72,8 @@ export async function createSponsorshipAction(_prev: FormState, formData: FormDa
   if (bondingMonths !== null && bondingMonths < 0) {
     return { ok: false, error: "Bonding months cannot be negative." };
   }
-  let bondingStartBasis = str(formData.get("bondingStartBasis")) || "ON_APPROVAL";
-  if (!BONDING_BASES.includes(bondingStartBasis as never)) bondingStartBasis = "ON_APPROVAL";
+  let bondingStartBasis = str(formData.get("bondingStartBasis")) || "ON_COMPLETION";
+  if (!BONDING_BASES.includes(bondingStartBasis as never)) bondingStartBasis = "ON_COMPLETION";
   const bondingWaived = str(formData.get("bondingWaived")) === "on";
   const note = nz(formData.get("note"));
 
@@ -182,13 +182,16 @@ export async function completeSponsorshipAction(_prev: FormState, formData: Form
   });
   if (!s) return { ok: false, error: "Sponsorship not found." };
   if (s.status !== "IN_PROGRESS") return { ok: false, error: "Only an in-progress sponsorship can be completed." };
+  // The completion date is the date the awarding body confirms the qualification (entered by
+  // People Ops from the evidence); it anchors the clawback window. Falls back to today if blank.
+  const completedAt = parseDate(formData.get("completionDate")) ?? new Date();
   await prisma.qualificationSponsorship.update({
     where: { id },
-    data: { status: "COMPLETED", completedAt: new Date() },
+    data: { status: "COMPLETED", completedAt },
   });
-  await writeAudit({ actorId: me.id, action: "sponsorship.complete", entityType: "qualification_sponsorship", entityId: id, metadata: null });
+  await writeAudit({ actorId: me.id, action: "sponsorship.complete", entityType: "qualification_sponsorship", entityId: id, metadata: { completedAt: completedAt.toISOString() } });
   revalidateSponsorship(id, s.employeeId);
-  return { ok: true, message: "Marked completed — the bonding clock now governs exposure." };
+  return { ok: true, message: "Marked completed — the clawback window now runs from the completion date." };
 }
 
 // ---------------------------------------------------------------------------

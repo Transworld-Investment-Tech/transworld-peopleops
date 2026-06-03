@@ -53,14 +53,14 @@ export default function SponsorshipForm({
           </select>
         </div>
         <div className="field">
-          <label>Service commitment (months, optional)</label>
-          <input type="number" name="bondingMonths" min={0} step={1} placeholder="e.g. 24" />
+          <label>Service commitment (months)</label>
+          <input type="number" name="bondingMonths" min={0} step={1} defaultValue={12} placeholder="e.g. 12" />
         </div>
         <div className="field">
           <label>Bond starts</label>
-          <select name="bondingStartBasis" defaultValue="ON_APPROVAL">
-            <option value="ON_APPROVAL">On approval (includes study period)</option>
-            <option value="ON_COMPLETION">On completion (after qualifying)</option>
+          <select name="bondingStartBasis" defaultValue="ON_COMPLETION">
+            <option value="ON_COMPLETION">On completion (canonical — clock starts when qualified)</option>
+            <option value="ON_APPROVAL">On approval (legacy — includes study period)</option>
           </select>
         </div>
         <div className="field full">

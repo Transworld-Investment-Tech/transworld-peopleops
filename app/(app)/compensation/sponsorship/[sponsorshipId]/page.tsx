@@ -41,7 +41,11 @@ export default async function SponsorshipDetailPage({
       : "None set";
 
   const windowText =
-    exp.windowStart && exp.windowEnd ? `${fmtDate(exp.windowStart)} – ${fmtDate(exp.windowEnd)}` : "—";
+    exp.windowStart && exp.windowEnd
+      ? `${fmtDate(exp.windowStart)} – ${fmtDate(exp.windowEnd)}`
+      : exp.phase === "IN_STUDY"
+        ? "Not started"
+        : "—";
 
   const costRows = s.costs.map((c) => ({
     id: c.id,
@@ -123,7 +127,7 @@ export default async function SponsorshipDetailPage({
               ? "No repayment is owed on an early exit."
               : s.status === "COMPLETED"
                 ? "Exposure pro-rates to zero across the bonding window; a leaver before it ends repays the outstanding amount."
-                : "Until the qualification is completed, the full committed amount is treated as at risk on an early exit."}
+                : "Until the qualification is completed the clawback clock has not started — a mid-study departure is a COO-review case, resolved manually, not auto-clawed."}
           </p>
         </div>
       </div>

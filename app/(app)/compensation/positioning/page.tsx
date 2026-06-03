@@ -36,9 +36,9 @@ export default async function PositioningPage() {
           <h1 className="serif">Pay positioning</h1>
           <p>
             Where each person sits against their grade band, and their compa-ratio
-            (monthly gross ÷ grade midpoint). Awareness only — it doesn’t change
-            anyone’s pay. Monthly gross is basic + utility, the same basis the
-            bands are set on.
+            on the fully-loaded, FTE-normalized basis (monthly gross × 17 ÷ 12 ÷ FTE)
+            ÷ grade midpoint — the same basis the bands are set on. Awareness only —
+            it doesn’t change anyone’s pay.
           </p>
         </div>
       </div>

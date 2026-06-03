@@ -71,20 +71,36 @@ const withdrawn = exposureFor({
 });
 eq("withdrawn -> exposure 0", withdrawn.exposure, 0);
 
-// --- In study: full committed at risk --------------------------------------
+// --- In study: clawback NOT started (no auto-calc) --------------------------
 const inProgressApproval = exposureFor({
   status: "IN_PROGRESS", costs: COSTS, bondingMonths: 24, bondingStartBasis: "ON_APPROVAL",
   bondingWaived: false, approvedAt: daysFromNow(-200), completedAt: null,
 });
-eq("in-progress (ON_APPROVAL) full at risk", inProgressApproval.exposure, 400000);
-ok("in-progress phase AT_RISK", inProgressApproval.phase === "AT_RISK");
+eq("in-progress (ON_APPROVAL) clawback not started", inProgressApproval.exposure, 0);
+ok("in-progress phase IN_STUDY", inProgressApproval.phase === "IN_STUDY");
 
 const inProgressCompletion = exposureFor({
   status: "IN_PROGRESS", costs: COSTS, bondingMonths: 24, bondingStartBasis: "ON_COMPLETION",
   bondingWaived: false, approvedAt: daysFromNow(-200), completedAt: null,
 });
-eq("in-progress (ON_COMPLETION) full at risk, no window yet", inProgressCompletion.exposure, 400000);
+eq("in-progress (ON_COMPLETION) clawback not started", inProgressCompletion.exposure, 0);
 ok("in-progress (ON_COMPLETION) window null", inProgressCompletion.windowStart === null);
+ok("in-progress (ON_COMPLETION) phase IN_STUDY", inProgressCompletion.phase === "IN_STUDY");
+
+// Completed but completion date not yet recorded -> still not started.
+const completedNoDate = exposureFor({
+  status: "COMPLETED", costs: COSTS, bondingMonths: 12, bondingStartBasis: "ON_COMPLETION",
+  bondingWaived: false, approvedAt: daysFromNow(-200), completedAt: null,
+});
+eq("completed without completion date -> not started", completedNoDate.exposure, 0);
+ok("completed without completion date -> IN_STUDY", completedNoDate.phase === "IN_STUDY");
+
+// Canonical: completed 4 months ago, 12-month bond from completion -> repay 8/12.
+const completed4mo = exposureFor({
+  status: "COMPLETED", costs: COSTS, bondingMonths: 12, bondingStartBasis: "ON_COMPLETION",
+  bondingWaived: false, approvedAt: daysFromNow(-400), completedAt: daysFromNow(-122),
+});
+eq("ON_COMPLETION 4 months served -> ~8/12 of 400k", completed4mo.exposure, 266666.67, 4000);
 
 // --- ON_COMPLETION: full at completion, decays after ------------------------
 const completedNowOC = exposureFor({

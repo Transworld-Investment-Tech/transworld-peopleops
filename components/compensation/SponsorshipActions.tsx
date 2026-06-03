@@ -64,6 +64,25 @@ function WithdrawForm({ sponsorshipId }: { sponsorshipId: string }) {
   );
 }
 
+function CompleteForm({ sponsorshipId }: { sponsorshipId: string }) {
+  const [state, formAction, pending] = useActionState(completeSponsorshipAction, initial);
+  return (
+    <form
+      action={formAction}
+      style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}
+      onSubmit={(e) => { if (!window.confirm("Mark this sponsorship completed? The clawback window runs from the completion date you set (blank = today).")) e.preventDefault(); }}
+    >
+      <input type="hidden" name="sponsorshipId" value={sponsorshipId} />
+      <label className="hint" style={{ margin: 0 }}>Completion date</label>
+      <input type="date" name="completionDate" />
+      <button type="submit" className="btn btn-grn" disabled={pending}>
+        {pending ? "Saving…" : "Mark completed"}
+      </button>
+      {state.error ? <span className="form-err" style={{ margin: 0 }}>{state.error}</span> : null}
+    </form>
+  );
+}
+
 export default function SponsorshipActions({
   id,
   status,
@@ -121,14 +140,7 @@ export default function SponsorshipActions({
       ) : null}
 
       {status === "IN_PROGRESS" && canManage ? (
-        <ActionButton
-          action={completeSponsorshipAction}
-          sponsorshipId={id}
-          label="Mark completed"
-          pendingLabel="Saving…"
-          className="btn btn-grn"
-          confirm="Mark this sponsorship completed? The bonding clock will govern repayment exposure from here."
-        />
+        <CompleteForm sponsorshipId={id} />
       ) : null}
 
       {canManage ? <WithdrawForm sponsorshipId={id} /> : null}
