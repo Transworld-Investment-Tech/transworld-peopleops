@@ -48,18 +48,35 @@ const TEMPLATES: Seed[] = [
     name: "Offer letter (standard)",
     kind: "OFFER_LETTER",
     requiresSignature: true,
-    bodyHtml: `<h1>Letter of Offer</h1>
+    bodyHtml: `<h1>Letter of Employment</h1>
 <p>{{today}}</p>
 <p>Dear {{preferred_name}},</p>
-<p>Following your interview with us, we are pleased to offer you the position of
-<b>{{job_title}}</b> in the {{department}} department at {{entity}}.</p>
-<p>Your appointment is on a {{employment_type}} basis, with an intended start date of
-<b>{{start_date}}</b>. Your monthly gross remuneration will be <b>&#8358;{{gross_monthly}}</b>,
-made up of a basic salary of &#8358;{{basic_salary}} and a utility allowance of &#8358;{{utility_allowance}},
-together with a quarterly allowance of &#8358;{{quarterly_allowance}} paid separately, and subject to
-statutory deductions.</p>
-<p>This offer is conditional on satisfactory references, guarantor confirmation, and proof of
-identity. Please indicate your acceptance by signing below.</p>
+
+<h2>1. Appointment</h2>
+<p>We are pleased to offer you the position of <b>{{job_title}}</b> in the {{department}} department at {{entity}}, on a {{employment_type}} basis, with an intended start date of <b>{{start_date}}</b>. Your normal place of work is the Company&#8217;s Lagos office.</p>
+<p>You are appointed at grade <b>{{grade}}</b> on the Company&#8217;s grade structure. Your grade is tied to your individual level and pay &#8212; not your job title &#8212; and it determines your pay band, your bonus target, and your development expectations. Grade is set by People Operations.</p>
+
+<h2>2. Remuneration</h2>
+<p>Your remuneration comprises four components, consistent with the Company&#8217;s standard pay structure:</p>
+<table>
+<tr><th>Component</th><th>Amount</th><th>Notes</th></tr>
+<tr><td>Basic salary</td><td>&#8358;{{basic_salary}} / month</td><td>Paid monthly</td></tr>
+<tr><td>Utility allowance</td><td>&#8358;{{utility_allowance}} / month</td><td>Paid every month, twelve months of the year</td></tr>
+<tr><td>Quarterly payment</td><td>&#8358;{{quarterly_allowance}}</td><td>One month&#8217;s gross pay, paid in addition to regular monthly pay in January, April, July, and October</td></tr>
+<tr><td>Thirteenth month</td><td>&#8358;{{thirteenth_month}}</td><td>One additional month&#8217;s gross pay, paid once per year</td></tr>
+</table>
+<p>Your monthly gross pay (basic plus utility) is <b>&#8358;{{gross_monthly}}</b>. On a fully-loaded, annualized basis &#8212; the basis on which your position within your grade band is assessed &#8212; this equates to <b>&#8358;{{fully_loaded}} per month</b> (monthly gross &#215; 17 &#247; 12). Over a full year you receive approximately <b>&#8358;{{annual_total}}</b>: twelve monthly payments, four quarterly payments, and one thirteenth month &#8212; about seventeen months of your monthly gross.</p>
+<p>The quarterly payment and the thirteenth month are a standard and permanent part of the Transworld pay structure; they are not performance bonuses. Salary is payable monthly through the Company&#8217;s payroll cycle, subject to applicable statutory deductions. You will also participate in the Company&#8217;s annual, profit-funded bonus pool, subject to performance and Board approval.</p>
+
+<h2>3. Probation</h2>
+<p>Your appointment is subject to a probation period of six (6) months, during which either party may terminate on shorter notice as set out in your employment agreement.</p>
+
+<h2>4. Conditions of Offer</h2>
+<p>This offer is conditional on satisfactory references, guarantor confirmation, and proof of identity. Please indicate your acceptance by signing and returning this letter by <b>{{acceptance_deadline}}</b>.</p>
+
+<h2>5. Detailed Employment Agreement</h2>
+<p>Upon your acceptance of this offer, you will be presented with the Company&#8217;s detailed Employment Agreement, which you will be asked to review and sign. That agreement sets out the full terms and conditions of your employment &#8212; including fuller provisions on confidentiality, conduct, and termination &#8212; in clearer detail than summarized here, and it will govern the employment relationship.</p>
+
 <p>We look forward to welcoming you to the team.</p>
 <p>Yours sincerely,<br/>For and on behalf of {{entity}}</p>`,
   },
@@ -137,8 +154,14 @@ async function main() {
   for (const t of TEMPLATES) {
     const existing = await prisma.documentTemplate.findUnique({ where: { key: t.key } });
     if (existing) {
-      console.log(`  • skip   ${t.key.padEnd(32)} (already exists)`);
+      console.log(`  ~ update ${t.key.padEnd(32)} (refreshing body/kind)`);
       skipped += 1;
+      if (COMMIT) {
+        await prisma.documentTemplate.update({
+          where: { key: t.key },
+          data: { name: t.name, kind: t.kind, bodyHtml: t.bodyHtml, requiresSignature: t.requiresSignature, isActive: true },
+        });
+      }
       continue;
     }
     console.log(`  + create ${t.key.padEnd(32)} ${t.name}`);

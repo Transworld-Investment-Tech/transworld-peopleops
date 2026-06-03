@@ -256,6 +256,21 @@ export async function buildCandidateMergeContext(
         select: { name: true },
       })
     : null;
+  const fmt = (n: number) =>
+    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDateLong = (d: Date | null | undefined) =>
+    d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "";
+
+  // Offer terms entered by People Ops on the candidate (nullable until set). Derived pay
+  // figures are computed live on the fully-loaded basis (Ops Manual B1.3 / C5.2): the
+  // quarterly payment and thirteenth month each equal one month's gross; fully-loaded
+  // monthly-equivalent = gross × 17 ÷ 12; annual total ≈ gross × 17.
+  const basic = c.offerBasic != null ? Number(c.offerBasic) : 0;
+  const utility = c.offerUtility != null ? Number(c.offerUtility) : 0;
+  const gross = Math.round((basic + utility) * 100) / 100;
+  const fullyLoaded = Math.round((gross * 17 / 12) * 100) / 100;
+  const annualTotal = Math.round(gross * 17 * 100) / 100;
+
   return {
     full_name: c.fullName,
     preferred_name: c.fullName.split(/\s+/)[0] ?? c.fullName,
@@ -264,14 +279,19 @@ export async function buildCandidateMergeContext(
     department: dept?.name ?? "",
     entity: "Transworld Investment & Securities Limited",
     employment_type: "full-time",
-    start_date: "",
+    grade: c.offerGrade ?? "",
+    start_date: fmtDateLong(c.offerStartDate),
+    acceptance_deadline: fmtDateLong(c.offerAcceptanceDeadline),
     work_email: c.email ?? "",
     phone: c.phone ?? "",
     manager_name: "",
-    basic_salary: "0.00",
-    utility_allowance: "0.00",
-    quarterly_allowance: "0.00",
-    gross_monthly: "0.00",
+    basic_salary: fmt(basic),
+    utility_allowance: fmt(utility),
+    quarterly_allowance: fmt(gross),
+    thirteenth_month: fmt(gross),
+    gross_monthly: fmt(gross),
+    fully_loaded: fmt(fullyLoaded),
+    annual_total: fmt(annualTotal),
     today: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
   };
 }

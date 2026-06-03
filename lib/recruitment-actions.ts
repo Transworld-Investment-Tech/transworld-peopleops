@@ -210,3 +210,57 @@ export async function setCandidateStageAction(
   revalidatePath("/recruitment");
   return { ok: true };
 }
+
+const OFFER_GRADES = ["G0", "G1", "G2", "G3", "G4", "G5", "PT"] as const;
+
+/** People Ops enters the offer terms (grade + pay + dates) on a candidate. These persist
+ * on the candidate and feed the offer-letter merge context (gross / quarterly / 13th /
+ * fully-loaded are computed live from basic + utility). Grade is set here, never inferred. */
+export async function setCandidateOfferTermsAction(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await requirePermission("recruitment.manage");
+  const candidateId = String(fd.get("candidateId") ?? "");
+  const openingId = String(fd.get("openingId") ?? "");
+  if (!candidateId || !openingId) return { ok: false, error: "Missing candidate." };
+
+  const money = (v: FormDataEntryValue | null): number | null => {
+    const s = String(v ?? "").replace(/[\u20a6,\s]/g, "");
+    if (s === "") return null;
+    const n = Number(s);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+  const grade = nz(fd.get("offerGrade"));
+  if (grade !== null && !(OFFER_GRADES as readonly string[]).includes(grade)) {
+    return { ok: false, error: "Invalid grade." };
+  }
+  const basic = money(fd.get("offerBasic"));
+  const utility = money(fd.get("offerUtility"));
+
+  const existing = await prisma.candidate.findFirst({
+    where: { id: candidateId, openingId },
+    select: { id: true },
+  });
+  if (!existing) return { ok: false, error: "Candidate not found for this requisition." };
+
+  await prisma.candidate.update({
+    where: { id: candidateId },
+    data: {
+      offerGrade: grade,
+      offerBasic: basic,
+      offerUtility: utility,
+      offerStartDate: parseDateUTC(fd.get("offerStartDate")),
+      offerAcceptanceDeadline: parseDateUTC(fd.get("offerAcceptanceDeadline")),
+    },
+  });
+  await writeAudit({
+    actorId: me.id,
+    action: "candidate.set_offer_terms",
+    entityType: "Candidate",
+    entityId: candidateId,
+    metadata: { grade, basic, utility },
+  });
+  revalidatePath(`/recruitment/${openingId}`);
+  return { ok: true };
+}

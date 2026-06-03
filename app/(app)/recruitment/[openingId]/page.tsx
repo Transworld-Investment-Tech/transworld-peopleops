@@ -8,6 +8,7 @@ import GenerateDocControl, { type DocLite } from "@/components/documents/Generat
 import {
   AddCandidateForm,
   CandidateStageControl,
+  OfferTermsForm,
   RequisitionStatusControl,
 } from "@/components/recruitment/CandidatePipelineControls";
 
@@ -111,6 +112,18 @@ export default async function PipelinePage({
                       ) : null}
                       {canManage && col.stage === "OFFER" ? (
                         <div style={{ marginTop: 8, borderTop: "1px dashed var(--line)", paddingTop: 8 }}>
+                          <div className="faint" style={{ fontSize: 11.5, marginBottom: 4 }}>
+                            Offer terms
+                          </div>
+                          <OfferTermsForm
+                            candidateId={c.id}
+                            openingId={d.id}
+                            grade={c.offerGrade}
+                            basic={c.offerBasic}
+                            utility={c.offerUtility}
+                            startDate={c.offerStartDate ? new Date(c.offerStartDate).toISOString().slice(0, 10) : null}
+                            acceptanceDeadline={c.offerAcceptanceDeadline ? new Date(c.offerAcceptanceDeadline).toISOString().slice(0, 10) : null}
+                          />
                           <div className="faint" style={{ fontSize: 11.5, marginBottom: 4 }}>
                             Offer letter
                           </div>

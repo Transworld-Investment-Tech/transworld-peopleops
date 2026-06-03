@@ -202,6 +202,11 @@ export type CandidateView = {
   stage: string;
   stageNote: string | null;
   interviewAt: Date | null;
+  offerGrade: string | null;
+  offerBasic: number | null;
+  offerUtility: number | null;
+  offerStartDate: Date | null;
+  offerAcceptanceDeadline: Date | null;
 };
 
 export type PipelineColumn = { stage: Stage; label: string; candidates: CandidateView[] };
@@ -251,6 +256,11 @@ export async function getOpeningDetail(openingId: string): Promise<OpeningDetail
     stage: c.stage,
     stageNote: c.stageNote,
     interviewAt: c.interviewAt,
+    offerGrade: c.offerGrade,
+    offerBasic: c.offerBasic != null ? Number(c.offerBasic) : null,
+    offerUtility: c.offerUtility != null ? Number(c.offerUtility) : null,
+    offerStartDate: c.offerStartDate,
+    offerAcceptanceDeadline: c.offerAcceptanceDeadline,
   });
 
   const columns: PipelineColumn[] = PIPELINE_STAGES.map((stage) => ({

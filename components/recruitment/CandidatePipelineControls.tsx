@@ -3,12 +3,75 @@ import { useActionState } from "react";
 import {
   addCandidateAction,
   setCandidateStageAction,
+  setCandidateOfferTermsAction,
   setRequisitionStatusAction,
   type FormState,
 } from "@/lib/recruitment-actions";
 import { STAGES, stageLabel, OPENING_STATUSES, openingStatusBadge } from "@/lib/recruitment";
 
 const EMPTY: FormState = { ok: false };
+
+const OFFER_GRADES = ["G0", "G1", "G2", "G3", "G4", "G5", "PT"];
+
+export function OfferTermsForm({
+  candidateId,
+  openingId,
+  grade,
+  basic,
+  utility,
+  startDate,
+  acceptanceDeadline,
+}: {
+  candidateId: string;
+  openingId: string;
+  grade: string | null;
+  basic: number | null;
+  utility: number | null;
+  startDate: string | null;
+  acceptanceDeadline: string | null;
+}) {
+  const [state, formAction, pending] = useActionState(setCandidateOfferTermsAction, EMPTY);
+  return (
+    <form action={formAction} style={{ marginBottom: 8 }}>
+      <input type="hidden" name="candidateId" value={candidateId} />
+      <input type="hidden" name="openingId" value={openingId} />
+      {state.error ? <div className="form-err">{state.error}</div> : null}
+      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div className="field">
+          <label>Grade</label>
+          <select name="offerGrade" defaultValue={grade ?? ""}>
+            <option value="">—</option>
+            {OFFER_GRADES.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label>Start date</label>
+          <input type="date" name="offerStartDate" defaultValue={startDate ?? ""} />
+        </div>
+        <div className="field">
+          <label>Basic (&#8358;/mo)</label>
+          <input type="number" name="offerBasic" step="0.01" min={0} defaultValue={basic ?? ""} />
+        </div>
+        <div className="field">
+          <label>Utility (&#8358;/mo)</label>
+          <input type="number" name="offerUtility" step="0.01" min={0} defaultValue={utility ?? ""} />
+        </div>
+        <div className="field">
+          <label>Acceptance by</label>
+          <input type="date" name="offerAcceptanceDeadline" defaultValue={acceptanceDeadline ?? ""} />
+        </div>
+      </div>
+      <button type="submit" className="btn btn-xs btn-pri" disabled={pending} style={{ marginTop: 6 }}>
+        {pending ? "Saving…" : "Save offer terms"}
+      </button>
+      <p className="faint" style={{ fontSize: 11, marginTop: 4 }}>
+        Quarterly, 13th month, and the fully-loaded figure are computed from basic + utility when the letter is generated.
+      </p>
+    </form>
+  );
+}
 
 export function AddCandidateForm({ openingId }: { openingId: string }) {
   const [state, formAction, pending] = useActionState(addCandidateAction, EMPTY);
