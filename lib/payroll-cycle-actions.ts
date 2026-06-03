@@ -96,25 +96,25 @@ export async function openCycleAction(_prev: FormState, formData: FormData): Pro
     });
     for (const p of active) {
       const monthlyUtility = num(p.utilityAllowance);
-      const standingQuarterly = num(p.quarterlyAllowance);
-      // Firm pattern: quarter months carry the quarterly lump and suppress monthly utility;
-      // other months carry monthly utility. Operator can adjust either way per row.
-      const utility = quarter ? 0 : monthlyUtility;
-      const quarterly = quarter ? standingQuarterly : 0;
+      // Canonical pay structure (Ops Manual F2.0): utility is paid EVERY month, never
+      // suppressed. The quarterly payment is additive in quarter-end months and equals one
+      // month's gross (basic + utility) — not the old stored quarterly component.
+      const utility = monthlyUtility;
       const bd = computePay(
         inputFrom({
-          basicSalary: num(p.basicSalary), utilityAllowance: utility, quarterlyAllowance: quarterly,
+          basicSalary: num(p.basicSalary), utilityAllowance: utility, quarterlyAllowance: 0,
           taxTreatment: String(p.taxTreatment), flatTaxRate: p.flatTaxRate === null ? null : num(p.flatTaxRate),
           annualRentPaid: p.annualRentPaid === null ? null : num(p.annualRentPaid),
           pensionApplicable: p.pensionApplicable, nhfApplicable: p.nhfApplicable, itfApplicable: true,
         }),
         rules,
       );
+      const quarterly = quarter ? bd.monthlyGross : 0;
       const prev = priorByEmp.get(p.employeeId);
       await tx.payItem.create({
         data: {
           payCycleId: cycle.id, employeeId: p.employeeId, payCategoryId: p.employee.payCategoryId ?? null,
-          basicSalary: num(p.basicSalary), utilityAllowance: utility, quarterlyAllowance: quarterly,
+          basicSalary: num(p.basicSalary), utilityAllowance: utility, quarterlyAllowance: quarterly, thirteenthMonth: 0,
           taxTreatment: bd.taxTreatment, grossPay: bd.monthlyGross, employeePension: bd.pensionEmployee,
           nhf: bd.nhf, itf: bd.itf, taxableIncome: bd.annualTaxableIncome, payeTax: bd.paye,
           netPay: bd.netPay, employerPension: bd.pensionEmployer, reviewStatus: prev ? "CARRIED_FORWARD" : "NEW",
@@ -283,23 +283,57 @@ export async function approveCycleAction(_prev: FormState, formData: FormData): 
   if (cycle.status !== "IN_REVIEW") return { ok: false, error: "Only a cycle in review can be approved." };
 
   // Snapshot totals from the confirmed rows.
-  let totalGross = 0, totalNet = 0, totalEmployer = 0, totalQuarterly = 0, totalPayable = 0;
+  let totalGross = 0, totalNet = 0, totalEmployer = 0, totalQuarterly = 0, totalThirteenth = 0, totalPayable = 0;
   for (const it of cycle.items) {
     totalGross += num(it.grossPay); totalNet += num(it.netPay); totalEmployer += num(it.employerPension);
-    totalQuarterly += num(it.quarterlyAllowance); totalPayable += num(it.netPay) + num(it.quarterlyAllowance);
+    totalQuarterly += num(it.quarterlyAllowance); totalThirteenth += num(it.thirteenthMonth);
+    totalPayable += num(it.netPay) + num(it.quarterlyAllowance) + num(it.thirteenthMonth);
   }
   await prisma.payCycle.update({
     where: { id: cycleId },
     data: {
       status: "APPROVED", approvedById: me.id, approvedAt: new Date(), generatedAt: new Date(),
       totalGross: round2(totalGross), totalNet: round2(totalNet), totalEmployerPension: round2(totalEmployer),
-      totalQuarterly: round2(totalQuarterly), totalPayable: round2(totalPayable),
+      totalQuarterly: round2(totalQuarterly), totalThirteenth: round2(totalThirteenth), totalPayable: round2(totalPayable),
     },
   });
   await writeAudit({ actorId: me.id, action: "paycycle.approve", entityType: "pay_cycle", entityId: cycleId, metadata: { totalNet: round2(totalNet), totalPayable: round2(totalPayable) } });
   revalidatePath(`/payroll/${cycleId}`);
   revalidatePath("/payroll");
   return { ok: true, message: "Approved. The control sheet is ready to export, then lock as evidence." };
+}
+
+export async function setCycleThirteenthMonthAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const me = await requirePermission("payroll.manage");
+  const cycleId = String(formData.get("cycleId") ?? "");
+  const raw = String(formData.get("on") ?? "");
+  const on = raw === "true" || raw === "on" || raw === "1";
+  const cycle = await prisma.payCycle.findUnique({ where: { id: cycleId }, select: { status: true } });
+  if (!cycle) return { ok: false, error: "Cycle not found." };
+  if (cycle.status !== "DRAFT" && cycle.status !== "IN_REVIEW") {
+    return { ok: false, error: "Only a draft or in-review cycle can be marked as a 13th-month run." };
+  }
+  // The 13th month equals one month's gross (basic + utility). People Ops marks the cycle
+  // per the HR calendar; this sets/clears the additive line for every employee.
+  const items = await prisma.payItem.findMany({ where: { payCycleId: cycleId }, select: { id: true, grossPay: true } });
+  let totalThirteenth = 0;
+  for (const it of items) {
+    const amt = on ? num(it.grossPay) : 0;
+    totalThirteenth += amt;
+    await prisma.payItem.update({ where: { id: it.id }, data: { thirteenthMonth: amt } });
+  }
+  await prisma.payCycle.update({
+    where: { id: cycleId },
+    data: { isThirteenthMonth: on, totalThirteenth: round2(totalThirteenth) },
+  });
+  await writeAudit({ actorId: me.id, action: "paycycle.set_thirteenth", entityType: "pay_cycle", entityId: cycleId, metadata: { on } });
+  revalidatePath(`/payroll/${cycleId}`);
+  return {
+    ok: true,
+    message: on
+      ? "Marked as the 13th-month run — a thirteenth-month line (one month's gross) was added for every employee."
+      : "13th-month run cleared.",
+  };
 }
 
 export async function lockCycleAction(_prev: FormState, formData: FormData): Promise<FormState> {

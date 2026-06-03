@@ -416,6 +416,8 @@ model PayCycle {
   totalNet          Decimal?       @map("total_net") @db.Decimal(16, 2)
   totalEmployerPension Decimal?    @map("total_employer_pension") @db.Decimal(16, 2)
   totalQuarterly    Decimal?       @map("total_quarterly") @db.Decimal(16, 2)
+  isThirteenthMonth Boolean      @default(false) @map("is_thirteenth_month")
+  totalThirteenth   Decimal?       @map("total_thirteenth") @db.Decimal(16, 2)
   totalPayable      Decimal?       @map("total_payable") @db.Decimal(16, 2)
   approvedById      String?        @map("approved_by_id")
   approvedAt        DateTime?      @map("approved_at")
@@ -442,6 +444,7 @@ model PayItem {
   quarterlyAllowance Decimal            @default(0) @map("quarterly_allowance") @db.Decimal(14, 2)
   taxTreatment      TaxTreatment        @default(PAYE) @map("tax_treatment")
   // Computed outputs
+  thirteenthMonth   Decimal             @default(0) @map("thirteenth_month") @db.Decimal(14, 2)
   grossPay          Decimal             @map("gross_pay") @db.Decimal(14, 2)
   employeePension   Decimal             @default(0) @map("employee_pension") @db.Decimal(14, 2)
   nhf               Decimal             @default(0) @db.Decimal(14, 2)

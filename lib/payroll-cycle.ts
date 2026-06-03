@@ -181,6 +181,7 @@ export type PayRow = {
   basicSalary: number;
   utilityAllowance: number;
   quarterlyAllowance: number;
+  thirteenthMonth: number;
   taxTreatment: string;
   // computed
   grossPay: number;
@@ -203,7 +204,7 @@ export type PayRow = {
 };
 
 export type CycleTotals = {
-  basic: number; utility: number; quarterly: number; gross: number;
+  basic: number; utility: number; quarterly: number; thirteenth: number; gross: number;
   employeePension: number; nhf: number; itf: number; paye: number;
   otherDeductions: number;   // pension(EE) + nhf + itf + adj deductions
   totalDeductions: number;   // otherDeductions + paye
@@ -218,6 +219,9 @@ export type CycleView = {
   periodMonth: number;
   status: string;
   isQuarterMonth: boolean;
+  isThirteenthMonth: boolean;
+  monthType: string;
+  flags: { kind: string; message: string }[];
   ruleSetName: string | null;
   approvedAt: Date | null;
   approvedByName: string | null;
@@ -271,6 +275,7 @@ export async function getCycle(cycleId: string): Promise<CycleView> {
     const gross = num(it.grossPay);
     const ee = num(it.employeePension), nhf = num(it.nhf), itf = num(it.itf), paye = num(it.payeTax);
     const quarterly = num(it.quarterlyAllowance);
+    const thirteenth = num(it.thirteenthMonth);
     const net = round2(gross + allowances - ee - nhf - itf - paye - deductions);
     return {
       id: it.id,
@@ -282,6 +287,7 @@ export async function getCycle(cycleId: string): Promise<CycleView> {
       basicSalary: num(it.basicSalary),
       utilityAllowance: num(it.utilityAllowance),
       quarterlyAllowance: quarterly,
+      thirteenthMonth: thirteenth,
       taxTreatment: String(it.taxTreatment),
       grossPay: gross,
       employeePension: ee,
@@ -294,7 +300,7 @@ export async function getCycle(cycleId: string): Promise<CycleView> {
       adjustmentAllowances: allowances,
       adjustmentDeductions: deductions,
       netPay: net,
-      totalPayable: round2(net + quarterly),
+      totalPayable: round2(net + quarterly + thirteenth),
       reviewStatus: String(it.reviewStatus),
       changeNote: it.changeNote ?? null,
       confirmedAt: it.confirmedAt,
@@ -304,13 +310,44 @@ export async function getCycle(cycleId: string): Promise<CycleView> {
   const totals = sumRows(rows);
   const confirmedCount = rows.filter((r) => r.reviewStatus === "CONFIRMED").length;
 
+  // Month-type control checks (Ops Manual F2.2 Step 3): the quarterly is additive in
+  // quarter-end months only; the thirteenth only in a 13th-month run. Flag any cycle whose
+  // structure doesn't match its type (catches the "utility substituted by quarterly" and
+  // double-payment failure modes).
+  const quarter = isQuarterMonth(cycle.periodMonth);
+  const thirteenth = cycle.isThirteenthMonth;
+  const monthType = thirteenth
+    ? "13th-month run"
+    : quarter
+      ? "Quarter-end month"
+      : "Standard month";
+  const eligible = rows.filter((r) => r.grossPay > 0);
+  const flags: { kind: string; message: string }[] = [];
+  if (quarter) {
+    const n = eligible.filter((r) => r.quarterlyAllowance <= 0).length;
+    if (n) flags.push({ kind: "WARN", message: `${n} eligible employee(s) have no quarterly payment line in this quarter-end cycle.` });
+  } else {
+    const n = rows.filter((r) => r.quarterlyAllowance > 0).length;
+    if (n) flags.push({ kind: "ERROR", message: `${n} employee(s) carry a quarterly payment in a standard (non-quarter) month — possible double payment.` });
+  }
+  if (thirteenth) {
+    const n = eligible.filter((r) => r.thirteenthMonth <= 0).length;
+    if (n) flags.push({ kind: "WARN", message: `${n} eligible employee(s) have no thirteenth-month line in this 13th-month run.` });
+  } else {
+    const n = rows.filter((r) => r.thirteenthMonth > 0).length;
+    if (n) flags.push({ kind: "ERROR", message: `${n} employee(s) carry a thirteenth-month payment outside a 13th-month run.` });
+  }
+
   return {
     id: cycle.id,
     label: cycle.label,
     periodYear: cycle.periodYear,
     periodMonth: cycle.periodMonth,
     status: cycle.status,
-    isQuarterMonth: isQuarterMonth(cycle.periodMonth),
+    isQuarterMonth: quarter,
+    isThirteenthMonth: thirteenth,
+    monthType,
+    flags,
     ruleSetName: ruleset?.name ?? null,
     approvedAt: cycle.approvedAt,
     approvedByName,
@@ -328,12 +365,13 @@ function round2(n: number): number { return Math.round((n + Number.EPSILON) * 10
 
 export function sumRows(rows: PayRow[]): CycleTotals {
   const t: CycleTotals = {
-    basic: 0, utility: 0, quarterly: 0, gross: 0, employeePension: 0, nhf: 0, itf: 0,
+    basic: 0, utility: 0, quarterly: 0, thirteenth: 0, gross: 0, employeePension: 0, nhf: 0, itf: 0,
     paye: 0, otherDeductions: 0, totalDeductions: 0, employerPension: 0, net: 0,
     totalPayable: 0, adjustmentAllowances: 0,
   };
   for (const r of rows) {
     t.basic += r.basicSalary; t.utility += r.utilityAllowance; t.quarterly += r.quarterlyAllowance;
+    t.thirteenth += r.thirteenthMonth;
     t.gross += r.grossPay; t.employeePension += r.employeePension; t.nhf += r.nhf; t.itf += r.itf;
     t.paye += r.payeTax; t.employerPension += r.employerPension; t.net += r.netPay;
     t.totalPayable += r.totalPayable; t.adjustmentAllowances += r.adjustmentAllowances;
