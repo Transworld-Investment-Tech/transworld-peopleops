@@ -10,6 +10,8 @@ import {
   bandFlagFor,
   compaRatio,
   capToMax,
+  fullyLoaded,
+  rawMaxForFte,
   gapToTarget,
   progressToTarget,
 } from "./raise";
@@ -94,6 +96,21 @@ eq("gap to target", gapToTarget(500_000_000, 430_000_000), 70_000_000);
 eq("gap met -> 0", gapToTarget(500_000_000, 520_000_000), 0);
 eq("progress", progressToTarget(500_000_000, 430_000_000), 0.86, 0.001);
 eq("progress capped at 1", progressToTarget(500_000_000, 600_000_000), 1);
+
+// Fully-loaded conversion (Ops Manual B1.3): gross × 17/12 ÷ FTE
+eq("fully-loaded full-time", fullyLoaded(165000, 1), 233750, 0.5); // Handbook G3 example
+eq("fully-loaded default fte", fullyLoaded(165000), 233750, 0.5);
+eq("fully-loaded part-time 0.25", fullyLoaded(80000, 0.25), 453333.33, 0.5); // Note FTE example
+eq("fully-loaded guards fte<=0", fullyLoaded(165000, 0), 233750, 0.5);
+// Handbook worked example: G3 gross 165,000, midpoint 340,000 -> CR 0.69
+eq("compa-ratio fully-loaded G3 example", compaRatio(fullyLoaded(165000, 1), 340000) ?? -1, 0.688, 0.002);
+
+// rawMaxForFte is the inverse: capping raw gross there == capping fully-loaded at band max
+eq("rawMaxForFte full-time", rawMaxForFte(800000, 1) ?? -1, 564705.88, 0.5); // 800000 × 12/17
+ok("rawMaxForFte null band", rawMaxForFte(null, 1) === null);
+// round-trip: fullyLoaded(rawMaxForFte(max)) == max
+eq("rawMaxForFte round-trips to band max", fullyLoaded(rawMaxForFte(800000, 1) ?? 0, 1), 800000, 1.0);
+eq("rawMaxForFte round-trips at fte 0.5", fullyLoaded(rawMaxForFte(800000, 0.5) ?? 0, 0.5), 800000, 1.0);
 
 const total = passed + failed;
 if (failed === 0) {

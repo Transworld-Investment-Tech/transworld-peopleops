@@ -4,6 +4,7 @@ import {
   getCompensationPositioning,
   getPendingRequestCount,
   fmtNaira,
+  CR_PRIORITISE,
 } from "@/lib/compensation";
 import { bandFlagBadge } from "@/lib/raise-cycle";
 import CompTabs from "@/components/compensation/CompTabs";
@@ -130,6 +131,11 @@ export default async function PositioningPage() {
           <h3>By employee</h3>
           <span className="hint">{rows.length} non-exited staff</span>
         </div>
+        <p className="faint" style={{ margin: "0 16px 4px" }}>
+          Compa-ratio and band position are on the fully-loaded, FTE-normalized basis
+          (monthly gross × 17 ÷ 12 ÷ FTE) against the fully-loaded bands. Amber flags a CR below{" "}
+          {CR_PRIORITISE.toFixed(2)} (prioritize at the next raise); a “Below min” position should be escalated to the COO.
+        </p>
         <div className="card-pad">
           <table>
             <thead>
@@ -172,6 +178,11 @@ export default async function PositioningPage() {
                       {r.cooAware ? (
                         <span className="b b-red" style={{ marginLeft: 6 }}>
                           Above {crThreshold.toFixed(2)}
+                        </span>
+                      ) : null}
+                      {r.prioritise ? (
+                        <span className="b b-amb" style={{ marginLeft: 6 }}>
+                          Below {CR_PRIORITISE.toFixed(2)}
                         </span>
                       ) : null}
                     </td>

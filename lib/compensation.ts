@@ -20,6 +20,7 @@ import {
 import {
   compaRatio,
   bandFlagFor,
+  fullyLoaded,
   type BandFlag,
 } from "@/lib/raise";
 
@@ -261,6 +262,7 @@ export type RegisterRow = {
   grade: string | null;
   payCategory: string | null;
   hasProfile: boolean;
+  fte: number;
   treatment: string | null;
   basic: number | null;
   gross: number | null;
@@ -285,6 +287,7 @@ export async function getCompensationRegister(): Promise<CompensationRegister> {
         eeId: true,
         fullName: true,
         preferredName: true,
+        fte: true,
         jobProfile: { select: { title: true, grade: true } },
         payCategory: { select: { name: true } },
       },
@@ -329,6 +332,7 @@ export async function getCompensationRegister(): Promise<CompensationRegister> {
         grade: e.jobProfile?.grade ?? null,
         payCategory: e.payCategory?.name ?? null,
         hasProfile: false,
+        fte: e.fte != null ? num(e.fte) : 1,
         treatment: null,
         basic: null,
         gross: null,
@@ -349,6 +353,7 @@ export async function getCompensationRegister(): Promise<CompensationRegister> {
       grade: e.jobProfile?.grade ?? null,
       payCategory: e.payCategory?.name ?? null,
       hasProfile: true,
+      fte: e.fte != null ? num(e.fte) : 1,
       treatment: view.taxTreatment,
       basic,
       gross: bd ? bd.monthlyGross : gross,
@@ -395,6 +400,7 @@ export type RequestView = {
 
 export type EmployeeCompensation = {
   employee: { id: string; eeId: string; name: string };
+  fte: number;
   role: string | null;
   grade: string | null;
   payCategory: string | null;
@@ -426,6 +432,7 @@ export async function getEmployeeCompensation(
       eeId: true,
       fullName: true,
       preferredName: true,
+      fte: true,
       jobProfile: { select: { title: true, grade: true } },
       payCategory: { select: { name: true } },
     },
@@ -496,6 +503,7 @@ export async function getEmployeeCompensation(
 
   return {
     employee: { id: employee.id, eeId: employee.eeId, name: personName(employee) },
+    fte: employee.fte != null ? num(employee.fte) : 1,
     role: employee.jobProfile?.title ?? null,
     grade: employee.jobProfile?.grade ?? null,
     payCategory: employee.payCategory?.name ?? null,
@@ -690,6 +698,10 @@ export async function getCompChangeRequests(status?: string): Promise<ChangeRequ
 /** Compa-ratio above this is surfaced for COO awareness (Ops Manual B1.3). */
 export const CR_COO_AWARE = 1.15;
 
+/** Compa-ratio below this prioritizes the employee for the next raise milestone
+ * (Ops Manual B1.3). Falling below the band minimum is a separate, harder escalation. */
+export const CR_PRIORITISE = 0.85;
+
 export type PositioningRow = {
   employeeId: string;
   eeId: string;
@@ -702,6 +714,9 @@ export type PositioningRow = {
   compaRatio: number | null; // null when no band/midpoint
   bandFlag: BandFlag | null; // null when no band to compare against
   cooAware: boolean; // compaRatio > CR_COO_AWARE
+  prioritise: boolean; // compaRatio < CR_PRIORITISE — prioritize at next raise
+  belowMin: boolean; // fully-loaded rate below band minimum — escalate
+  fullyLoaded: number | null; // fully-loaded FTE-normalized monthly-equivalent
 };
 
 export type GradePositionSummary = {
@@ -739,8 +754,9 @@ export async function getCompensationPositioning(): Promise<CompensationPosition
     const sb = r.grade ? bandByGrade.get(r.grade) ?? null : null;
     const gross = r.hasProfile ? r.gross : null;
     const band = sb ? { min: sb.min, midpoint: sb.midpoint, max: sb.max } : null;
-    const cr = gross !== null && band ? compaRatio(gross, band.midpoint) : null;
-    const flag = gross !== null && band ? bandFlagFor(gross, band) : null;
+    const fl = gross !== null ? fullyLoaded(gross, r.fte) : null;
+    const cr = fl !== null && band ? compaRatio(fl, band.midpoint) : null;
+    const flag = fl !== null && band ? bandFlagFor(fl, band) : null;
     return {
       employeeId: r.employeeId,
       eeId: r.eeId,
@@ -753,6 +769,9 @@ export async function getCompensationPositioning(): Promise<CompensationPosition
       compaRatio: cr,
       bandFlag: flag,
       cooAware: cr !== null && cr > CR_COO_AWARE,
+      prioritise: cr !== null && cr < CR_PRIORITISE,
+      belowMin: flag === "BELOW_MIN",
+      fullyLoaded: fl,
     };
   });
 
@@ -806,7 +825,11 @@ export type EmployeePositioning = {
   compaRatio: number | null;
   bandFlag: BandFlag | null;
   cooAware: boolean;
+  prioritise: boolean;
+  belowMin: boolean;
+  fullyLoaded: number | null;
   crThreshold: number;
+  prioritiseThreshold: number;
 };
 
 /** Band positioning for one employee, from the grade + monthly gross the detail
@@ -815,6 +838,7 @@ export type EmployeePositioning = {
 export async function getEmployeePositioning(
   grade: string | null,
   monthlyGross: number | null,
+  fte: number = 1,
 ): Promise<EmployeePositioning> {
   let band: EmployeePositioning["band"] = null;
   if (grade) {
@@ -836,11 +860,16 @@ export async function getEmployeePositioning(
       compaRatio: null,
       bandFlag: null,
       cooAware: false,
+      prioritise: false,
+      belowMin: false,
+      fullyLoaded: null,
       crThreshold: CR_COO_AWARE,
+      prioritiseThreshold: CR_PRIORITISE,
     };
   }
-  const cr = compaRatio(monthlyGross, band.midpoint);
-  const flag = bandFlagFor(monthlyGross, {
+  const fl = fullyLoaded(monthlyGross, fte);
+  const cr = compaRatio(fl, band.midpoint);
+  const flag = bandFlagFor(fl, {
     min: band.min,
     midpoint: band.midpoint,
     max: band.max,
@@ -852,6 +881,10 @@ export async function getEmployeePositioning(
     compaRatio: cr,
     bandFlag: flag,
     cooAware: cr !== null && cr > CR_COO_AWARE,
+    prioritise: cr !== null && cr < CR_PRIORITISE,
+    belowMin: flag === "BELOW_MIN",
+    fullyLoaded: fl,
     crThreshold: CR_COO_AWARE,
+    prioritiseThreshold: CR_PRIORITISE,
   };
 }

@@ -29,6 +29,14 @@ export const BASIC_MONTHS_PER_YEAR = 12;
 export const UTILITY_MONTHS_PER_YEAR = 8; // 12 − 4 quarter months
 export const QUARTERLY_PAYMENTS_PER_YEAR = 4;
 
+// Fully-loaded conversion (Ops Manual B1.2/B1.3). The firm pays ~17 months of monthly
+// gross per year (12 monthly + 4 quarterly + 1 thirteenth), so the fully-loaded
+// monthly-equivalent of a monthly gross is gross × 17 ÷ 12. Salary bands are stored on
+// this fully-loaded basis, so every band / compa-ratio comparison must convert gross to
+// fully-loaded first — and divide a part-timer by their FTE to normalize to a full-time
+// rate — before comparing. See fullyLoaded() and rawMaxForFte() below.
+export const FULLY_LOADED_FACTOR = 17 / 12;
+
 export type BandFlag = "WITHIN" | "ABOVE_MID" | "ABOVE_MAX" | "BELOW_MIN";
 
 export type CompComponents = {
@@ -85,9 +93,28 @@ export function raiseComponents(old: CompComponents, pct: number): CompComponent
   };
 }
 
-/** Where a (post-raise) monthly gross sits against the grade band. With no band
- * defined for the grade, there is nothing to flag (WITHIN). Bands are stored on the
- * monthly-gross basis, matching the existing compa-ratio definition. */
+/** Fully-loaded, FTE-normalized monthly-equivalent of a monthly gross (Ops Manual B1.3):
+ * gross × (17/12) ÷ FTE. A non-positive/!finite FTE is treated as 1.0 (full time). This
+ * is the value compared against the (fully-loaded) salary bands and midpoints. */
+export function fullyLoaded(grossMonthly: number, fte: number = 1): number {
+  const f = Number.isFinite(fte) && fte > 0 ? fte : 1;
+  return round2((grossMonthly * FULLY_LOADED_FACTOR) / f);
+}
+
+/** Inverse of fullyLoaded for the band maximum: the raw monthly-gross figure whose
+ * fully-loaded FTE-normalized value equals a (fully-loaded) band max. Feeding this to
+ * capToMax caps raw gross at the point the fully-loaded rate hits the band max —
+ * identical to capping the fully-loaded value, but returning the raw components the
+ * payroll control room stores. Null when there is no band max. */
+export function rawMaxForFte(bandMax: number | null, fte: number = 1): number | null {
+  if (bandMax === null || bandMax <= 0) return null;
+  const f = Number.isFinite(fte) && fte > 0 ? fte : 1;
+  return round2((bandMax / FULLY_LOADED_FACTOR) * f);
+}
+
+/** Where a monthly gross sits against the grade band. With no band defined for the grade,
+ * there is nothing to flag (WITHIN). Bands are stored on the fully-loaded basis, so the
+ * caller passes the fully-loaded FTE-normalized value (see fullyLoaded). */
 export function bandFlagFor(grossMonthly: number, band: Band | null): BandFlag {
   if (!band) return "WITHIN";
   if (grossMonthly < band.min) return "BELOW_MIN";
@@ -96,7 +123,9 @@ export function bandFlagFor(grossMonthly: number, band: Band | null): BandFlag {
   return "WITHIN";
 }
 
-/** Compa-ratio = monthly gross ÷ grade midpoint (null when no midpoint). */
+/** Compa-ratio = fully-loaded gross ÷ grade midpoint (null when no midpoint). The caller
+ * passes the fully-loaded FTE-normalized gross (see fullyLoaded); the midpoint is the
+ * fully-loaded band midpoint, so numerator and denominator share one basis. */
 export function compaRatio(grossMonthly: number, midpoint: number | null | undefined): number | null {
   if (!midpoint || midpoint <= 0) return null;
   return Math.round((grossMonthly / midpoint) * 1000) / 1000;

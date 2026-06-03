@@ -23,6 +23,8 @@ import {
   monthlyGross,
   bandFlagFor,
   capToMax,
+  fullyLoaded,
+  rawMaxForFte,
   round2,
   type Band,
   type CompComponents,
@@ -90,7 +92,7 @@ async function buildItems(
         quarterlyAllowance: true,
         employee: {
           select: {
-            id: true, status: true, eeId: true, fullName: true, preferredName: true,
+            id: true, status: true, eeId: true, fullName: true, preferredName: true, fte: true,
             jobProfile: { select: { grade: true } },
           },
         },
@@ -114,6 +116,7 @@ async function buildItems(
   const items = eligible.map((p) => {
     const e = p.employee;
     const grade = e.jobProfile?.grade ?? null;
+    const fte = e.fte != null ? num(e.fte) : 1;
     const band = grade ? bandByGrade.get(grade.toUpperCase().trim()) ?? null : null;
     const old: CompComponents = {
       basic: num(p.basicSalary),
@@ -125,7 +128,7 @@ async function buildItems(
     let next = raiseComponents(old, pct);
     let capApplied = false;
     if (flags.capApplied) {
-      const capped = capToMax(next, band ? band.max : null);
+      const capped = capToMax(next, rawMaxForFte(band ? band.max : null, fte));
       next = capped.components;
       capApplied = capped.capApplied;
     }
@@ -151,7 +154,7 @@ async function buildItems(
       bandMin: band ? band.min : null,
       bandMid: band ? band.midpoint : null,
       bandMax: band ? band.max : null,
-      bandFlag: bandFlagFor(newGross, band),
+      bandFlag: bandFlagFor(fullyLoaded(newGross, fte), band),
       included: flags.included,
       excludeReason: flags.excludeReason,
       capApplied,
@@ -274,12 +277,18 @@ export async function setCycleInputsAction(_prev: FormState, formData: FormData)
     });
     // Recompute each item's new figures from its existing old snapshot at the new pct.
     const items = await tx.raiseItem.findMany({ where: { raiseCycleId: d.cycleId } });
+    const fteEmps = await tx.employee.findMany({
+      where: { id: { in: items.map((i) => i.employeeId) } },
+      select: { id: true, fte: true },
+    });
+    const fteByEmp = new Map(fteEmps.map((e) => [e.id, e.fte != null ? num(e.fte) : 1] as const));
     for (const it of items) {
+      const fte = fteByEmp.get(it.employeeId) ?? 1;
       const old: CompComponents = { basic: num(it.oldBasic), utility: num(it.oldUtility), quarterly: num(it.oldQuarterly) };
       let next = raiseComponents(old, d.raisePercent);
       let capApplied = false;
       if (it.capApplied) {
-        const capped = capToMax(next, it.bandMax === null ? null : num(it.bandMax));
+        const capped = capToMax(next, rawMaxForFte(it.bandMax === null ? null : num(it.bandMax), fte));
         next = capped.components;
         capApplied = capped.capApplied;
       }
@@ -293,7 +302,7 @@ export async function setCycleInputsAction(_prev: FormState, formData: FormData)
           newAnnualTotal: newAnnual,
           annualIncrease: round2(newAnnual - num(it.oldAnnualTotal)),
           capApplied,
-          bandFlag: bandFlagFor(monthlyGross(next.basic, next.utility), it.bandMin === null ? null : {
+          bandFlag: bandFlagFor(fullyLoaded(monthlyGross(next.basic, next.utility), fte), it.bandMin === null ? null : {
             min: num(it.bandMin), midpoint: num(it.bandMid), max: num(it.bandMax),
           }),
         },
@@ -371,11 +380,13 @@ export async function setItemAction(_prev: FormState, formData: FormData): Promi
   if (!item) return { ok: false, error: "Row not found." };
   if (item.raiseCycle.status !== "DRAFT") return { ok: false, error: "Only a draft cycle can be edited." };
 
+  const fteEmp = await prisma.employee.findUnique({ where: { id: item.employeeId }, select: { fte: true } });
+  const fte = fteEmp?.fte != null ? num(fteEmp.fte) : 1;
   const old: CompComponents = { basic: num(item.oldBasic), utility: num(item.oldUtility), quarterly: num(item.oldQuarterly) };
   let next = raiseComponents(old, num(item.raiseCycle.raisePercent));
   let capApplied = false;
   if (d.cap) {
-    const capped = capToMax(next, item.bandMax === null ? null : num(item.bandMax));
+    const capped = capToMax(next, rawMaxForFte(item.bandMax === null ? null : num(item.bandMax), fte));
     next = capped.components;
     capApplied = capped.capApplied;
   }
@@ -393,7 +404,7 @@ export async function setItemAction(_prev: FormState, formData: FormData): Promi
       newQuarterly: next.quarterly,
       newAnnualTotal: newAnnual,
       annualIncrease: round2(newAnnual - num(item.oldAnnualTotal)),
-      bandFlag: bandFlagFor(monthlyGross(next.basic, next.utility), item.bandMin === null ? null : {
+      bandFlag: bandFlagFor(fullyLoaded(monthlyGross(next.basic, next.utility), fte), item.bandMin === null ? null : {
         min: num(item.bandMin), midpoint: num(item.bandMid), max: num(item.bandMax),
       }),
     },

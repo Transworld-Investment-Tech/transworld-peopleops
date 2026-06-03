@@ -96,11 +96,11 @@ export default async function EmployeeCompensationPage({
   const data = await getEmployeeCompensation(employeeId);
   if (!data) notFound();
 
-  const { employee, role, grade, payCategory, current, versions, hasActiveRuleSet, breakdown, pending, pendingPreview } =
+  const { employee, fte, role, grade, payCategory, current, versions, hasActiveRuleSet, breakdown, pending, pendingPreview } =
     data;
 
   const monthlyGross = current ? current.basicSalary + current.utilityAllowance : null;
-  const positioning = await getEmployeePositioning(grade, monthlyGross);
+  const positioning = await getEmployeePositioning(grade, monthlyGross, fte);
   const sponsorships = await getEmployeeSponsorships(employeeId);
   const positionFlagBadge = positioning.bandFlag ? bandFlagBadge(positioning.bandFlag) : null;
 
@@ -173,6 +173,10 @@ export default async function EmployeeCompensationPage({
                 <span className="val mono">{fmtNaira(positioning.monthlyGross)}</span>
               </div>
               <div className="kpi">
+                <span className="lab">Fully-loaded{fte !== 1 ? ` (FTE ${fte})` : ""}</span>
+                <span className="val mono">{fmtNaira(positioning.fullyLoaded)}</span>
+              </div>
+              <div className="kpi">
                 <span className="lab">Band (min · mid · max)</span>
                 <span className="val mono">
                   {fmtNaira(positioning.band.min)} · {fmtNaira(positioning.band.midpoint)} ·{" "}
@@ -190,6 +194,11 @@ export default async function EmployeeCompensationPage({
                       Above {positioning.crThreshold.toFixed(2)}
                     </span>
                   ) : null}
+                  {positioning.prioritise ? (
+                    <span className="b b-amb" style={{ marginLeft: 6 }}>
+                      Below {positioning.prioritiseThreshold.toFixed(2)}
+                    </span>
+                  ) : null}
                 </span>
               </div>
               <div className="kpi">
@@ -204,7 +213,9 @@ export default async function EmployeeCompensationPage({
               </div>
             </div>
             <p className="faint" style={{ marginTop: 10, marginBottom: 0 }}>
-              Compa-ratio is monthly gross ÷ grade midpoint. Awareness only — it doesn’t change pay.
+              Compa-ratio is the fully-loaded, FTE-normalized monthly-equivalent (monthly gross × 17 ÷ 12 ÷ FTE)
+              ÷ grade midpoint, on the same basis as the bands. Awareness only — it doesn’t change pay.
+              {positioning.belowMin ? " This rate is below the band minimum — escalate to the COO." : ""}
             </p>
           </div>
         </div>
