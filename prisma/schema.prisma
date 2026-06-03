@@ -168,6 +168,10 @@ model JobProfile {
   departmentId String?                 @map("department_id")
   description  String?
   status       JdStatus                @default(DRAFT)
+  family            String?
+  isControlFunction Boolean                 @default(false) @map("is_control_function")
+  track             String?
+  rung              String?
   competencies JobProfileCompetency[]
   employees    Employee[]
   createdAt    DateTime                @default(now()) @map("created_at")
@@ -180,6 +184,9 @@ model Competency {
   id       String                 @id @default(cuid())
   name     String                 @unique
   category String?
+  kind       String                 @default("FUNCTIONAL")
+  sortOrder  Int                    @default(0) @map("sort_order")
+  definition String?
   profiles JobProfileCompetency[]
 
   @@map("competencies")

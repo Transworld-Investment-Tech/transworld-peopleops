@@ -15,10 +15,29 @@ type Initial = {
   departmentId?: string | null;
   description?: string | null;
   status?: string;
+  family?: string | null;
+  isControlFunction?: boolean;
+  track?: string | null;
+  rung?: string | null;
 };
 
 const EMPTY: FormState = { ok: false };
-const DEFAULT_LEVEL = 3;
+const DEFAULT_LEVEL = 2;
+const FAMILY_OPTS = [
+  { value: "BUSINESS_DEVELOPMENT", label: "Business Development" },
+  { value: "INVESTMENTS", label: "Investments" },
+  { value: "CONTROL_OPERATIONS", label: "Control & Operations" },
+  { value: "LEADERSHIP", label: "Leadership" },
+];
+const TRACK_OPTS = [
+  { value: "MANAGER", label: "Manager track" },
+  { value: "EXPERT", label: "Expert track" },
+];
+const RUNG_OPTS = [
+  { value: "JUNIOR", label: "Junior" },
+  { value: "MID", label: "Mid" },
+  { value: "SENIOR", label: "Senior" },
+];
 
 function Err({ msg }: { msg?: string }) {
   return msg ? <span className="err">{msg}</span> : null;
@@ -111,6 +130,39 @@ export default function JobProfileForm({
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label htmlFor="family">Job family</label>
+              <select id="family" name="family" defaultValue={initial.family ?? ""}>
+                <option value="">—</option>
+                {FAMILY_OPTS.map((f) => (
+                  <option key={f.value} value={f.value}>{f.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="track">Track (G3+)</label>
+              <select id="track" name="track" defaultValue={initial.track ?? ""}>
+                <option value="">—</option>
+                {TRACK_OPTS.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="rung">Rung</label>
+              <select id="rung" name="rung" defaultValue={initial.rung ?? ""}>
+                <option value="">—</option>
+                {RUNG_OPTS.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="isControlFunction" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input id="isControlFunction" name="isControlFunction" type="checkbox" defaultChecked={initial.isControlFunction ?? false} style={{ width: "auto" }} />
+                <span>Control function (never scored on revenue)</span>
+              </label>
             </div>
             <div className="field">
               <label htmlFor="status">Status</label>

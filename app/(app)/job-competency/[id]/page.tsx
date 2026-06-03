@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
-import { getJobProfileDetail, jdStatusBadge, levelLabel } from "@/lib/jobframework";
+import { getJobProfileDetail, jdStatusBadge, levelLabel, familyLabel, trackLabel, rungLabel, ladderStageFor } from "@/lib/jobframework";
 import { getLatestDocument, prettySize } from "@/lib/documents";
 import { storageConfigured } from "@/lib/storage";
 import { empInitials, statusBadge } from "@/lib/employees";
@@ -23,6 +23,7 @@ export default async function JobProfilePage({
   if (!p) notFound();
   const s = jdStatusBadge(p.status);
   const subtitle = [p.grade ? `Grade ${p.grade}` : null, p.department].filter(Boolean).join(" · ");
+  const ladder = ladderStageFor(p.grade);
 
   const jd = await getLatestDocument("job_profile", p.id, "JOB_DESCRIPTION");
   const storageReady = storageConfigured();
@@ -69,6 +70,13 @@ export default async function JobProfilePage({
           </span>
         </div>
         <div className="card-pad">
+          <div className="grid kpis" style={{ marginBottom: 12 }}>
+            <div className="kpi"><div className="lab">Family</div><div className="val" style={{ fontSize: 15 }}>{familyLabel(p.family)}{p.isControlFunction ? " · control fn" : ""}</div></div>
+            <div className="kpi"><div className="lab">Track</div><div className="val" style={{ fontSize: 15 }}>{trackLabel(p.track)}</div></div>
+            <div className="kpi"><div className="lab">Rung</div><div className="val" style={{ fontSize: 15 }}>{rungLabel(p.rung)}</div></div>
+            <div className="kpi"><div className="lab">Growth stage</div><div className="val" style={{ fontSize: 15 }}>{ladder ? ladder.stage : "—"}</div></div>
+          </div>
+          {ladder ? <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>{ladder.grade} · {ladder.summary}</p> : null}
           {p.description ? (
             <p className="jc-desc">{p.description}</p>
           ) : (
@@ -102,6 +110,30 @@ export default async function JobProfilePage({
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Behaviors (firm-wide)</h3>
+          <span className="hint">{p.behaviors.length}</span>
+        </div>
+        <div className="card-pad">
+          {p.behaviors.length === 0 ? (
+            <p className="faint">No behaviors attached.</p>
+          ) : (
+            <div className="jc-reqs" style={{ flexDirection: "column", gap: 8 }}>
+              {p.behaviors.map((bh) => (
+                <div key={bh.id}>
+                  <span className="jc-req-name"><b>{bh.name}</b></span>
+                  {bh.definition ? <div className="faint" style={{ fontSize: 13 }}>{bh.definition}</div> : null}
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="hint" style={{ marginTop: 10 }}>
+            The six behaviors apply to every role and are scored alongside competencies at the annual review.
+          </p>
         </div>
       </div>
 

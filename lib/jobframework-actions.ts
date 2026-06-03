@@ -38,7 +38,7 @@ function flatten(err: z.ZodError): Record<string, string> {
 // --------------------------------------------------------------------------
 const reqItemSchema = z.object({
   id: z.string().min(1),
-  level: z.number().int().min(1).max(5),
+  level: z.number().int().min(1).max(3),
 });
 
 const profileSchema = z.object({
@@ -47,6 +47,10 @@ const profileSchema = z.object({
   departmentId: z.string().optional().or(z.literal("")),
   description: z.string().trim().optional().or(z.literal("")),
   status: z.enum(STATUSES),
+  family: z.string().optional().or(z.literal("")),
+  isControlFunction: z.boolean().optional(),
+  track: z.string().optional().or(z.literal("")),
+  rung: z.string().optional().or(z.literal("")),
   competencies: z.array(reqItemSchema),
 });
 
@@ -69,6 +73,10 @@ function readProfileForm(fd: FormData) {
     departmentId: String(fd.get("departmentId") ?? ""),
     description: String(fd.get("description") ?? ""),
     status: String(fd.get("status") ?? "DRAFT"),
+    family: String(fd.get("family") ?? ""),
+    isControlFunction: fd.get("isControlFunction") === "on",
+    track: String(fd.get("track") ?? ""),
+    rung: String(fd.get("rung") ?? ""),
     competencies,
   };
 }
@@ -133,6 +141,10 @@ export async function createJobProfileAction(
       departmentId: nz(v.departmentId),
       description: nz(v.description),
       status: v.status,
+      family: nz(v.family),
+      isControlFunction: v.isControlFunction ?? false,
+      track: nz(v.track),
+      rung: nz(v.rung),
     },
   });
 
@@ -172,6 +184,10 @@ export async function updateJobProfileAction(
     departmentId: nz(v.departmentId),
     description: nz(v.description),
     status: v.status,
+    family: nz(v.family),
+    isControlFunction: v.isControlFunction ?? false,
+    track: nz(v.track),
+    rung: nz(v.rung),
   };
 
   const data: Record<string, unknown> = {};
@@ -182,6 +198,10 @@ export async function updateJobProfileAction(
     ["departmentId", cur.departmentId, next.departmentId],
     ["description", cur.description, next.description],
     ["status", cur.status, next.status],
+    ["family", cur.family, next.family],
+    ["isControlFunction", cur.isControlFunction, next.isControlFunction],
+    ["track", cur.track, next.track],
+    ["rung", cur.rung, next.rung],
   ];
   for (const [key, before, after] of compare) {
     if (before !== after) {

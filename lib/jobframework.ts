@@ -26,16 +26,54 @@ export const JD_STATUSES: { value: string; label: string }[] = [
   { value: "PUBLISHED", label: "Published" },
 ];
 
-// Competency proficiency scale (stored as JobProfileCompetency.level: Int 1..5).
+// Canonical competency proficiency scale, F/P/E (stored as JobProfileCompetency.level 1..3).
 export const LEVELS: { value: number; label: string }[] = [
-  { value: 1, label: "1 · Awareness" },
-  { value: 2, label: "2 · Foundational" },
-  { value: 3, label: "3 · Proficient" },
-  { value: 4, label: "4 · Advanced" },
-  { value: 5, label: "5 · Expert" },
+  { value: 1, label: "F · Foundation" },
+  { value: 2, label: "P · Proficient" },
+  { value: 3, label: "E · Expert" },
 ];
 export function levelLabel(n: number): string {
   return LEVELS.find((l) => l.value === n)?.label ?? `Level ${n}`;
+}
+
+// Job-family vocabulary (four families; control-function is a flag, not a fifth family).
+export const FAMILIES: { value: string; label: string }[] = [
+  { value: "BUSINESS_DEVELOPMENT", label: "Business Development" },
+  { value: "INVESTMENTS", label: "Investments" },
+  { value: "CONTROL_OPERATIONS", label: "Control & Operations" },
+  { value: "LEADERSHIP", label: "Leadership" },
+];
+export function familyLabel(v: string | null): string {
+  return FAMILIES.find((f) => f.value === v)?.label ?? "—";
+}
+export const TRACKS: { value: string; label: string }[] = [
+  { value: "MANAGER", label: "Manager track" },
+  { value: "EXPERT", label: "Expert track" },
+];
+export const RUNGS: { value: string; label: string }[] = [
+  { value: "JUNIOR", label: "Junior" },
+  { value: "MID", label: "Mid" },
+  { value: "SENIOR", label: "Senior" },
+];
+export function trackLabel(v: string | null): string {
+  return TRACKS.find((t) => t.value === v)?.label ?? "—";
+}
+export function rungLabel(v: string | null): string {
+  return RUNGS.find((r) => r.value === v)?.label ?? "—";
+}
+
+// Growth Ladder / PADP (Layer 3 of the model): fixed firm reference by grade. Feeds
+// development and promotion conversations — never the bonus.
+export const GROWTH_LADDER: { grade: string; stage: string; summary: string }[] = [
+  { grade: "G1", stage: "Learn & Deliver", summary: "Build your technical foundation; deliver quality work consistently in your defined area." },
+  { grade: "G2", stage: "Collaborate", summary: "Work effectively across functions; contribute beyond your own assignments; begin mentoring juniors." },
+  { grade: "G3", stage: "Lead a Team or Domain", summary: "Own outcomes and develop others (Manager), or deepen mastery and influence peers (Expert)." },
+  { grade: "G4", stage: "Lead Teams and Functions", summary: "Set standards for a function; develop G3s toward leadership; own the people and performance of your area." },
+  { grade: "G5", stage: "Cast Vision", summary: "Shape the firm's direction; develop G4 leaders; operate at an institutional level." },
+];
+export function ladderStageFor(grade: string | null): { grade: string; stage: string; summary: string } | null {
+  if (!grade) return null;
+  return GROWTH_LADDER.find((g) => g.grade === grade.toUpperCase().trim()) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,7 +115,12 @@ export type JobProfileDetail = {
   department: string | null;
   description: string | null;
   status: JdStatus;
+  family: string | null;
+  isControlFunction: boolean;
+  track: string | null;
+  rung: string | null;
   competencies: { id: string; name: string; category: string | null; level: number }[];
+  behaviors: { id: string; name: string; definition: string | null }[];
   employees: { id: string; eeId: string; fullName: string; status: string }[];
 };
 
@@ -106,6 +149,7 @@ export async function getJobProfileDetail(id: string): Promise<JobProfileDetail 
   }
 
   const competencies = p.competencies
+    .filter((c) => c.competency.kind !== "BEHAVIOR")
     .map((c) => ({
       id: c.competency.id,
       name: c.competency.name,
@@ -113,6 +157,17 @@ export async function getJobProfileDetail(id: string): Promise<JobProfileDetail 
       level: c.level,
     }))
     .sort((a, b) => b.level - a.level || a.name.localeCompare(b.name));
+
+  const behaviors = p.competencies
+    .filter((c) => c.competency.kind === "BEHAVIOR")
+    .map((c) => ({
+      id: c.competency.id,
+      name: c.competency.name,
+      definition: c.competency.definition,
+      sortOrder: c.competency.sortOrder,
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map(({ id, name, definition }) => ({ id, name, definition }));
 
   return {
     id: p.id,
@@ -122,7 +177,12 @@ export async function getJobProfileDetail(id: string): Promise<JobProfileDetail 
     department,
     description: p.description,
     status: p.status,
+    family: p.family,
+    isControlFunction: p.isControlFunction,
+    track: p.track,
+    rung: p.rung,
     competencies,
+    behaviors,
     employees: p.employees,
   };
 }
@@ -137,6 +197,8 @@ export async function getCompetencies() {
     id: c.id,
     name: c.name,
     category: c.category,
+    kind: c.kind,
+    definition: c.definition,
     profileCount: c._count.profiles,
   }));
 }
@@ -159,6 +221,10 @@ export type JobProfileFormData = {
         departmentId: string | null;
         description: string | null;
         status: JdStatus;
+        family: string | null;
+        isControlFunction: boolean;
+        track: string | null;
+        rung: string | null;
       }
     | null;
   selected: { id: string; level: number }[];
@@ -190,6 +256,10 @@ export async function getJobProfileFormData(id?: string): Promise<JobProfileForm
         departmentId: p.departmentId,
         description: p.description,
         status: p.status,
+        family: p.family,
+        isControlFunction: p.isControlFunction,
+        track: p.track,
+        rung: p.rung,
       };
       selected = p.competencies.map((c) => ({ id: c.competencyId, level: c.level }));
     }
