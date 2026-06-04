@@ -524,6 +524,15 @@ model Notification {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("notifications")
+  category    String?
+  severity    String?
+  entityType  String?   @map("entity_type")
+  entityId    String?   @map("entity_id")
+  dueAt       DateTime? @map("due_at")
+  status      String    @default("OPEN")
+  dismissedAt DateTime? @map("dismissed_at")
+  resolvedAt  DateTime? @map("resolved_at")
+  dedupeKey   String?   @unique @map("dedupe_key")
 }
 
 // TW-DOCUMENTS-MODEL-V080 — reusable file/document registry (Supabase Storage).

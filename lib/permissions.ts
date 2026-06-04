@@ -29,6 +29,10 @@
 //     EXEC / COMPLIANCE / INTERNAL_CONTROL / AUDITOR view). Adds a "Staff Files"
 //     entry under Talent. Permission count 43 -> 47; re-run
 //     `npm run auth:bootstrap` after this release.
+//
+// v0.39.1 — Document-expiry alerts + notification spine: NO new permissions.
+//     Adds an "Alerts" entry under Talent gated on the existing stafffile.view
+//     (view) / stafffile.manage (generate, dismiss, resolve). No auth:bootstrap.
 
 export type Permission = { key: string; label: string };
 
@@ -276,6 +280,7 @@ const I = {
   controls: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 7.5h18M6.5 7.5 5 18M17.5 7.5 19 18M3.5 18h17"/></svg>`,
   docs: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h8l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M13 2.5V7h4M8.5 12h7M8.5 16h7"/></svg>`,
   files: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="m9.5 13 1.7 1.7L15 11"/></svg>`,
+  bell: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>`,
   admin: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><circle cx="18" cy="16.5" r="2.4"/><path d="M18 11.6v1.4M18 20v1.4M22.2 16.5h-1.4M15.2 16.5h-1.4"/></svg>`,
   gavel: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m14 7-7 7M9.5 4.5 16 11M4 20h9M13.5 9.5l3 3M11.5 7.5l3 3"/></svg>`,
   raise: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M12 8v4M12 13.5v.5"/></svg>`,
@@ -308,6 +313,7 @@ export const NAV: NavSection[] = [
       { slug: "recruitment", label: "Recruitment", perm: "recruitment.view", icon: I.recruit },
       { slug: "onboarding", label: "Onboarding", perm: "onboarding.view", icon: I.onboard },
       { slug: "staff-files", label: "Staff Files", perm: "stafffile.view", icon: I.files },
+      { slug: "alerts", label: "Alerts", perm: "stafffile.view", icon: I.bell },
     ],
   },
   {
