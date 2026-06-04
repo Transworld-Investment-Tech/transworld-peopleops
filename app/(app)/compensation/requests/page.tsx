@@ -43,7 +43,6 @@ function Delta({ current, proposed }: { current: CompFieldsData | null; proposed
     <div className="comp-delta">
       {row("Basic", current ? fmtNaira(current.basicSalary) : "—", fmtNaira(proposed.basicSalary), !current || current.basicSalary !== proposed.basicSalary)}
       {row("Utility", current ? fmtNaira(current.utilityAllowance) : "—", fmtNaira(proposed.utilityAllowance), !current || current.utilityAllowance !== proposed.utilityAllowance)}
-      {row("Quarterly", current ? fmtNaira(current.quarterlyAllowance) : "—", fmtNaira(proposed.quarterlyAllowance), !current || current.quarterlyAllowance !== proposed.quarterlyAllowance)}
       {row("Tax", ct, pt, !current || current.taxTreatment !== proposed.taxTreatment)}
     </div>
   );

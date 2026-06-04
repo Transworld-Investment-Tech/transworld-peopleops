@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/db";
 import { getScorecard } from "@/lib/scorecards";
 import { levelLabel } from "@/lib/jobframework";
+import { scoreAppraisal, type ScoreResult } from "@/lib/scorecard-scoring";
 
 export { levelLabel };
 
@@ -210,6 +211,7 @@ export type AppraisalView = {
         items: AppraisalItemView[];
       }
     | null;
+  score: ScoreResult | null;
 };
 
 /** Everything the appraisal page needs: cycle + employee + role mission +
@@ -228,7 +230,7 @@ export async function getAppraisalView(
         fullName: true,
         preferredName: true,
         jobProfileId: true,
-        jobProfile: { select: { title: true, grade: true } },
+        jobProfile: { select: { title: true, grade: true, family: true } },
       },
     }),
   ]);
@@ -242,6 +244,21 @@ export async function getAppraisalView(
       items: { orderBy: [{ kind: "asc" }, { position: "asc" }, { createdAt: "asc" }] },
     },
   });
+
+  // Indicative score from the manager's saved ratings (read-only panel on the
+  // appraisal page). Same pure engine the bonus run uses, so the breakdown the
+  // reviewer sees is exactly what would drive the multiplier.
+  const score: ScoreResult | null = appraisal
+    ? scoreAppraisal(
+        appraisal.items.map((it) => ({
+          kind: it.kind,
+          rating: it.rating,
+          weight: it.weight == null ? null : Number(it.weight),
+          label: it.label,
+        })),
+        employee.jobProfile?.family ?? null,
+      )
+    : null;
 
   return {
     cycle: { id: cycle.id, name: cycle.name, stage: cycle.stage, status: cycle.status },
@@ -282,5 +299,6 @@ export async function getAppraisalView(
           })),
         }
       : null,
+    score,
   };
 }

@@ -46,7 +46,6 @@ export default function PayBreakdown({
 
         <div className="comp-slip-sep" />
         <Row label="Employer pension (cost, not a deduction)" value={fmtNaira(b.pensionEmployer)} kind="muted" />
-        <Row label="Quarterly allowance (paid separately)" value={fmtNaira(b.quarterlyAllowance)} kind="muted" />
 
         {b.taxTreatment === "PAYE" ? (
           <>

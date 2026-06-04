@@ -275,7 +275,6 @@ function ItemDrawer({ row, raisePercent, onClose }: { row: Row; raisePercent: nu
 
             <div className="comp-slip-row"><span className="comp-slip-lab">Basic (monthly)</span><span className="comp-slip-val num mono">{money(row.oldBasic)} → {money(row.newBasic)}</span></div>
             <div className="comp-slip-row"><span className="comp-slip-lab">Utility (monthly)</span><span className="comp-slip-val num mono">{money(row.oldUtility)} → {money(row.newUtility)}</span></div>
-            <div className="comp-slip-row"><span className="comp-slip-lab">Quarterly</span><span className="comp-slip-val num mono">{money(row.oldQuarterly)} → {money(row.newQuarterly)}</span></div>
             <div className="comp-slip-row sub"><span className="comp-slip-lab">Monthly gross (basic + utility)</span><span className="comp-slip-val num mono">{money(row.oldGross)} → {money(row.newGross)}</span></div>
             <div className="comp-slip-row net"><span className="comp-slip-lab">Annual total ({pct})</span><span className="comp-slip-val num mono">{money(row.oldAnnualTotal)} → {money(row.newAnnualTotal)}</span></div>
             {row.bandMax !== null ? (

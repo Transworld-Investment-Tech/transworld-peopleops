@@ -11,10 +11,22 @@ import {
   ratingBadge,
 } from "@/lib/performance";
 import { getGoalsOverview } from "@/lib/performance-toolkit";
+import { multiplierFor } from "@/lib/scorecard-scoring";
 import { getGoalSettingRoster, reviewStateBadge } from "@/lib/goal-agreement";
 import CycleControls from "@/components/performance/CycleControls";
 
 export const metadata = { title: "Performance · Transworld PeopleOps" };
+
+// Canonical multiplier bands (Handbook 12.3 / Ops Manual) — the labels for the
+// calibration roll-up. The multiplier values match lib/scorecard-scoring#multiplierFor.
+const CALIB_BANDS = [
+  { label: "4.5 – 5.0", mult: 1.3 },
+  { label: "4.0 – 4.4", mult: 1.15 },
+  { label: "3.5 – 3.9", mult: 1.0 },
+  { label: "3.0 – 3.4", mult: 0.8 },
+  { label: "2.0 – 2.9", mult: 0.5 },
+  { label: "below 2.0", mult: 0.0 },
+] as const;
 
 function fmtRange(start: Date | null, end: Date | null): string | null {
   const o: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
@@ -162,6 +174,44 @@ async function PerformanceCycle({
   const goalSetting = canManage ? await getGoalSettingRoster(selected.id) : null;
   const started = roster.filter((r) => r.appraisalId).length;
   const finalized = roster.filter((r) => r.status.key === "FINALIZED").length;
+
+  // Calibration roll-up (read-only) from the saved overall ratings of finalized
+  // appraisals, mapped to the canonical multiplier bands.
+  const ratedRows = roster.filter(
+    (r) =>
+      r.status.key === "FINALIZED" &&
+      r.overallRating != null &&
+      !Number.isNaN(parseFloat(r.overallRating)),
+  );
+  const ratedVals = ratedRows.map((r) => parseFloat(r.overallRating as string));
+  const avgRating = ratedVals.length
+    ? ratedVals.reduce((a, b) => a + b, 0) / ratedVals.length
+    : null;
+  const avgMultiplier = ratedVals.length
+    ? ratedVals.reduce((a, b) => a + multiplierFor(b), 0) / ratedVals.length
+    : null;
+  const bandRows = CALIB_BANDS.map((band) => ({
+    label: band.label,
+    mult: band.mult,
+    count: ratedVals.filter((v) => multiplierFor(v) === band.mult).length,
+  }));
+  const calStatus = {
+    notStarted: roster.filter((r) => r.status.key === "NOT_STARTED").length,
+    inProgress: roster.filter((r) => r.status.key === "IN_PROGRESS").length,
+    selfSubmitted: roster.filter((r) => r.status.key === "SELF_SUBMITTED").length,
+    finalized,
+  };
+  const gradeMap = new Map<string, { count: number; sum: number }>();
+  for (const r of ratedRows) {
+    const key = r.grade ?? "—";
+    const e = gradeMap.get(key) ?? { count: 0, sum: 0 };
+    e.count += 1;
+    e.sum += parseFloat(r.overallRating as string);
+    gradeMap.set(key, e);
+  }
+  const gradeRows = [...gradeMap.entries()]
+    .map(([grade, e]) => ({ grade, count: e.count, avg: e.sum / e.count }))
+    .sort((a, b) => a.grade.localeCompare(b.grade));
   const goalsByEmp = new Map(goalsOverview.map((g) => [g.employeeId, g] as const));
   const cur = stageIndex(selected.stage);
   const range = fmt(selected.periodStart, selected.periodEnd);
@@ -283,6 +333,97 @@ async function PerformanceCycle({
               })}
             </tbody>
           </table>
+        </div>
+      ) : null}
+
+      {canManage ? (
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card-h">
+            <h3>Calibration — {selected.name}</h3>
+            <span className="hint">
+              {finalized} of {roster.length} finalized
+            </span>
+          </div>
+          <div className="card-pad">
+            <p className="faint" style={{ marginTop: 0 }}>
+              A read-only roll-up of the saved overall ratings across this cycle, mapped to the
+              canonical multiplier bands — for committee calibration before finalizing. The
+              integrity gate (a 1 on Integrity Above All or Compliance by Default) can still force
+              ×0 at bonus build.
+            </p>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+              <span className="b b-gry">Not started {calStatus.notStarted}</span>
+              <span className="b b-amb">In progress {calStatus.inProgress}</span>
+              <span className="b b-blu">Self submitted {calStatus.selfSubmitted}</span>
+              <span className="b b-grn">Finalized {calStatus.finalized}</span>
+            </div>
+
+            {ratedVals.length === 0 ? (
+              <div className="note">
+                <span>ℹ</span>
+                <div>No finalized appraisals to calibrate yet.</div>
+              </div>
+            ) : (
+              <>
+                <div className="grid kpis" style={{ marginBottom: 12 }}>
+                  <div className="card kpi">
+                    <div className="lab">Average overall</div>
+                    <div className="val">{avgRating!.toFixed(2)}</div>
+                  </div>
+                  <div className="card kpi">
+                    <div className="lab">Implied avg multiplier</div>
+                    <div className="val">×{avgMultiplier!.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Score band</th>
+                      <th>Multiplier</th>
+                      <th className="num">Finalized</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bandRows.map((b) => (
+                      <tr key={b.label}>
+                        <td>{b.label}</td>
+                        <td className="mono">×{b.mult.toFixed(2)}</td>
+                        <td className="num mono">
+                          {b.count || <span className="faint">—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {gradeRows.length ? (
+                  <>
+                    <div className="sec-t mt">By grade</div>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Grade</th>
+                          <th className="num">Finalized</th>
+                          <th className="num">Avg overall</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {gradeRows.map((g) => (
+                          <tr key={g.grade}>
+                            <td className="mono">{g.grade}</td>
+                            <td className="num mono">{g.count}</td>
+                            <td className="num mono">{g.avg.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                ) : null}
+              </>
+            )}
+          </div>
         </div>
       ) : null}
 

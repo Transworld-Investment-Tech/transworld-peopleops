@@ -21,6 +21,10 @@ function isoDay(d: Date | null | undefined): string | null {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
+function fmtAvg(n: number | null): string {
+  return n == null ? "—" : n.toFixed(2);
+}
+
 export default async function AppraisalPage({
   params,
 }: {
@@ -122,6 +126,60 @@ export default async function AppraisalPage({
           ) : null}
         </div>
       </div>
+
+      {view.score ? (
+        <div className="card" style={{ marginTop: 18, marginBottom: 18 }}>
+          <div className="card-h">
+            <h3>Indicative score</h3>
+            {view.score.integrityGate ? (
+              <span className="b b-red">Integrity gate · ×0.00</span>
+            ) : (
+              <span className="b b-blu">×{view.score.multiplier.toFixed(2)}</span>
+            )}
+          </div>
+          <div className="card-pad">
+            <p className="faint" style={{ marginTop: 0, fontSize: 12.5 }}>
+              Computed from the saved manager ratings with the role&rsquo;s job-family weighting —
+              the same calculation that drives the bonus multiplier. Indicative until the
+              appraisal is finalized.
+            </p>
+            <div className="grid kpis">
+              <div className="card kpi">
+                <div className="lab">Results</div>
+                <div className="val">{fmtAvg(view.score.results)}</div>
+              </div>
+              <div className="card kpi">
+                <div className="lab">Competencies</div>
+                <div className="val">{fmtAvg(view.score.competencies)}</div>
+              </div>
+              <div className="card kpi">
+                <div className="lab">Behaviors</div>
+                <div className="val">{fmtAvg(view.score.behaviors)}</div>
+              </div>
+              <div className="card kpi">
+                <div className="lab">Overall</div>
+                <div className="val">{fmtAvg(view.score.overall)}</div>
+                <div className="faint" style={{ fontSize: 12, marginTop: 6 }}>
+                  &rarr; ×{view.score.multiplier.toFixed(2)}
+                  {view.score.integrityGate ? " (gated)" : ""}
+                </div>
+              </div>
+            </div>
+            {view.score.integrityGate ? (
+              <div
+                className="note"
+                style={{ marginTop: 12, background: "#fdeaea", borderColor: "#f3c0c0", color: "#9b1c1c" }}
+              >
+                <span>!</span>
+                <div>
+                  A rating of 1 on Integrity Above All or Compliance by Default forces the
+                  multiplier to ×0.00, regardless of the other scores.
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <AppraisalEditor
         cycleId={cycleId}

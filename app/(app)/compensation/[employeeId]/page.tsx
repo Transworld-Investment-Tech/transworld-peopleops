@@ -35,7 +35,6 @@ function initialFromFields(f: CompFieldsData, effectiveDate: string): CompFormIn
   return {
     basicSalary: String(f.basicSalary),
     utilityAllowance: String(f.utilityAllowance),
-    quarterlyAllowance: String(f.quarterlyAllowance),
     taxTreatment: f.taxTreatment,
     flatTaxRatePercent: pctFromFraction(f.flatTaxRate),
     annualRentPaid: f.annualRentPaid === null ? "" : String(f.annualRentPaid),
@@ -47,7 +46,6 @@ function initialFromFields(f: CompFieldsData, effectiveDate: string): CompFormIn
 const BLANK_INITIAL: CompFormInitial = {
   basicSalary: "",
   utilityAllowance: "",
-  quarterlyAllowance: "",
   taxTreatment: "PAYE",
   flatTaxRatePercent: "",
   annualRentPaid: "",
@@ -67,10 +65,6 @@ function ProfileSummary({ p }: { p: ProfileView }) {
       <div className="kpi">
         <span className="lab">Utility allowance</span>
         <span className="val mono">{fmtNaira(p.utilityAllowance)}</span>
-      </div>
-      <div className="kpi">
-        <span className="lab">Quarterly allowance</span>
-        <span className="val mono">{fmtNaira(p.quarterlyAllowance)}</span>
       </div>
       <div className="kpi">
         <span className="lab">Tax treatment</span>
@@ -361,7 +355,6 @@ export default async function EmployeeCompensationPage({
                   <th>Effective</th>
                   <th className="num">Basic</th>
                   <th className="num">Utility</th>
-                  <th className="num">Quarterly</th>
                   <th>Tax</th>
                   <th>State</th>
                 </tr>
@@ -374,7 +367,6 @@ export default async function EmployeeCompensationPage({
                       <td>{fmtDate(v.effectiveDate)}</td>
                       <td className="num mono">{fmtNaira(v.basicSalary)}</td>
                       <td className="num mono">{fmtNaira(v.utilityAllowance)}</td>
-                      <td className="num mono">{fmtNaira(v.quarterlyAllowance)}</td>
                       <td>
                         <span className={`b ${tb.cls}`}>{tb.label}</span>
                       </td>

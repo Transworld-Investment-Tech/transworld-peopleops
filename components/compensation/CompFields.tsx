@@ -8,7 +8,6 @@ import { TAX_TREATMENTS } from "@/lib/compensation";
 export type CompFormInitial = {
   basicSalary: string;
   utilityAllowance: string;
-  quarterlyAllowance: string;
   taxTreatment: string;
   flatTaxRatePercent: string; // whole-number percent, e.g. "10"
   annualRentPaid: string;
@@ -39,11 +38,6 @@ export function CompFields({
         <label htmlFor="utilityAllowance">Utility allowance (₦ / month)</label>
         <input id="utilityAllowance" name="utilityAllowance" inputMode="numeric" defaultValue={initial.utilityAllowance} placeholder="e.g. 100,000" />
         {fe.utilityAllowance ? <span className="err">{fe.utilityAllowance}</span> : null}
-      </div>
-      <div className="field">
-        <label htmlFor="quarterlyAllowance">Quarterly allowance (₦)</label>
-        <input id="quarterlyAllowance" name="quarterlyAllowance" inputMode="numeric" defaultValue={initial.quarterlyAllowance} placeholder="paid separately" />
-        {fe.quarterlyAllowance ? <span className="err">{fe.quarterlyAllowance}</span> : null}
       </div>
       <div className="field">
         <label htmlFor="taxTreatment">Tax treatment</label>
