@@ -3,6 +3,13 @@ import { notFound } from "next/navigation";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { getOnboardingDetail, taskStatusBadge, fmtDate } from "@/lib/onboarding";
 import { getActiveTemplates, kindLabel } from "@/lib/document-templates";
+import { getProbationView } from "@/lib/ws4-data";
+import {
+  probationPhaseBadge,
+  probationOutcomeBadge,
+  probationOutcomeLabel,
+  fmtDate as fmtDateW,
+} from "@/lib/ws4";
 import GenerateDocControl from "@/components/documents/GenerateDocControl";
 import {
   SeedDefaultTasksButton,
@@ -11,6 +18,7 @@ import {
   ProbationEditor,
   ScheduleReviewButton,
 } from "@/components/onboarding/OnboardingControls";
+import { MidpointReviewForm, FinalDecisionForm } from "@/components/onboarding/ProbationClock";
 
 export const metadata = { title: "Onboarding · Transworld PeopleOps" };
 
@@ -83,6 +91,9 @@ export default async function OnboardingDetailPage({
   const docTemplates = canManage
     ? (await getActiveTemplates()).map((t) => ({ id: t.id, name: t.name, kindLabel: kindLabel(t.kind) }))
     : [];
+
+  // Probation clock (WS4 depth) — milestones, phase, review history + decision.
+  const pv = await getProbationView(employeeId);
 
   return (
     <>
@@ -245,6 +256,87 @@ export default async function OnboardingDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Probation clock — milestones, phase, reviews, decision (WS4 depth) */}
+      {pv ? (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-h">
+            <h3>Probation clock</h3>
+            {(() => {
+              const b = probationPhaseBadge(pv.phase);
+              return <span className={`b ${b.cls}`}>{b.label}</span>;
+            })()}
+          </div>
+          <div className="card-pad">
+            <div
+              style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12, marginBottom: 14 }}
+            >
+              <div>
+                <div className="faint" style={{ fontSize: 12 }}>Midpoint review</div>
+                <b>{fmtDateW(pv.milestones.midpointOn)}</b>
+              </div>
+              <div>
+                <div className="faint" style={{ fontSize: 12 }}>Decide by</div>
+                <b>{fmtDateW(pv.milestones.finalDueBy)}</b>
+              </div>
+              <div>
+                <div className="faint" style={{ fontSize: 12 }}>Probation ends</div>
+                <b>{fmtDateW(pv.milestones.endsOn)}</b>
+              </div>
+            </div>
+
+            {pv.reviews.length > 0 ? (
+              <table style={{ marginBottom: 8 }}>
+                <thead>
+                  <tr><th>Review</th><th>Outcome</th><th>Held</th><th>Filed</th></tr>
+                </thead>
+                <tbody>
+                  {pv.reviews.map((r) => {
+                    const b = probationOutcomeBadge(r.outcome);
+                    return (
+                      <tr key={r.id}>
+                        <td>{r.kind === "MIDPOINT" ? "Midpoint" : "Final decision"}</td>
+                        <td>
+                          <span className={`b ${b.cls}`}>{probationOutcomeLabel(r.outcome)}</span>
+                          {r.kind === "FINAL" && r.outcome === "EXTEND" && r.extensionUntil ? (
+                            <span className="faint" style={{ fontSize: 12 }}> · to {fmtDateW(r.extensionUntil)}</span>
+                          ) : null}
+                        </td>
+                        <td>{fmtDateW(r.heldOn)}</td>
+                        <td>{r.staffDocumentId ? "✓" : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="faint" style={{ marginBottom: 8 }}>No probation reviews recorded yet.</div>
+            )}
+
+            {canManage && pv.phase !== "CONCLUDED" ? (
+              <div
+                style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 16, marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 14 }}
+              >
+                <div>
+                  <div className="faint" style={{ marginBottom: 8 }}>Midpoint review (≈ 3 months)</div>
+                  <MidpointReviewForm employeeId={pv.employee.id} docs={pv.attachableDocs} />
+                </div>
+                <div>
+                  <div className="faint" style={{ marginBottom: 8 }}>End-of-probation decision</div>
+                  <FinalDecisionForm employeeId={pv.employee.id} docs={pv.attachableDocs} />
+                </div>
+              </div>
+            ) : null}
+
+            {pv.phase === "CONCLUDED" ? (
+              <div className="note" style={{ marginTop: 8 }}>
+                <span>✓</span>
+                <div>Probation concluded — the decision and its letter are on the staff file.</div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

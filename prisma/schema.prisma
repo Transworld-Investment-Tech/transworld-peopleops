@@ -1676,3 +1676,77 @@ model StaffFileSnapshot {
   @@index([takenAt])
   @@map("staff_file_snapshots")
 }
+
+// TW-WS4-MODELS-V0410 — WS4 depth (v0.41.0). Appended to prisma/schema.prisma by
+// setup.sh (marker-guarded, idempotent). Three new tables: probation_reviews,
+// offboarding_cases, offboarding_tasks. Cross-refs to EXISTING tables
+// (onboarding_plans, employees, staff_documents, users) are bare snapshot
+// columns — the FK constraints live in 0029_ws4_depth.sql, not Prisma (house
+// convention). The only Prisma @relation is the NEW-to-NEW pair
+// offboarding_cases <-> offboarding_tasks.
+model ProbationReview {
+  id              String    @id @default(cuid())
+  planId          String    @map("plan_id")          // bare FK -> onboarding_plans (CASCADE) in SQL
+  employeeId      String    @map("employee_id")       // bare FK -> employees (RESTRICT) in SQL
+  eeId            String    @map("ee_id")
+  employeeName    String    @map("employee_name")
+  kind            String                              // CHECK in (MIDPOINT, FINAL) in SQL
+  outcome         String?                             // CHECK vocab in SQL; null = scheduled/unset
+  scheduledFor    DateTime? @map("scheduled_for")
+  heldOn          DateTime? @map("held_on")
+  extensionUntil  DateTime? @map("extension_until")   // FINAL -> EXTEND only
+  staffDocumentId String?   @map("staff_document_id") // bare FK -> staff_documents (SET NULL) in SQL
+  decidedById     String?   @map("decided_by_id")
+  decidedByName   String?   @map("decided_by_name")
+  note            String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([planId])
+  @@index([employeeId])
+  @@map("probation_reviews")
+}
+
+model OffboardingCase {
+  id                 String            @id @default(cuid())
+  employeeId         String            @map("employee_id") // bare FK -> employees (RESTRICT) in SQL
+  eeId               String            @map("ee_id")
+  employeeName       String            @map("employee_name")
+  userId             String?           @map("user_id")     // snapshot of the account revoked
+  exitType           String            @map("exit_type")   // CHECK vocab in SQL
+  status             String            @default("OPEN")    // CHECK in (OPEN, CLEARING, CLOSED) in SQL
+  noticeReceivedAt   DateTime?         @map("notice_received_at")
+  lastWorkingDay     DateTime?         @map("last_working_day")
+  reason             String?
+  note               String?
+  accessRevokedAt    DateTime?         @map("access_revoked_at")
+  accessRevokedById  String?           @map("access_revoked_by_id")
+  exitInterviewDone  Boolean           @default(false) @map("exit_interview_done")
+  finalPaySettled    Boolean           @default(false) @map("final_pay_settled")
+  regulatoryNotified Boolean           @default(false) @map("regulatory_notified")
+  closedAt           DateTime?         @map("closed_at")
+  closedById         String?           @map("closed_by_id")
+  tasks              OffboardingTask[]
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("offboarding_cases")
+}
+
+model OffboardingTask {
+  id        String          @id @default(cuid())
+  caseId    String          @map("case_id")
+  case      OffboardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  label     String
+  category  String                              // CHECK in (SYSTEM, PHYSICAL, REGULATORY) in SQL
+  status    String          @default("PENDING") // CHECK in (PENDING, DONE, NA) in SQL
+  doneAt    DateTime?       @map("done_at")
+  sortOrder Int             @default(0) @map("sort_order")
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([caseId])
+  @@map("offboarding_tasks")
+}
+// TW-WS4-MODELS-V0410-END

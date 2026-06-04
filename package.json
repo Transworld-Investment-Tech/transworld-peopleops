@@ -1,6 +1,6 @@
 {
   "name": "transworld-peopleops",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -31,7 +31,8 @@
     "stafffile:test": "tsx lib/stafffile.test.ts",
     "expiry:test": "tsx lib/expiry.test.ts",
     "help:test": "tsx lib/help.test.ts",
-    "help:tutorial": "tsx tools/gen-tutorial.ts"
+    "help:tutorial": "tsx tools/gen-tutorial.ts",
+    "ws4:test": "tsx lib/ws4.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

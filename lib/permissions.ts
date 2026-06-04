@@ -52,6 +52,8 @@ export const PERMISSIONS: Permission[] = [
   { key: "onboarding.manage", label: "Manage onboarding" },
   { key: "stafffile.view", label: "View staff-file completeness" },
   { key: "stafffile.manage", label: "Manage staff files (classify, snapshot)" },
+  { key: "offboarding.view", label: "View offboarding" },
+  { key: "offboarding.manage", label: "Manage offboarding (exit cases, access revocation)" },
   { key: "performance.view", label: "View performance" },
   { key: "performance.manage", label: "Manage performance & appraisals" },
   { key: "performance.self", label: "View & contribute to own performance" },
@@ -104,6 +106,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "requisition.approve", // v0.39.0: the MD step of Stage-2 budget approval
     "onboarding.view",
     "stafffile.view", // v0.39.0: exec oversight of the staff-file drive
+    "offboarding.view", // v0.41.0: COO/exec oversight of exits
     "performance.view",
     "learning.view",
     "compensation.view",
@@ -139,6 +142,8 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "onboarding.manage",
     "stafffile.view", // v0.39.0: People Ops runs the staff-file completion drive
     "stafffile.manage",
+    "offboarding.view", // v0.41.0: People Ops runs offboarding
+    "offboarding.manage",
     "performance.view",
     "performance.manage",
     "learning.view",
@@ -183,6 +188,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "recruitment.view",
     "selection.cco", // v0.39.0: the CCO signs off control-function selections
     "stafffile.view", // v0.39.0: CCO oversight of regulated-role files
+    "offboarding.view", // v0.41.0: CCO oversight of regulated-role exits
     "learning.view",
     "evidence.view",
     "controls.view",
@@ -199,6 +205,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "dashboard.view",
     "employees.view",
     "stafffile.view", // v0.39.0: internal-control oversight of staff-file gaps
+    "offboarding.view", // v0.41.0: internal-control oversight of exits
     "payroll.view",
     "evidence.view",
     "controls.view",
@@ -235,6 +242,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "dashboard.view",
     "employees.view",
     "stafffile.view", // v0.39.0: read-only audit of staff-file completeness
+    "offboarding.view", // v0.41.0: read-only audit of exits
     "payroll.view",
     "evidence.view",
     "controls.view",
@@ -270,6 +278,7 @@ const I = {
   leave: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>`,
   recruit: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M17 8h5M19.5 5.5v5"/></svg>`,
   onboard: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="m8.5 11 1.7 1.7L14 9M8.5 16h5"/></svg>`,
+  offb: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M18 8l4 4-4 4M22 12h-9"/></svg>`,
   perf: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>`,
   learn: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4 2.5 8.5 12 13l9.5-4.5L12 4Z"/><path d="M6 10.5V16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-5.5"/></svg>`,
   comp: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>`,
@@ -312,6 +321,7 @@ export const NAV: NavSection[] = [
     items: [
       { slug: "recruitment", label: "Recruitment", perm: "recruitment.view", icon: I.recruit },
       { slug: "onboarding", label: "Onboarding", perm: "onboarding.view", icon: I.onboard },
+      { slug: "offboarding", label: "Offboarding", perm: "offboarding.view", icon: I.offb },
       { slug: "staff-files", label: "Staff Files", perm: "stafffile.view", icon: I.files },
       { slug: "alerts", label: "Alerts", perm: "stafffile.view", icon: I.bell },
     ],

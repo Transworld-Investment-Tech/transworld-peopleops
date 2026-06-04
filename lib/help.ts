@@ -103,6 +103,7 @@ export const DEEP_ROUTES: string[] = [
   // Talent
   "recruitment/[openingId]",
   "onboarding/[employeeId]",
+  "offboarding/[employeeId]",
   "staff-files/[employeeId]",
   // Conduct & Cases
   "discipline/[caseId]",
@@ -693,9 +694,9 @@ export const HELP: Record<string, HelpEntry> = {
       { label: "Start onboarding", perm: "onboarding.manage", what: `Begins the onboarding record for a joiner.` },
       { label: "Open a joiner", perm: "onboarding.view", what: `Opens their onboarding detail and tasks.` },
     ],
-    workflow: `Hiring → onboarding (tasks + probation + first review) → confirmed employee. Probation outcomes feed the staff file.`,
+    workflow: `Hiring → onboarding (tasks + probation clock + decision) → confirmed employee. A confirm moves the person onto the performance cycle; a non-confirm opens an exit. Probation records (midpoint + outcome) feed the staff file.`,
     gotchas: [`Onboarding usually starts from a converted candidate, so the person already exists in Employees.`],
-    related: ["onboarding/[employeeId]", "recruitment", "staff-files/[employeeId]"],
+    related: ["onboarding/[employeeId]", "recruitment", "offboarding", "staff-files/[employeeId]"],
     tutorialSection: "Onboarding a joiner",
   },
   "onboarding/[employeeId]": {
@@ -706,16 +707,71 @@ export const HELP: Record<string, HelpEntry> = {
     viewPerm: "onboarding.view",
     purpose:
       `One joiner's onboarding: the task list (seed a default set or add your own), the probation ` +
-      `window, and the scheduled first review.`,
+      `window, and the probation clock — the midpoint review and the end-of-probation decision.`,
     audience: `People Ops (onboarding.manage).`,
     actions: [
       { label: "Seed default tasks", perm: "onboarding.manage", what: `Adds the standard onboarding checklist.` },
       { label: "Add / complete tasks", perm: "onboarding.manage", what: `Adds tasks and marks them done as the joiner settles in.` },
-      { label: "Set probation", perm: "onboarding.manage", what: `Records the probation period and its milestone dates.` },
-      { label: "Schedule review", perm: "onboarding.manage", what: `Books the first formal review.` },
+      { label: "Set probation", perm: "onboarding.manage", what: `Records the probation period and its milestone dates (the standard is six months).` },
+      { label: "Record midpoint review", perm: "onboarding.manage", what: `Logs the ~3-month review (on track / concerns) and files the signed form into the staff file.` },
+      { label: "Record decision", perm: "onboarding.manage", what: `The end-of-probation call: confirm (onto the performance cycle), extend (defined period), or do not confirm (opens an exit). Files the outcome letter.` },
     ],
-    gotchas: [`Probation and review dates set here are what the alert and staff-file drives will look for.`],
-    related: ["onboarding", "staff-files/[employeeId]", "alerts"],
+    workflow: `The clock derives the midpoint (~3 months), the decide-by date (two weeks before the end) and the end date from the start date and length. A confirm flips the person ACTIVE; a non-confirm opens an offboarding case.`,
+    gotchas: [
+      `Confirm and do-not-confirm change the person's employment status — they are real transitions, recorded as employment events.`,
+      `The midpoint and outcome documents only count toward the staff file once you attach them to their D6.2 slot here.`,
+    ],
+    related: ["onboarding", "offboarding/[employeeId]", "staff-files/[employeeId]", "alerts"],
+    tutorialSection: "Onboarding a joiner",
+  },
+  offboarding: {
+    slug: "offboarding",
+    navSlug: "offboarding",
+    section: "Talent",
+    title: "Offboarding",
+    viewPerm: "offboarding.view",
+    purpose:
+      `The orderly exit workflow — the mirror of onboarding. Every departure runs as a case with the ` +
+      `access-and-asset revocation checklist, the sign-offs, and a close-out that marks the record ` +
+      `exited and crystallizes any sponsorship repayment.`,
+    audience: `Oversight roles view; People Ops runs it (offboarding.manage).`,
+    actions: [
+      { label: "Start an exit", perm: "offboarding.manage", what: `Opens a case for the chosen exit type and seeds the revocation checklist.` },
+      { label: "Open a case", perm: "offboarding.view", what: `Goes to the case detail to work the checklist and close it out.` },
+    ],
+    workflow: `Notice/decision → access review and revocation → handover and sign-offs → close (mark exited, retain the file). A non-confirmed probation lands here automatically.`,
+    gotchas: [
+      `Starting a case does not exit the person — that happens only at close.`,
+      `Redundancy, retirement and medical incapacity never trigger sponsorship clawback (Ops Manual G4.3).`,
+    ],
+    related: ["offboarding/[employeeId]", "onboarding", "staff-files/[employeeId]"],
+    tutorialSection: "Onboarding a joiner",
+  },
+  "offboarding/[employeeId]": {
+    slug: "offboarding/[employeeId]",
+    navSlug: "offboarding",
+    section: "Talent",
+    title: "Exit case",
+    viewPerm: "offboarding.view",
+    purpose:
+      `One person's exit: the three-group revocation checklist (system, physical, regulatory), the ` +
+      `linked login and its roles, the sign-offs, the live sponsorship-repayment preview, and the close.`,
+    audience: `Oversight roles view; People Ops works it (offboarding.manage).`,
+    actions: [
+      { label: "Edit case details", perm: "offboarding.manage", what: `Records the notice date, last working day, reason and notes.` },
+      { label: "Set checklist items", perm: "offboarding.manage", what: `Marks each revocation/handover item done or not-applicable.` },
+      { label: "Mark sign-offs", perm: "offboarding.manage", what: `Flags the exit interview, final pay and any regulatory notification (awareness — pay is settled in Remita).` },
+      { label: "Revoke access", perm: "offboarding.manage", what: `Disables the login and clears all roles after a preview of exactly what will change. Asks you to confirm first.`, separation: true },
+      { label: "Mark exited & close", perm: "offboarding.manage", what: `Marks the employee exited, writes the exit event, crystallizes sponsorship repayment, and closes — after you confirm. Permanent.`, immutable: true },
+    ],
+    workflow: `Revoke access (or waive it with a recorded reason), work the checklist, then close. Close reads the clawback exposure as of the last working day and writes the repayment status onto each sponsorship.`,
+    gotchas: [
+      `You can't revoke your own account.`,
+      `Access must be revoked (or explicitly waived) before the case can close.`,
+      `Mid-study sponsorships have no formula — they're flagged for COO review, not auto-clawed.`,
+      `Closing is permanent: it sets the employment status to exited.`,
+    ],
+    related: ["offboarding", "onboarding/[employeeId]", "staff-files/[employeeId]", "compensation/sponsorship/[sponsorshipId]"],
     tutorialSection: "Onboarding a joiner",
   },
   "staff-files": {
@@ -1380,8 +1436,11 @@ export const HELP: Record<string, HelpEntry> = {
       { label: "Start / complete / withdraw", perm: "compensation.manage", what: `Moves the sponsorship through its lifecycle; completing starts the 12-month clawback clock.` },
       { label: "Add cost / attempt; waive", perm: "compensation.manage", what: `Records costs and exam attempts, and waives a cost where agreed.` },
     ],
-    gotchas: [`Completion — not approval — starts the clawback window.`],
-    related: ["compensation/sponsorship", "compensation/sponsorship/new"],
+    gotchas: [
+      `Completion — not approval — starts the clawback window.`,
+      `When the person exits, closing their offboarding case crystallizes the repayment here — pro-rata if they're inside the 12-month window, flagged for COO review if they were still studying.`,
+    ],
+    related: ["compensation/sponsorship", "compensation/sponsorship/new", "offboarding/[employeeId]"],
     tutorialSection: "Compensation",
   },
   "compensation/sponsorship/new": {

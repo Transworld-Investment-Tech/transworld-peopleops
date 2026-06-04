@@ -2353,3 +2353,60 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
 .help-who, .help-where { color: var(--muted); margin: 8px 0; font-size: 14px; }
 .help-card .help-actions { margin-top: 6px; }
 /* TW-HELP-CSS-V0400-END */
+
+/* TW-OFFBOARDING-CSS-V0410 — WS4 depth (probation clock + offboarding mirror).
+   Appended to app/globals.css by setup.sh (marker-guarded, idempotent).
+   Additive only; reuses the theme palette + existing .btn / .card / .field / .b
+   badge conventions. Adds a small button size, a danger variant (on the --red
+   token), and a couple of layout helpers for the checklist groups + preview. */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+.btn-danger {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-soft);
+}
+.btn-danger:hover {
+  background: var(--red);
+  color: #fff;
+}
+.ofb-group {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--card);
+}
+.ofb-group h4 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ofb-task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line-2);
+}
+.ofb-task:first-of-type {
+  border-top: 0;
+}
+.ofb-preview {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--amber);
+  border-radius: 8px;
+  background: var(--amber-soft);
+  padding: 12px 14px;
+  margin-top: 10px;
+}
+.ofb-preview .num {
+  font-variant-numeric: tabular-nums;
+}
+/* TW-OFFBOARDING-CSS-V0410-END */
