@@ -17,6 +17,7 @@ type Initial = {
   phone?: string | null;
   departmentId?: string | null;
   jobProfileId?: string | null;
+  grade?: string | null;
   payCategoryId?: string | null;
   managerId?: string | null;
   employmentType?: string;
@@ -119,6 +120,16 @@ export default function EmployeeForm({
                   <option key={j.id} value={j.id}>{j.title}</option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label htmlFor="grade">Grade</label>
+              <select id="grade" name="grade" defaultValue={initial.grade ?? ""}>
+                <option value="">Use role default</option>
+                {["G0", "G1", "G2", "G3", "G4", "G5", "PT"].map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+              <span className="hint">The person&rsquo;s grade. Leave on &ldquo;role default&rdquo; to inherit the job profile&rsquo;s grade.</span>
             </div>
             <div className="field">
               <label htmlFor="payCategoryId">Pay category</label>

@@ -13,6 +13,7 @@
 // HR-controlled (edited at /employees/[id]/edit).
 import { prisma } from "@/lib/db";
 import type { CurrentUser } from "@/lib/auth/rbac";
+import { personGrade } from "@/lib/jobframework";
 
 export type MyProfileEmployee = {
   eeId: string;
@@ -51,6 +52,7 @@ export async function getMyProfile(me: CurrentUser): Promise<MyProfile> {
     where: { userId: me.id },
     select: {
       eeId: true,
+      grade: true,
       fullName: true,
       preferredName: true,
       workEmail: true,
@@ -87,7 +89,7 @@ export async function getMyProfile(me: CurrentUser): Promise<MyProfile> {
       startDate: e.startDate,
       department: e.department?.name ?? null,
       role: e.jobProfile?.title ?? null,
-      grade: e.jobProfile?.grade ?? null,
+      grade: personGrade(e.grade, e.jobProfile?.grade),
       family: e.jobProfile?.family ?? null,
       track: e.jobProfile?.track ?? null,
       rung: e.jobProfile?.rung ?? null,

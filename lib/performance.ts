@@ -10,7 +10,7 @@
 //   a manager side, so self-assessment and manager review are distinct submissions.
 import { prisma } from "@/lib/db";
 import { getScorecard } from "@/lib/scorecards";
-import { levelLabel } from "@/lib/jobframework";
+import { levelLabel, personGrade } from "@/lib/jobframework";
 import { scoreAppraisal, familyWeights, type ScoreResult, type DimensionWeights } from "@/lib/scorecard-scoring";
 
 export { levelLabel };
@@ -130,6 +130,7 @@ export async function getRoster(cycleId: string): Promise<RosterRow[]> {
       select: {
         id: true,
         eeId: true,
+        grade: true,
         fullName: true,
         preferredName: true,
         jobProfileId: true,
@@ -165,7 +166,7 @@ export async function getRoster(cycleId: string): Promise<RosterRow[]> {
         eeId: e.eeId,
         name: personName(e),
         role: e.jobProfile?.title ?? null,
-        grade: e.jobProfile?.grade ?? null,
+        grade: personGrade(e.grade, e.jobProfile?.grade),
         appraisalId: a?.id ?? null,
         status: appraisalStatus(a),
         overallRating: a?.overallRating ?? null,
@@ -228,6 +229,7 @@ export async function getAppraisalView(
       select: {
         id: true,
         eeId: true,
+        grade: true,
         fullName: true,
         preferredName: true,
         jobProfileId: true,
@@ -273,7 +275,7 @@ export async function getAppraisalView(
       eeId: employee.eeId,
       name: personName(employee),
       role: employee.jobProfile?.title ?? null,
-      grade: employee.jobProfile?.grade ?? null,
+      grade: personGrade(employee.grade, employee.jobProfile?.grade),
     },
     mission: sc?.mission ?? null,
     appraisal: appraisal

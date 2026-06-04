@@ -15,6 +15,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { personGrade } from "@/lib/jobframework";
 import { requirePermission } from "@/lib/auth/rbac";
 import { writeAudit } from "@/lib/auth/audit";
 import {
@@ -92,7 +93,7 @@ async function buildItems(
         quarterlyAllowance: true,
         employee: {
           select: {
-            id: true, status: true, eeId: true, fullName: true, preferredName: true, fte: true,
+            id: true, status: true, eeId: true, fullName: true, preferredName: true, fte: true, grade: true,
             jobProfile: { select: { grade: true } },
           },
         },
@@ -115,7 +116,7 @@ async function buildItems(
 
   const items = eligible.map((p) => {
     const e = p.employee;
-    const grade = e.jobProfile?.grade ?? null;
+    const grade = personGrade(e.grade, e.jobProfile?.grade);
     const fte = e.fte != null ? num(e.fte) : 1;
     const band = grade ? bandByGrade.get(grade.toUpperCase().trim()) ?? null : null;
     const old: CompComponents = {

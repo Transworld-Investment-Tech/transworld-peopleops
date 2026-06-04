@@ -8,6 +8,7 @@
 // (snapshot totals + scaling, generate the G4/G5 tranche schedule) -> lock as
 // evidence. Reads only; audited writes live in lib/bonus-round-actions.ts.
 import { prisma } from "@/lib/db";
+import { personGrade } from "@/lib/jobframework";
 import {
   poolScalingFactor,
   applyScaling,
@@ -327,7 +328,7 @@ export async function getOpenPreview(): Promise<OpenPreview> {
     select: {
       employee: {
         select: {
-          id: true, status: true, eeId: true, fullName: true, preferredName: true,
+          id: true, status: true, eeId: true, fullName: true, preferredName: true, grade: true,
           jobProfile: { select: { grade: true } },
         },
       },
@@ -338,7 +339,7 @@ export async function getOpenPreview(): Promise<OpenPreview> {
   for (const p of profiles) {
     const e = p.employee;
     if (e.status === "EXITED") continue;
-    const grade = e.jobProfile?.grade ?? null;
+    const grade = personGrade(e.grade, e.jobProfile?.grade);
     if (!grade) {
       skipped.push({ eeId: e.eeId, name: personName(e), reason: "No grade on job profile" });
       continue;

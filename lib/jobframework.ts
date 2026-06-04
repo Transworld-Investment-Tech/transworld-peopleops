@@ -76,6 +76,16 @@ export function ladderStageFor(grade: string | null): { grade: string; stage: st
   return GROWTH_LADDER.find((g) => g.grade === grade.toUpperCase().trim()) ?? null;
 }
 
+/** A person's effective grade: their own person-level grade if set, otherwise
+ *  the grade of the role they hold. Person grade is independent of the role, so
+ *  re-grading a role no longer moves the holder. */
+export function personGrade(
+  own: string | null | undefined,
+  role: string | null | undefined,
+): string | null {
+  return own ?? role ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------

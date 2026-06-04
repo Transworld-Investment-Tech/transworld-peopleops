@@ -207,6 +207,7 @@ model JobProfileCompetency {
 model Employee {
   id               String               @id @default(cuid())
   eeId             String               @unique @map("ee_id") // EID 1..n
+  grade            String?              // person-level grade G0-G5/PT (falls back to job profile)
   fullName         String               @map("full_name")
   preferredName    String?              @map("preferred_name")
   workEmail        String?              @map("work_email")

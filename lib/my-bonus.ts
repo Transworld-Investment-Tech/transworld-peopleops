@@ -24,6 +24,7 @@
 // The linked employee is resolved the same way as everywhere else:
 // prisma.employee.findUnique({ where: { userId } }).
 import { prisma } from "@/lib/db";
+import { personGrade } from "@/lib/jobframework";
 import {
   targetMonthsFor,
   monthlySalaryFor,
@@ -94,6 +95,7 @@ export async function getMyBonus(userId: string): Promise<MyBonusData> {
     select: {
       id: true,
       eeId: true,
+      grade: true,
       fullName: true,
       preferredName: true,
       jobProfile: { select: { grade: true } },
@@ -101,7 +103,7 @@ export async function getMyBonus(userId: string): Promise<MyBonusData> {
   });
   if (!employee) return { linked: false };
 
-  const grade = employee.jobProfile?.grade ?? null;
+  const grade = personGrade(employee.grade, employee.jobProfile?.grade);
 
   // --- Indicative target (current), computed with the round's exact recipe ----
   let indicative: IndicativeTarget | null = null;

@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/rbac";
 import { writeAudit } from "@/lib/auth/audit";
 import { scoreAppraisal, type ScoreItem, type DimensionWeights } from "@/lib/scorecard-scoring";
+import { personGrade } from "@/lib/jobframework";
 import {
   targetMonthsFor,
   isDeferredGrade,
@@ -76,13 +77,13 @@ export async function openRoundAction(_prev: FormState, formData: FormData): Pro
       utilityAllowance: true,
       employee: {
         select: {
-          id: true, status: true, eeId: true, fullName: true, preferredName: true,
+          id: true, status: true, eeId: true, fullName: true, preferredName: true, grade: true,
           jobProfile: { select: { id: true, grade: true, family: true } },
         },
       },
     },
   });
-  const eligible = profiles.filter((p) => p.employee.status !== "EXITED" && !!p.employee.jobProfile?.grade);
+  const eligible = profiles.filter((p) => p.employee.status !== "EXITED" && !!personGrade(p.employee.grade, p.employee.jobProfile?.grade));
   if (eligible.length === 0) return { ok: false, error: "No eligible employees (active, with a current compensation profile and a graded job profile)." };
 
   // Per-role scorecard weighting overrides (a complete triple, or null = family
@@ -152,7 +153,7 @@ export async function openRoundAction(_prev: FormState, formData: FormData): Pro
       select: { id: true },
     });
     for (const p of eligible) {
-      const grade = p.employee.jobProfile!.grade as string;
+      const grade = personGrade(p.employee.grade, p.employee.jobProfile?.grade) as string;
       const monthlySalary = monthlySalaryFor(basis, num(p.basicSalary), num(p.utilityAllowance));
       const targetMonths = targetMonthsFor(grade);
       const targetBonus = computeTargetBonus(targetMonths, monthlySalary);

@@ -9,6 +9,7 @@
 // columns — requester/decider users and the applied profile are resolved by id
 // at the edge, and Prisma Decimals are converted to numbers with Number().
 import { prisma } from "@/lib/db";
+import { personGrade } from "@/lib/jobframework";
 import {
   computePay,
   type ComputePayInput,
@@ -285,6 +286,7 @@ export async function getCompensationRegister(): Promise<CompensationRegister> {
       select: {
         id: true,
         eeId: true,
+        grade: true,
         fullName: true,
         preferredName: true,
         fte: true,
@@ -329,7 +331,7 @@ export async function getCompensationRegister(): Promise<CompensationRegister> {
         eeId: e.eeId,
         name: personName(e),
         role: e.jobProfile?.title ?? null,
-        grade: e.jobProfile?.grade ?? null,
+        grade: personGrade(e.grade, e.jobProfile?.grade),
         payCategory: e.payCategory?.name ?? null,
         hasProfile: false,
         fte: e.fte != null ? num(e.fte) : 1,
@@ -350,7 +352,7 @@ export async function getCompensationRegister(): Promise<CompensationRegister> {
       eeId: e.eeId,
       name: personName(e),
       role: e.jobProfile?.title ?? null,
-      grade: e.jobProfile?.grade ?? null,
+      grade: personGrade(e.grade, e.jobProfile?.grade),
       payCategory: e.payCategory?.name ?? null,
       hasProfile: true,
       fte: e.fte != null ? num(e.fte) : 1,
@@ -547,13 +549,13 @@ export async function getSalaryBands(): Promise<SalaryBandView[]> {
     prisma.salaryBand.findMany({ orderBy: [{ sortOrder: "asc" }, { grade: "desc" }] }),
     prisma.employee.findMany({
       where: { status: { not: "EXITED" } },
-      select: { jobProfile: { select: { grade: true } } },
+      select: { grade: true, jobProfile: { select: { grade: true } } },
     }),
   ]);
 
   const staffByGrade = new Map<string, number>();
   for (const e of employees) {
-    const g = e.jobProfile?.grade;
+    const g = personGrade(e.grade, e.jobProfile?.grade);
     if (!g) continue;
     staffByGrade.set(g, (staffByGrade.get(g) ?? 0) + 1);
   }
