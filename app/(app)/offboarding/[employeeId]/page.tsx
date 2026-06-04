@@ -9,6 +9,8 @@ import {
   FlagToggle,
   RevokeAccessControl,
   CloseCaseControl,
+  CancelCaseControl,
+  ReopenCaseControl,
 } from "@/components/offboarding/OffboardingControls";
 
 export const metadata = { title: "Exit case · Transworld PeopleOps" };
@@ -36,6 +38,8 @@ export default async function OffboardingDetailPage({ params }: { params: Promis
 
   const st = offboardingStatusBadge(d.status);
   const closed = d.status === "CLOSED";
+  const cancelled = d.status === "CANCELLED";
+  const terminal = closed || cancelled;
 
   return (
     <>
@@ -68,7 +72,7 @@ export default async function OffboardingDetailPage({ params }: { params: Promis
                           {t.status === "DONE" ? "✓ " : t.status === "NA" ? "– " : "☐ "}
                           {t.label}
                         </span>
-                        {canManage && !closed ? (
+                        {canManage && !terminal ? (
                           <TaskStatusControl employeeId={d.employee.id} taskId={t.id} status={t.status} />
                         ) : (
                           <span className="faint" style={{ fontSize: 12 }}>{t.status}</span>
@@ -128,7 +132,7 @@ export default async function OffboardingDetailPage({ params }: { params: Promis
               ) : (
                 <div className="faint">No portal login is linked to this employee.</div>
               )}
-              {canManage && !closed ? (
+              {canManage && !terminal ? (
                 <div style={{ marginTop: 12 }}>
                   <RevokeAccessControl employeeId={d.employee.id} alreadyRevoked={d.access.alreadyRevoked} />
                 </div>
@@ -139,7 +143,7 @@ export default async function OffboardingDetailPage({ params }: { params: Promis
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="card-h"><h3>Sign-offs</h3></div>
             <div className="card-pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {canManage && !closed ? (
+              {canManage && !terminal ? (
                 <>
                   <FlagToggle employeeId={d.employee.id} flag="exitInterviewDone" value={d.exitInterviewDone} label="exit interview done" />
                   <FlagToggle employeeId={d.employee.id} flag="finalPaySettled" value={d.finalPaySettled} label="final pay settled" />
@@ -182,22 +186,32 @@ export default async function OffboardingDetailPage({ params }: { params: Promis
             </div>
           ) : null}
 
-          {canManage && !closed ? (
+          {canManage && !terminal ? (
             <div className="card">
               <div className="card-h"><h3>Close the case</h3></div>
               <div className="card-pad">
                 <CloseCaseControl employeeId={d.employee.id} accessRevoked={!!d.accessRevokedAt} />
+                <div style={{ marginTop: 14, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
+                  <div className="faint" style={{ marginBottom: 8 }}>Opened in error, or the leaver retracted?</div>
+                  <CancelCaseControl employeeId={d.employee.id} />
+                </div>
               </div>
             </div>
           ) : null}
 
-          {closed ? (
+          {terminal ? (
             <div className="card">
+              <div className="card-h"><h3>{closed ? "Closed" : "Cancelled"}</h3></div>
               <div className="card-pad">
-                <div className="note" style={{ marginTop: 0 }}>
-                  <span>✓</span>
-                  <div>Closed {fmtDate(d.closedAt)} — {d.employee.name} marked exited. The staff file is retained per policy.</div>
+                <div className="note" style={{ marginTop: 0, marginBottom: canManage ? 12 : 0 }}>
+                  <span>{closed ? "✓" : "–"}</span>
+                  <div>
+                    {closed
+                      ? `Closed ${fmtDate(d.closedAt)} — ${d.employee.name} marked exited. The staff file is retained per policy.`
+                      : `This exit was cancelled — ${d.employee.name} was not exited.`}
+                  </div>
                 </div>
+                {canManage ? <ReopenCaseControl employeeId={d.employee.id} wasClosed={closed} /> : null}
               </div>
             </div>
           ) : null}

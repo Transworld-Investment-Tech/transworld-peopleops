@@ -183,7 +183,7 @@ export const EXIT_TYPES = [
 ] as const;
 export type ExitType = (typeof EXIT_TYPES)[number];
 
-export const OFFBOARDING_STATUSES = ["OPEN", "CLEARING", "CLOSED"] as const;
+export const OFFBOARDING_STATUSES = ["OPEN", "CLEARING", "CLOSED", "CANCELLED"] as const;
 export type OffboardingStatus = (typeof OFFBOARDING_STATUSES)[number];
 
 export const OFFBOARDING_TASK_CATEGORIES = ["SYSTEM", "PHYSICAL", "REGULATORY"] as const;
@@ -209,6 +209,7 @@ export function offboardingStatusBadge(s: string): { cls: string; label: string 
     case "OPEN": return { cls: "b-amb", label: "Open" };
     case "CLEARING": return { cls: "b-blu", label: "Clearing" };
     case "CLOSED": return { cls: "b-grn", label: "Closed" };
+    case "CANCELLED": return { cls: "b-gry", label: "Cancelled" };
     default: return { cls: "b-gry", label: s };
   }
 }

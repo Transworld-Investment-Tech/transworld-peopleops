@@ -7,6 +7,8 @@ import {
   setOffboardingFlagAction,
   revokeAccessAction,
   closeOffboardingAction,
+  cancelOffboardingAction,
+  reopenOffboardingAction,
   type FormState,
 } from "@/lib/offboarding-actions";
 
@@ -177,6 +179,54 @@ export function CloseCaseControl({ employeeId, accessRevoked }: { employeeId: st
       <div style={{ marginTop: 10 }}>
         <button className="btn btn-danger" type="submit" disabled={pending}>
           {pending ? "Closing…" : "Mark exited & close"}
+        </button>
+        {state.error ? <span className="form-err" style={{ marginLeft: 8 }}>{state.error}</span> : null}
+      </div>
+    </form>
+  );
+}
+
+export function CancelCaseControl({ employeeId }: { employeeId: string }) {
+  const [state, formAction, pending] = useActionState(cancelOffboardingAction, EMPTY);
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="employeeId" value={employeeId} />
+      <label className="field" style={{ display: "block", marginBottom: 8 }}>
+        <span className="faint" style={{ fontSize: 12 }}>Reason (optional)</span>
+        <input type="text" name="reason" placeholder="e.g. opened in error; resignation retracted" />
+      </label>
+      <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+        <input type="checkbox" name="confirm" value="CANCEL" required />
+        Cancel this exit. The employee is not exited; any revoked access stays revoked.
+      </label>
+      <div style={{ marginTop: 10 }}>
+        <button className="btn" type="submit" disabled={pending}>
+          {pending ? "Cancelling…" : "Cancel exit"}
+        </button>
+        {state.error ? <span className="form-err" style={{ marginLeft: 8 }}>{state.error}</span> : null}
+      </div>
+    </form>
+  );
+}
+
+export function ReopenCaseControl({ employeeId, wasClosed }: { employeeId: string; wasClosed: boolean }) {
+  const [state, formAction, pending] = useActionState(reopenOffboardingAction, EMPTY);
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="employeeId" value={employeeId} />
+      {wasClosed ? (
+        <div className="note" style={{ marginTop: 0, marginBottom: 8 }}>
+          <span>⚠</span>
+          <div>Reopening reverses the exit: the employee returns to ACTIVE and any repayment crystallized at close (still pending/waived) is reverted. Revoked logins are not re-enabled — re-grant roles in User Management.</div>
+        </div>
+      ) : null}
+      <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+        <input type="checkbox" name="confirm" value="REOPEN" required />
+        I confirm: reopen this case{wasClosed ? " and reinstate the employee" : ""}.
+      </label>
+      <div style={{ marginTop: 10 }}>
+        <button className="btn btn-danger" type="submit" disabled={pending}>
+          {pending ? "Reopening…" : "Reopen case"}
         </button>
         {state.error ? <span className="form-err" style={{ marginLeft: 8 }}>{state.error}</span> : null}
       </div>

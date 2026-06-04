@@ -142,8 +142,10 @@ export async function getOffboardingList(): Promise<OffboardingList> {
     createdAt: c.createdAt,
   }));
 
-  // Employees with no open case who are not already exited can start an exit.
-  const withCase = new Set(cases.filter((c) => c.status !== "CLOSED").map((c) => c.employeeId));
+  // Employees with no active (open/clearing) case who are not already exited
+  // can start an exit — a cancelled or closed case does not block them.
+  const ACTIVE = new Set(["OPEN", "CLEARING"]);
+  const withCase = new Set(cases.filter((c) => ACTIVE.has(c.status)).map((c) => c.employeeId));
   const emps = await prisma.employee.findMany({
     where: { status: { not: "EXITED" } },
     orderBy: { eeId: "asc" },
@@ -154,8 +156,8 @@ export async function getOffboardingList(): Promise<OffboardingList> {
     .map((e) => ({ id: e.id, eeId: e.eeId, name: e.fullName, status: String(e.status) }));
 
   return {
-    open: rows.filter((r) => r.status !== "CLOSED"),
-    closed: rows.filter((r) => r.status === "CLOSED"),
+    open: rows.filter((r) => r.status === "OPEN" || r.status === "CLEARING"),
+    closed: rows.filter((r) => r.status === "CLOSED" || r.status === "CANCELLED"),
     startable,
   };
 }

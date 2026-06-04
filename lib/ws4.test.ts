@@ -113,12 +113,13 @@ t("phase badges map to expected tones", () => {
 });
 
 // ── exit vocab ───────────────────────────────────────────────────────────────
-t("six exit types, three statuses, three task categories", () => {
+t("six exit types, four statuses, three task categories", () => {
   assert.equal(EXIT_TYPES.length, 6);
-  assert.deepEqual([...OFFBOARDING_STATUSES], ["OPEN", "CLEARING", "CLOSED"]);
+  assert.deepEqual([...OFFBOARDING_STATUSES], ["OPEN", "CLEARING", "CLOSED", "CANCELLED"]);
   assert.deepEqual([...OFFBOARDING_TASK_CATEGORIES], ["SYSTEM", "PHYSICAL", "REGULATORY"]);
   assert.equal(exitTypeLabel("NON_CONFIRMATION"), "End of probation (not confirmed)");
   assert.equal(offboardingStatusBadge("CLOSED").cls, "b-grn");
+  assert.equal(offboardingStatusBadge("CANCELLED").label, "Cancelled");
 });
 
 // ── offboarding checklist generation ─────────────────────────────────────────

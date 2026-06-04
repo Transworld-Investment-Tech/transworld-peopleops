@@ -26,7 +26,14 @@ function parseDateUTC(v: FormDataEntryValue | null): Date | null {
 
 async function caseForEmployee(employeeId: string) {
   return prisma.offboardingCase.findFirst({
-    where: { employeeId, status: { not: "CLOSED" } },
+    where: { employeeId, status: { in: ["OPEN", "CLEARING"] } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+async function terminalCaseForEmployee(employeeId: string) {
+  return prisma.offboardingCase.findFirst({
+    where: { employeeId, status: { in: ["CLOSED", "CANCELLED"] } },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -263,6 +270,105 @@ export async function closeOffboardingAction(_prev: FormState, fd: FormData): Pr
     entityType: "offboarding_case",
     entityId: c.id,
     metadata: { exitType: c.exitType, exitDate: exitDate.toISOString(), sponsorshipsCrystallized: crystallized, accessWaived: waiveAccess },
+  });
+  revalidatePath(`/offboarding/${employeeId}`);
+  revalidatePath(`/offboarding`);
+  return { ok: true };
+}
+
+// ── Cancel an OPEN / CLEARING case (opened in error, or the leaver retracts) ──
+// Not destructive to employment/sponsorship data; the employee is never exited.
+// If access was already revoked, it stays revoked — re-grant via User Management.
+export async function cancelOffboardingAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requirePermission("offboarding.manage");
+  const employeeId = String(fd.get("employeeId") ?? "");
+  if (String(fd.get("confirm") ?? "") !== "CANCEL") {
+    return { ok: false, error: "Confirm to cancel this exit." };
+  }
+  const c = await caseForEmployee(employeeId);
+  if (!c) return { ok: false, error: "No open exit case to cancel." };
+
+  const reason = nz(fd.get("reason"));
+  const stamp = `[${new Date().toISOString().slice(0, 10)}] Cancelled${reason ? `: ${reason}` : ""}.`;
+  await prisma.offboardingCase.update({
+    where: { id: c.id },
+    data: { status: "CANCELLED", note: c.note ? `${c.note}\n${stamp}` : stamp },
+  });
+  await writeAudit({
+    actorId: me.id,
+    action: "offboarding.cancel",
+    entityType: "offboarding_case",
+    entityId: c.id,
+    metadata: { accessWasRevoked: !!c.accessRevokedAt, reason },
+  });
+  revalidatePath(`/offboarding/${employeeId}`);
+  revalidatePath(`/offboarding`);
+  return { ok: true };
+}
+
+// ── Reopen a terminal case (preview -> commit) ───────────────────────────────
+// CANCELLED -> OPEN: a simple un-cancel; nothing else changed.
+// CLOSED -> OPEN: reverses the close — un-exits the employee (status back to
+// ACTIVE, exit date cleared, a REINSTATEMENT event), and reverts any repayment
+// THIS close crystallized (PENDING/WAIVED -> NOT_APPLICABLE), never touching
+// REPAYING / SETTLED that Finance has since acted on.
+export async function reopenOffboardingAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requirePermission("offboarding.manage");
+  const employeeId = String(fd.get("employeeId") ?? "");
+  if (String(fd.get("confirm") ?? "") !== "REOPEN") {
+    return { ok: false, error: "Confirm to reopen this case." };
+  }
+  const c = await terminalCaseForEmployee(employeeId);
+  if (!c) return { ok: false, error: "No closed or cancelled case to reopen." };
+
+  // Don't reopen on top of a fresh active case for the same person.
+  const active = await caseForEmployee(employeeId);
+  if (active) return { ok: false, error: "There is already an open case for this person." };
+
+  let reinstated = false;
+  let reverted = 0;
+
+  if (c.status === "CLOSED") {
+    const e = await prisma.employee.findUnique({ where: { id: employeeId }, select: { status: true } });
+    if (e && String(e.status) === "EXITED") {
+      await prisma.employee.update({ where: { id: employeeId }, data: { status: "ACTIVE", exitDate: null } });
+      await prisma.employmentRecord.create({
+        data: {
+          employeeId,
+          eventType: "REINSTATEMENT",
+          title: "Exit reversed (case reopened)",
+          status: "ACTIVE",
+          effectiveDate: new Date(),
+          note: "Offboarding case reopened — employment reinstated to ACTIVE.",
+        },
+      });
+      reinstated = true;
+    }
+    // Revert repayment crystallization this close set (leave REPAYING/SETTLED).
+    const sponsorships = await prisma.qualificationSponsorship.findMany({
+      where: { employeeId, repaymentStatus: { in: ["PENDING", "WAIVED"] } },
+      select: { id: true, note: true },
+    });
+    for (const s of sponsorships) {
+      const stamp = `[${new Date().toISOString().slice(0, 10)}] Repayment reverted — offboarding case reopened.`;
+      await prisma.qualificationSponsorship.update({
+        where: { id: s.id },
+        data: { repaymentStatus: "NOT_APPLICABLE", repaymentAmount: null, note: s.note ? `${s.note}\n${stamp}` : stamp },
+      });
+      reverted += 1;
+    }
+  }
+
+  await prisma.offboardingCase.update({
+    where: { id: c.id },
+    data: { status: "OPEN", closedAt: null, closedById: null },
+  });
+  await writeAudit({
+    actorId: me.id,
+    action: "offboarding.reopen",
+    entityType: "offboarding_case",
+    entityId: c.id,
+    metadata: { from: c.status, reinstated, repaymentsReverted: reverted },
   });
   revalidatePath(`/offboarding/${employeeId}`);
   revalidatePath(`/offboarding`);
