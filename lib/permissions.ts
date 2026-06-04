@@ -320,6 +320,7 @@ export const NAV: NavSection[] = [
     items: [
       { slug: "admin/users", label: "User Management", perm: "admin.users", icon: I.admin },
       { slug: "admin/templates", label: "Document Templates", perm: "documents.manage", icon: I.docs },
+      { slug: "admin/audit", label: "Audit Log", perm: "admin.users", icon: I.docs },
     ],
   },
 ];

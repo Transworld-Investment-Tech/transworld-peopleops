@@ -24,6 +24,12 @@ import { getUsersForList, getUnlinkedEmployees } from "@/lib/admin-users";
 import { getPendingRequestCount } from "@/lib/compensation";
 import { getLibrary, getHandbook, getMyLearning, isOverdue } from "@/lib/learning";
 import { getLeaveDashboardStats, getLeavePageData } from "@/lib/leave";
+import { getPayrollHome } from "@/lib/payroll-cycle";
+import { getBonusHome } from "@/lib/bonus-round";
+import { getDeferrals } from "@/lib/bonus-deferrals";
+import { getSponsorshipRegister } from "@/lib/sponsorship-reads";
+import { getCompensationPositioning } from "@/lib/compensation";
+import { getDefaultCycle, getRoster } from "@/lib/performance";
 
 // --- Org-wide tiles --------------------------------------------------------
 export type RosterTile = {
@@ -84,6 +90,43 @@ export type MyHandbookTile = {
   acknowledged: boolean;
 };
 
+// --- New org tiles surfaced in v0.32.0 -------------------------------------
+export type PayrollTile = {
+  label: string | null; // most recent cycle label
+  status: string | null; // its status
+  itemCount: number;
+  totalPayable: number | null;
+  hasOpenCycle: boolean;
+};
+
+export type BonusTile = {
+  roundLabel: string | null; // most recent round
+  roundStatus: string | null;
+  hasOpenRound: boolean;
+  deferralsDue: number; // net due in the focus year
+  focusYear: number;
+};
+
+export type SponsorshipTile = {
+  exposure: number; // live firm exposure (₦)
+  committed: number;
+  activeCount: number;
+};
+
+export type CompaFlagsTile = {
+  prioritize: number; // compa-ratio below the prioritize threshold
+  belowMin: number; // fully-loaded below band minimum
+  threshold: number; // CR prioritize threshold (for the caption)
+};
+
+export type AppraisalCycleTile = {
+  cycleName: string | null;
+  cycleStatus: string | null;
+  finalized: number;
+  total: number;
+  pct: number; // finalized / total, rounded
+};
+
 export type DashboardData = {
   viewerName: string;
   roleKeys: string[];
@@ -93,6 +136,11 @@ export type DashboardData = {
   comp: CompTile | null;
   learning: LearningTile | null;
   orgLeave: OrgLeaveTile | null;
+  payroll: PayrollTile | null;
+  bonus: BonusTile | null;
+  sponsorship: SponsorshipTile | null;
+  compaFlags: CompaFlagsTile | null;
+  appraisalCycle: AppraisalCycleTile | null;
   hasOrgTiles: boolean;
   // personal (null = viewer not permitted; .linked=false = no employee record)
   myLeave: MyLeaveTile | null;
@@ -113,6 +161,9 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
   const canLearning = hasPermission(me, "learning.view");
   const canLeaveManage = hasPermission(me, "leave.manage");
   const canLeaveView = hasPermission(me, "leave.view");
+  const canPayroll = hasPermission(me, "payroll.view");
+  const canBonus = hasPermission(me, "bonus.view");
+  const canPerformance = hasPermission(me, "performance.view");
 
   // Every permitted read fires in parallel; unpermitted sections resolve to
   // undefined and are never queried.
@@ -128,6 +179,22 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
       canLeaveManage ? getLeaveDashboardStats() : undefined,
       canLeaveView ? getLeavePageData(me) : undefined,
     ]);
+
+  // New v0.32.0 org tiles — each gated by the permission that already governs
+  // its source module, fired only when permitted (same doctrine as above).
+  const [payrollHome, bonusHome, deferrals, sponsorshipReg, positioning, defaultCycle] =
+    await Promise.all([
+      canPayroll ? getPayrollHome() : undefined,
+      canBonus ? getBonusHome() : undefined,
+      canBonus ? getDeferrals() : undefined,
+      canComp ? getSponsorshipRegister() : undefined,
+      canComp ? getCompensationPositioning() : undefined,
+      canPerformance ? getDefaultCycle() : undefined,
+    ]);
+  // Appraisal completion needs the roster for the resolved cycle (sequential,
+  // and only when performance.view holds and a cycle actually exists).
+  const appraisalRoster =
+    canPerformance && defaultCycle ? await getRoster(defaultCycle.id) : undefined;
 
   // --- Roster (employees.view) ---
   let roster: RosterTile | null = null;
@@ -221,7 +288,81 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
     };
   }
 
-  const hasOrgTiles = !!(roster || logins || comp || learning || orgLeave);
+  // --- Payroll posture (payroll.view) ---
+  let payroll: PayrollTile | null = null;
+  if (payrollHome) {
+    const latest = [...payrollHome.cycles].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    )[0];
+    payroll = {
+      label: latest?.label ?? null,
+      status: latest?.status ?? null,
+      itemCount: latest?.itemCount ?? 0,
+      totalPayable: latest?.totalPayable ?? null,
+      hasOpenCycle: payrollHome.hasOpenCycle,
+    };
+  }
+
+  // --- Bonus posture (bonus.view) ---
+  let bonus: BonusTile | null = null;
+  if (bonusHome) {
+    const latest = [...bonusHome.rounds].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    )[0];
+    bonus = {
+      roundLabel: latest?.label ?? null,
+      roundStatus: latest?.status ?? null,
+      hasOpenRound: bonusHome.hasOpenRound,
+      deferralsDue: deferrals?.dueTotal ?? 0,
+      focusYear: deferrals?.focusYear ?? new Date().getFullYear(),
+    };
+  }
+
+  // --- Sponsorship exposure (compensation.view) ---
+  const sponsorship: SponsorshipTile | null = sponsorshipReg
+    ? {
+        exposure: sponsorshipReg.totalExposure,
+        committed: sponsorshipReg.totalCommitted,
+        activeCount: sponsorshipReg.activeCount,
+      }
+    : null;
+
+  // --- Compa-ratio flags (compensation.view) ---
+  let compaFlags: CompaFlagsTile | null = null;
+  if (positioning) {
+    compaFlags = {
+      prioritize: positioning.rows.filter((r) => r.prioritise).length,
+      belowMin: positioning.rows.filter((r) => r.belowMin).length,
+      threshold: positioning.crThreshold,
+    };
+  }
+
+  // --- Appraisal-cycle completion (performance.view) ---
+  let appraisalCycle: AppraisalCycleTile | null = null;
+  if (canPerformance) {
+    const total = appraisalRoster?.length ?? 0;
+    const finalized = appraisalRoster?.filter((r) => r.status.key === "FINALIZED").length ?? 0;
+    appraisalCycle = {
+      cycleName: defaultCycle?.name ?? null,
+      cycleStatus: defaultCycle?.status ?? null,
+      finalized,
+      total,
+      pct: total ? Math.round((finalized / total) * 100) : 0,
+    };
+  }
+
+  const hasOrgTiles = !!(
+    roster ||
+    logins ||
+    comp ||
+    learning ||
+    orgLeave ||
+    payroll ||
+    bonus ||
+    sponsorship ||
+    compaFlags ||
+    appraisalCycle
+  );
   const hasPersonal = !!(myLeave || myLearningTile || myHandbook);
 
   return {
@@ -232,6 +373,11 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
     comp,
     learning,
     orgLeave,
+    payroll,
+    bonus,
+    sponsorship,
+    compaFlags,
+    appraisalCycle,
     hasOrgTiles,
     myLeave,
     myLearning: myLearningTile,

@@ -8,6 +8,10 @@ export const metadata = { title: "Dashboard · Transworld PeopleOps" };
 const capStyle = { fontSize: 12, marginTop: 6 } as const;
 const linkStyle = { display: "inline-block", marginTop: 8 } as const;
 
+function ngn(n: number): string {
+  return `₦${Math.round(n).toLocaleString("en-NG")}`;
+}
+
 export default async function DashboardPage() {
   // dashboard.view is granted to every role, so this only confirms the viewer
   // is authenticated; each tile below is gated by its own module permission
@@ -115,6 +119,87 @@ export default async function DashboardPage() {
                 </div>
                 <Link href="/learning" className="jc-link" style={linkStyle}>
                   Learning →
+                </Link>
+              </div>
+            ) : null}
+
+            {d.payroll ? (
+              <div className="card kpi">
+                <div className="lab">Latest payroll cycle</div>
+                <div className="val" style={{ fontSize: 22 }}>
+                  {d.payroll.label ?? "—"}
+                </div>
+                <div className="faint" style={capStyle}>
+                  {d.payroll.status ? `${d.payroll.status.toLowerCase()} · ` : ""}
+                  {d.payroll.itemCount} item{d.payroll.itemCount === 1 ? "" : "s"}
+                  {d.payroll.totalPayable != null ? ` · ${ngn(d.payroll.totalPayable)} payable` : ""}
+                  {d.payroll.hasOpenCycle ? " · open cycle" : ""}
+                </div>
+                <Link href="/payroll" className="jc-link" style={linkStyle}>
+                  Payroll →
+                </Link>
+              </div>
+            ) : null}
+
+            {d.bonus ? (
+              <div className="card kpi">
+                <div className="lab">Bonus</div>
+                <div className="val" style={{ fontSize: 22 }}>
+                  {d.bonus.roundLabel ?? "No round yet"}
+                </div>
+                <div className="faint" style={capStyle}>
+                  {d.bonus.roundStatus ? `${d.bonus.roundStatus.toLowerCase()}` : "—"}
+                  {d.bonus.hasOpenRound ? " · open round" : ""}
+                  {` · ${ngn(d.bonus.deferralsDue)} deferred due ${d.bonus.focusYear}`}
+                </div>
+                <Link href="/bonus" className="jc-link" style={linkStyle}>
+                  Bonus →
+                </Link>
+              </div>
+            ) : null}
+
+            {d.sponsorship ? (
+              <div className="card kpi">
+                <div className="lab">Sponsorship exposure</div>
+                <div className="val" style={{ fontSize: 22 }}>
+                  {ngn(d.sponsorship.exposure)}
+                </div>
+                <div className="faint" style={capStyle}>
+                  {d.sponsorship.activeCount} active · {ngn(d.sponsorship.committed)} committed
+                </div>
+                <Link href="/compensation/sponsorship" className="jc-link" style={linkStyle}>
+                  Sponsorship →
+                </Link>
+              </div>
+            ) : null}
+
+            {d.compaFlags ? (
+              <div className="card kpi">
+                <div className="lab">Compa-ratio flags</div>
+                <div className="val">{d.compaFlags.prioritize + d.compaFlags.belowMin}</div>
+                <div className="faint" style={capStyle}>
+                  {d.compaFlags.prioritize} below {d.compaFlags.threshold} compa ·{" "}
+                  {d.compaFlags.belowMin} below minimum
+                </div>
+                <Link href="/compensation/positioning" className="jc-link" style={linkStyle}>
+                  Positioning →
+                </Link>
+              </div>
+            ) : null}
+
+            {d.appraisalCycle ? (
+              <div className="card kpi">
+                <div className="lab">Appraisal cycle</div>
+                <div className="val">
+                  {d.appraisalCycle.total ? `${d.appraisalCycle.pct}%` : "—"}
+                </div>
+                <div className="faint" style={capStyle}>
+                  {d.appraisalCycle.cycleName
+                    ? `${d.appraisalCycle.cycleName} · ${d.appraisalCycle.finalized}/${d.appraisalCycle.total} finalized`
+                    : "no cycle yet"}
+                </div>
+                <Link href="/performance" className="jc-link" style={linkStyle}>
+                  Performance →
                 </Link>
               </div>
             ) : null}

@@ -39,6 +39,9 @@ export default function Topbar({
             <div className="who-roles">{roleText}</div>
           </div>
         </div>
+        <Link className="btn" href="/account/profile">
+          My profile
+        </Link>
         <Link className="btn" href="/account/password">
           Change password
         </Link>
