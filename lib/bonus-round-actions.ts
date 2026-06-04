@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/rbac";
 import { writeAudit } from "@/lib/auth/audit";
+import { scoreAppraisal, type ScoreItem } from "@/lib/scorecard-scoring";
 import {
   targetMonthsFor,
   isDeferredGrade,
@@ -76,7 +77,7 @@ export async function openRoundAction(_prev: FormState, formData: FormData): Pro
       employee: {
         select: {
           id: true, status: true, eeId: true, fullName: true, preferredName: true,
-          jobProfile: { select: { grade: true } },
+          jobProfile: { select: { grade: true, family: true } },
         },
       },
     },
@@ -84,14 +85,21 @@ export async function openRoundAction(_prev: FormState, formData: FormData): Pro
   const eligible = profiles.filter((p) => p.employee.status !== "EXITED" && !!p.employee.jobProfile?.grade);
   if (eligible.length === 0) return { ok: false, error: "No eligible employees (active, with a current compensation profile and a graded job profile)." };
 
-  // Appraisal ratings (reference only) for the chosen cycle, if given.
+  // Appraisal items for the chosen cycle, per employee — used to derive the scorecard
+  // multiplier + integrity gate. Empty map when no cycle is linked (multiplier defaults to 1.0).
   let ratingByEmp = new Map<string, string | null>();
+  let itemsByEmp = new Map<string, ScoreItem[]>();
   if (appraisalCycleId) {
     const appr = await prisma.appraisal.findMany({
       where: { cycleId: appraisalCycleId },
-      select: { employeeId: true, overallRating: true },
+      select: {
+        employeeId: true,
+        overallRating: true,
+        items: { select: { kind: true, rating: true, weight: true, label: true } },
+      },
     });
     ratingByEmp = new Map(appr.map((a) => [a.employeeId, a.overallRating ?? null] as const));
+    itemsByEmp = new Map(appr.map((a) => [a.employeeId, a.items as ScoreItem[]] as const));
   }
 
   const basis = salaryBasis as SalaryBasis;
@@ -119,7 +127,8 @@ export async function openRoundAction(_prev: FormState, formData: FormData): Pro
       const monthlySalary = monthlySalaryFor(basis, num(p.basicSalary), num(p.utilityAllowance));
       const targetMonths = targetMonthsFor(grade);
       const targetBonus = computeTargetBonus(targetMonths, monthlySalary);
-      const calculatedBonus = computeCalculatedBonus(targetBonus, 1.0, false);
+      const sc = scoreAppraisal(itemsByEmp.get(p.employee.id) ?? [], p.employee.jobProfile?.family ?? null);
+      const calculatedBonus = computeCalculatedBonus(targetBonus, sc.multiplier, sc.integrityGate);
       await tx.bonusAward.create({
         data: {
           bonusRoundId: round.id,
@@ -130,9 +139,9 @@ export async function openRoundAction(_prev: FormState, formData: FormData): Pro
           targetMonths,
           monthlySalary,
           targetBonus,
-          multiplier: 1.0,
-          integrityGate: false,
-          appraisalRating: ratingByEmp.get(p.employee.id) ?? null,
+          multiplier: sc.multiplier,
+          integrityGate: sc.integrityGate,
+          appraisalRating: sc.overall != null ? sc.overall.toFixed(2) : ratingByEmp.get(p.employee.id) ?? null,
           calculatedBonus,
           awardedBonus: 0,
           deferred: isDeferredGrade(grade),

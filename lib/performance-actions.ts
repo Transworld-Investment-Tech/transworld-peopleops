@@ -199,6 +199,18 @@ export async function startAppraisalAction(_prev: FormState, fd: FormData): Prom
           },
         });
       }
+      pos = 0;
+      for (const bh of detail?.behaviors ?? []) {
+        await tx.appraisalItem.create({
+          data: {
+            appraisalId: appraisal.id,
+            kind: "BEHAVIOR",
+            position: pos++,
+            label: bh.name,
+            measure: bh.definition,
+          },
+        });
+      }
     });
 
     await writeAudit({
