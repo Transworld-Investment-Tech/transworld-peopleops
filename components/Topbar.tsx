@@ -1,9 +1,10 @@
-// Server component. Replaces the prototype "Viewing as…" switcher with the
-// real signed-in identity, a link to change your own password, and a working
-// sign-out backed by a server action.
+// Server component. The signed-in identity, a link to change your own password,
+// a working sign-out, and — new in v0.40.0 — the page Help trigger ("?"), which
+// renders the role-aware Help drawer for whatever page you're on.
 import Link from "next/link";
 import { logoutAction } from "@/lib/auth/actions";
 import { ROLE_LABELS } from "@/lib/permissions";
+import HelpDrawer from "@/components/HelpDrawer";
 
 function initialsOf(name: string): string {
   return (
@@ -20,9 +21,11 @@ function initialsOf(name: string): string {
 export default function Topbar({
   name,
   roleKeys,
+  permissions = [],
 }: {
   name: string;
   roleKeys: string[];
+  permissions?: string[];
 }) {
   const roleText =
     roleKeys.map((k) => ROLE_LABELS[k] ?? k).join(" · ") || "No role assigned";
@@ -39,6 +42,7 @@ export default function Topbar({
             <div className="who-roles">{roleText}</div>
           </div>
         </div>
+        <HelpDrawer perms={permissions} />
         <Link className="btn" href="/account/profile">
           My profile
         </Link>

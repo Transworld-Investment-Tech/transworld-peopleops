@@ -17,7 +17,7 @@ export default async function AppLayout({
     <div className="app">
       <Sidebar sections={sections} />
       <main className="main">
-        <Topbar name={me.name} roleKeys={me.roleKeys} />
+        <Topbar name={me.name} roleKeys={me.roleKeys} permissions={[...me.permissions]} />
         <div className="content">{children}</div>
       </main>
     </div>

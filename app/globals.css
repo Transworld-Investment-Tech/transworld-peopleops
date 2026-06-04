@@ -2208,3 +2208,148 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
     border-radius: 12px;
   }
 }
+
+/* TW-HELP-CSS-V0400 — Help layer (the "?" drawer + the /help index). Appended by
+   the v0.40.0 setup. Additive only: reuses the theme palette (--navy/--amber/
+   --ink/--line/--card/--shadow) and the existing .btn / .card / .note
+   conventions. No existing class is redefined. Safe to leave. */
+
+/* "?" trigger in the topbar — a circular variant of the existing .btn */
+.help-trigger {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* Slide-over */
+.help-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 31, 58, 0.34);
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+}
+.help-drawer {
+  width: min(440px, 92vw);
+  height: 100%;
+  background: var(--card);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  animation: help-slide-in 160ms ease-out;
+}
+@keyframes help-slide-in {
+  from { transform: translateX(24px); opacity: 0.6; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.help-drawer-h {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--navy);
+  color: #fff;
+}
+.help-drawer-h h2 { margin: 2px 0 0; font-size: 18px; color: #fff; }
+.help-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--amber-soft);
+  opacity: 0.95;
+}
+.help-close { color: #fff; border-color: rgba(255, 255, 255, 0.4); background: transparent; }
+.help-close:hover { background: rgba(255, 255, 255, 0.12); }
+.help-drawer-body { padding: 16px 18px; overflow-y: auto; flex: 1; }
+.help-drawer-f { padding: 14px 18px; border-top: 1px solid var(--line); }
+
+.help-purpose { color: var(--ink); margin: 0 0 14px; }
+.help-sect { margin: 0 0 16px; }
+.help-sect h3 {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+  border-bottom: 1px solid var(--line-2);
+  padding-bottom: 4px;
+}
+.help-sect p { margin: 0; color: var(--ink); }
+.help-actions, .help-gotchas { margin: 0; padding-left: 18px; }
+.help-actions li, .help-gotchas li { margin: 0 0 7px; color: var(--ink); }
+.help-gotchas li { color: var(--muted); }
+.help-muted { color: var(--muted); font-style: italic; margin: 0; }
+
+/* small inline flags reusing the palette */
+.help-flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.help-flag-sep { background: var(--blue-soft); color: var(--blue); }
+.help-flag-lock { background: var(--amber-soft); color: var(--amber); }
+.help-flag-soon { background: var(--line-2); color: var(--muted); }
+
+.help-related { display: flex; flex-wrap: wrap; gap: 8px; }
+.help-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--navy);
+  text-decoration: none;
+  background: var(--bg);
+}
+.help-chip:hover { border-color: var(--navy-3); background: var(--blue-soft); }
+
+/* /help index */
+.help-index { max-width: 920px; }
+.help-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 20px;
+}
+.help-search-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--card);
+  color: var(--ink);
+}
+.help-search-input:focus { outline: none; border-color: var(--navy-3); box-shadow: 0 0 0 3px var(--blue-soft); }
+.help-search-count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+.help-group { margin: 0 0 26px; }
+.help-group-h {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--navy);
+  border-bottom: 2px solid var(--amber);
+  padding-bottom: 6px;
+  margin: 0 0 14px;
+}
+.help-cards { display: grid; gap: 14px; }
+.help-card { padding: 16px 18px; }
+.help-card-h { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+.help-card-h h3 { margin: 0; font-size: 16px; color: var(--navy); }
+.help-card .help-purpose { margin-bottom: 10px; }
+.help-who, .help-where { color: var(--muted); margin: 8px 0; font-size: 14px; }
+.help-card .help-actions { margin-top: 6px; }
+/* TW-HELP-CSS-V0400-END */
