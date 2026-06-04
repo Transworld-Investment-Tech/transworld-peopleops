@@ -5,6 +5,7 @@ import { getOpeningDetail, stageBadge, fmtDate } from "@/lib/recruitment";
 import { getActiveTemplates, kindLabel } from "@/lib/document-templates";
 import { getCandidateDocsLite, statusBadge as docStatusBadge } from "@/lib/staff-documents";
 import GenerateDocControl, { type DocLite } from "@/components/documents/GenerateDocControl";
+import ConvertCandidate from "@/components/recruitment/ConvertCandidate";
 import {
   AddCandidateForm,
   CandidateStageControl,
@@ -21,6 +22,7 @@ export default async function PipelinePage({
 }) {
   const me = await requirePermission("recruitment.view");
   const canManage = hasPermission(me, "recruitment.manage");
+  const canConvert = hasPermission(me, "employees.manage");
   const { openingId } = await params;
   const d = await getOpeningDetail(openingId);
   if (!d) notFound();
@@ -133,6 +135,13 @@ export default async function PipelinePage({
                             docs={docLites(c.id)}
                             allowUpload
                           />
+                          {canConvert ? (
+                            <ConvertCandidate
+                              candidateId={c.id}
+                              openingId={d.id}
+                              defaultStartDate={c.offerStartDate ? new Date(c.offerStartDate).toISOString().slice(0, 10) : null}
+                            />
+                          ) : null}
                         </div>
                       ) : null}
                     </div>

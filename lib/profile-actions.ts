@@ -1,14 +1,19 @@
 "use server";
-// Write-side server action for self-service "My Profile" (v0.32.0). Mirrors the
-// conventions of the other module actions (account/performance/leave): gated,
-// zod-validated, audited. Per the Next 15 "use server" rule this module exports
-// ONLY async functions plus the FormState type.
+// Write-side server action for self-service "My Profile" (v0.32.0; contact-block
+// self-edit added v0.36.0). Mirrors the conventions of the other module actions
+// (account/performance/leave): gated, zod-validated, audited. Per the Next 15
+// "use server" rule this module exports ONLY async functions plus the FormState
+// type.
 //
 // Gating & scope: gated by `requireUser()` (any signed-in user) and SELF-SCOPED
 // to the employee linked to the signed-in user. There is no subject id in the
 // form — the target is resolved from `me.id` on the server, so a person can only
-// ever edit their OWN record. Only `preferredName` and `phone` are writable;
-// every other field stays HR-controlled.
+// ever edit their OWN record. The self-editable set is the person's CONTACT
+// block: preferred name, phone, personal email/phone, residential address
+// (line/city/state/country) and next-of-kin (name/relationship/phone/address).
+// Every other field — DOB, demographics, identification, grade, department,
+// employment, bank and dependents — stays HR-controlled (edited at
+// /employees/[id]/edit) and is never writable here.
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -47,17 +52,40 @@ async function clientIp(): Promise<string | null> {
 }
 
 const profileSchema = z.object({
-  preferredName: z
+  preferredName: z.string().trim().max(60, "Keep your preferred name under 60 characters.").optional(),
+  phone: z.string().trim().max(40, "Keep the phone number under 40 characters.").optional(),
+  personalEmail: z
     .string()
     .trim()
-    .max(60, "Keep your preferred name under 60 characters.")
-    .optional(),
-  phone: z
-    .string()
-    .trim()
-    .max(40, "Keep the phone number under 40 characters.")
-    .optional(),
+    .email("Enter a valid personal email")
+    .max(120)
+    .optional()
+    .or(z.literal("")),
+  personalPhone: z.string().trim().max(40, "Keep the personal phone under 40 characters.").optional(),
+  residentialAddress: z.string().trim().max(200, "Keep the address under 200 characters.").optional(),
+  city: z.string().trim().max(80).optional(),
+  stateRegion: z.string().trim().max(80).optional(),
+  country: z.string().trim().max(80).optional(),
+  nokName: z.string().trim().max(120, "Keep the name under 120 characters.").optional(),
+  nokRelationship: z.string().trim().max(60).optional(),
+  nokPhone: z.string().trim().max(40, "Keep the phone under 40 characters.").optional(),
+  nokAddress: z.string().trim().max(200, "Keep the address under 200 characters.").optional(),
 });
+
+const FIELDS = [
+  "preferredName",
+  "phone",
+  "personalEmail",
+  "personalPhone",
+  "residentialAddress",
+  "city",
+  "stateRegion",
+  "country",
+  "nokName",
+  "nokRelationship",
+  "nokPhone",
+  "nokAddress",
+] as const;
 
 export async function updateMyProfileAction(
   _prev: ProfileState,
@@ -65,10 +93,9 @@ export async function updateMyProfileAction(
 ): Promise<ProfileState> {
   const me = await requireUser();
 
-  const parsed = profileSchema.safeParse({
-    preferredName: String(fd.get("preferredName") ?? ""),
-    phone: String(fd.get("phone") ?? ""),
-  });
+  const raw: Record<string, string> = {};
+  for (const f of FIELDS) raw[f] = String(fd.get(f) ?? "");
+  const parsed = profileSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: flatten(parsed.error) };
   }
@@ -76,7 +103,22 @@ export async function updateMyProfileAction(
   // Resolve the target from the signed-in user — never from the form.
   const mine = await prisma.employee.findUnique({
     where: { userId: me.id },
-    select: { id: true, eeId: true, preferredName: true, phone: true },
+    select: {
+      id: true,
+      eeId: true,
+      preferredName: true,
+      phone: true,
+      personalEmail: true,
+      personalPhone: true,
+      residentialAddress: true,
+      city: true,
+      stateRegion: true,
+      country: true,
+      nokName: true,
+      nokRelationship: true,
+      nokPhone: true,
+      nokAddress: true,
+    },
   });
   if (!mine) {
     return {
@@ -85,25 +127,25 @@ export async function updateMyProfileAction(
     };
   }
 
-  const nextPreferred = nz(parsed.data.preferredName);
-  const nextPhone = nz(parsed.data.phone);
+  const next: Record<string, unknown> = {};
+  for (const f of FIELDS) next[f] = nz(parsed.data[f] as string | undefined);
 
-  await prisma.employee.update({
-    where: { id: mine.id },
-    data: { preferredName: nextPreferred, phone: nextPhone },
-  });
+  const changes: string[] = [];
+  for (const f of FIELDS) {
+    if ((mine as Record<string, unknown>)[f] !== next[f]) changes.push(f);
+  }
+  if (changes.length === 0) {
+    return { ok: true, message: "Nothing to update — your details are already current." };
+  }
+
+  await prisma.employee.update({ where: { id: mine.id }, data: next });
 
   await writeAudit({
     actorId: me.id,
     action: "employee.self_profile_update",
     entityType: "Employee",
     entityId: mine.id,
-    metadata: {
-      eeId: mine.eeId,
-      preferredName: { from: mine.preferredName, to: nextPreferred },
-      phone: { from: mine.phone, to: nextPhone },
-      ip: await clientIp(),
-    },
+    metadata: { eeId: mine.eeId, changed: changes, ip: await clientIp() },
   });
 
   revalidatePath("/account/profile");

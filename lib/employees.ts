@@ -333,3 +333,82 @@ export const EMPLOYMENT_STATUSES: { value: string; label: string }[] = [
   { value: "SUSPENDED", label: "Suspended" },
   { value: "EXITED", label: "Exited" },
 ];
+
+// ---------------------------------------------------------------------------
+// Employee enhancement pass (v0.36.0)
+// ---------------------------------------------------------------------------
+// Dependents live in their own table (employee_dependents) with a BARE
+// employee_id FK — no Prisma relation back to Employee — so they're read here
+// by a dedicated query rather than via getEmployeeDetail's `include`.
+
+export async function getEmployeeDependents(employeeId: string) {
+  return prisma.employeeDependent.findMany({
+    where: { employeeId },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+}
+export type EmployeeDependentRow = Awaited<ReturnType<typeof getEmployeeDependents>>[number];
+
+export const DEPENDENT_RELATIONSHIPS: { value: string; label: string }[] = [
+  { value: "SPOUSE", label: "Spouse" },
+  { value: "CHILD", label: "Child" },
+  { value: "PARENT", label: "Parent" },
+  { value: "SIBLING", label: "Sibling" },
+  { value: "OTHER", label: "Other" },
+];
+
+export function relationshipLabel(r: string | null): string {
+  if (!r) return "—";
+  return DEPENDENT_RELATIONSHIPS.find((x) => x.value === r)?.label ?? r;
+}
+
+export const EMPLOYMENT_EVENT_TYPES: { value: string; label: string }[] = [
+  { value: "HIRE", label: "Hire" },
+  { value: "CONFIRMATION", label: "Confirmation" },
+  { value: "PROMOTION", label: "Promotion" },
+  { value: "REGRADE", label: "Re-grade" },
+  { value: "TRANSFER", label: "Transfer" },
+  { value: "STATUS_CHANGE", label: "Status change" },
+  { value: "COMP_CHANGE", label: "Compensation change" },
+  { value: "EXIT", label: "Exit" },
+  { value: "NOTE", label: "Note" },
+];
+
+export function eventTypeLabel(t: string | null): string {
+  if (!t) return "—";
+  return EMPLOYMENT_EVENT_TYPES.find((x) => x.value === t)?.label ?? t;
+}
+
+export const GENDERS: { value: string; label: string }[] = [
+  { value: "MALE", label: "Male" },
+  { value: "FEMALE", label: "Female" },
+  { value: "OTHER", label: "Other" },
+  { value: "UNDISCLOSED", label: "Prefer not to say" },
+];
+
+export const MARITAL_STATUSES: { value: string; label: string }[] = [
+  { value: "SINGLE", label: "Single" },
+  { value: "MARRIED", label: "Married" },
+  { value: "DIVORCED", label: "Divorced" },
+  { value: "WIDOWED", label: "Widowed" },
+  { value: "OTHER", label: "Other" },
+];
+
+export const WORK_LOCATIONS: { value: string; label: string }[] = [
+  { value: "HEAD_OFFICE", label: "Head office" },
+  { value: "REMOTE", label: "Remote" },
+  { value: "HYBRID", label: "Hybrid" },
+  { value: "CLIENT_SITE", label: "Client site" },
+];
+
+export const ID_TYPES: { value: string; label: string }[] = [
+  { value: "NIN", label: "NIN" },
+  { value: "PASSPORT", label: "Passport" },
+  { value: "DRIVERS_LICENSE", label: "Driver’s license" },
+  { value: "VOTERS_CARD", label: "Voter’s card" },
+];
+
+export function optLabel(opts: { value: string; label: string }[], v: string | null): string {
+  if (!v) return "—";
+  return opts.find((o) => o.value === v)?.label ?? v;
+}

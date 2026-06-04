@@ -264,3 +264,138 @@ export async function setCandidateOfferTermsAction(
   revalidatePath(`/recruitment/${openingId}`);
   return { ok: true };
 }
+
+// --- Convert candidate → staff (v0.36.0) ------------------------------------
+// Turns an offered/hired candidate into an Employee. Gated by employees.manage
+// (it creates a person), not recruitment.manage. In one transaction it creates
+// the Employee (PROBATION), the initial current CompensationProfile from the
+// offer terms, a HIRE employment-history row, and a minimal onboarding-plan
+// shell (S3), then stamps the candidate HIRED + hiredEmployeeId. Payment stays
+// with HumanManager/Remita — the comp profile is the standing record the
+// control room reads, nothing more.
+const convertSchema = z.object({
+  candidateId: z.string().min(1),
+  openingId: z.string().min(1),
+  eeId: z.string().trim().min(1, "Employee ID is required"),
+  startDate: z.string().trim().optional().or(z.literal(EMPTY)),
+});
+
+export async function convertCandidateToStaffAction(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await requirePermission("employees.manage");
+  const parsed = convertSchema.safeParse({
+    candidateId: fd.get("candidateId"),
+    openingId: fd.get("openingId"),
+    eeId: fd.get("eeId"),
+    startDate: fd.get("startDate"),
+  });
+  if (!parsed.success) {
+    const fe: Record<string, string> = {};
+    for (const i of parsed.error.issues) fe[String(i.path[0])] = i.message;
+    return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fe };
+  }
+  const { candidateId, openingId, eeId } = parsed.data;
+
+  const cand = await prisma.candidate.findFirst({
+    where: { id: candidateId, openingId },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      stage: true,
+      hiredEmployeeId: true,
+      offerGrade: true,
+      offerBasic: true,
+      offerUtility: true,
+      offerStartDate: true,
+      opening: { select: { title: true, jobProfileId: true, departmentId: true } },
+    },
+  });
+  if (!cand) return { ok: false, error: "Candidate not found for this requisition." };
+  if (cand.hiredEmployeeId) return { ok: false, error: "This candidate has already been converted to staff." };
+  if (cand.stage !== "OFFER" && cand.stage !== "HIRED") {
+    return { ok: false, error: "Move the candidate to the Offer stage before converting." };
+  }
+  if (cand.offerBasic === null || cand.offerUtility === null || !cand.offerGrade) {
+    return { ok: false, error: "Set the offer terms (grade, basic and utility) before converting." };
+  }
+
+  // Capture the narrowed (non-null) offer values — TS widens these back to
+  // `Decimal | null` inside the $transaction closure below, so bind them here.
+  const offerBasic = cand.offerBasic;
+  const offerUtility = cand.offerUtility;
+  const offerGrade = cand.offerGrade;
+
+  const trimmedEe = eeId.trim();
+  const dupe = await prisma.employee.findUnique({ where: { eeId: trimmedEe }, select: { id: true } });
+  if (dupe) return { ok: false, fieldErrors: { eeId: "That Employee ID already exists." } };
+
+  const start = parseDateUTC(fd.get("startDate")) ?? cand.offerStartDate ?? new Date();
+
+  const created = await prisma.$transaction(async (tx) => {
+    const emp = await tx.employee.create({
+      data: {
+        eeId: trimmedEe,
+        fullName: cand.fullName,
+        grade: offerGrade,
+        jobProfileId: cand.opening.jobProfileId ?? null,
+        departmentId: cand.opening.departmentId ?? null,
+        personalEmail: cand.email ?? null,
+        personalPhone: cand.phone ?? null,
+        employmentType: "FULL_TIME",
+        status: "PROBATION",
+        startDate: start,
+      },
+    });
+    await tx.compensationProfile.create({
+      data: {
+        employeeId: emp.id,
+        effectiveDate: start,
+        basicSalary: offerBasic,
+        utilityAllowance: offerUtility,
+        quarterlyAllowance: 0,
+        taxTreatment: "PAYE",
+        pensionApplicable: true,
+        nhfApplicable: true,
+        isCurrent: true,
+      },
+    });
+    await tx.employmentRecord.create({
+      data: {
+        employeeId: emp.id,
+        eventType: "HIRE",
+        title: cand.opening.title ?? null,
+        grade: offerGrade,
+        jobProfileId: cand.opening.jobProfileId ?? null,
+        departmentId: cand.opening.departmentId ?? null,
+        status: "PROBATION",
+        effectiveDate: start,
+        note: `Hired from the candidate pipeline (${cand.fullName}).`,
+      },
+    });
+    await tx.onboardingPlan.create({
+      data: { employeeId: emp.id, startDate: start, probationMonths: 3, status: "IN_PROGRESS" },
+    });
+    await tx.candidate.update({
+      where: { id: cand.id },
+      data: { stage: "HIRED", hiredEmployeeId: emp.id },
+    });
+    return emp;
+  });
+
+  await writeAudit({
+    actorId: me.id,
+    action: "candidate.convert_to_staff",
+    entityType: "Employee",
+    entityId: created.id,
+    metadata: { eeId: created.eeId, candidateId: cand.id, openingId, grade: offerGrade },
+  });
+
+  revalidatePath(`/recruitment/${openingId}`);
+  revalidatePath("/recruitment");
+  revalidatePath("/employees");
+  redirect(`/employees/${created.id}`);
+}

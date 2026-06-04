@@ -207,6 +207,24 @@ model JobProfileCompetency {
 model Employee {
   id               String               @id @default(cuid())
   eeId             String               @unique @map("ee_id") // EID 1..n
+  dateOfBirth        DateTime?            @map("date_of_birth")
+  gender             String?
+  maritalStatus      String?              @map("marital_status")
+  nationality        String?
+  stateOfOrigin      String?              @map("state_of_origin")
+  personalEmail      String?              @map("personal_email")
+  personalPhone      String?              @map("personal_phone")
+  residentialAddress String?              @map("residential_address")
+  city               String?
+  stateRegion        String?              @map("state_region")
+  country            String?
+  workLocation       String?              @map("work_location")
+  nokName            String?              @map("nok_name")
+  nokRelationship    String?              @map("nok_relationship")
+  nokPhone           String?              @map("nok_phone")
+  nokAddress         String?              @map("nok_address")
+  idType             String?              @map("id_type")
+  idNumberMasked     String?              @map("id_number_masked")
   grade            String?              // person-level grade G0-G5/PT (falls back to job profile)
   fullName         String               @map("full_name")
   preferredName    String?              @map("preferred_name")
@@ -260,6 +278,9 @@ model EmploymentRecord {
   employee     Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   createdAt    DateTime         @default(now()) @map("created_at")
 
+  eventType    String?          @map("event_type")
+  grade        String?
+  jobProfileId String?          @map("job_profile_id")
   @@map("employment_records")
 }
 
@@ -1333,4 +1354,23 @@ model SponsorshipAttempt {
   @@index([sponsorshipId])
   @@index([outcome])
   @@map("sponsorship_attempts")
+}
+
+// TW-EMP-ENH-DEPENDENTS-V0360 — Employee dependents (v0.36.0).
+// Cross-entity ref to the EXISTING employees table is a BARE `employee_id`
+// column (FK enforced in SQL only) — the Employee model is NOT edited. Mirrors
+// public.employee_dependents created by 0024_employee_enhancement.sql.
+model EmployeeDependent {
+  id           String    @id @default(cuid())
+  employeeId   String    @map("employee_id")
+  fullName     String    @map("full_name")
+  relationship String
+  dateOfBirth  DateTime? @map("date_of_birth")
+  note         String?
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([employeeId])
+  @@map("employee_dependents")
 }

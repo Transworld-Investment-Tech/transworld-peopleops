@@ -25,7 +25,52 @@ type Initial = {
   startDate?: string | null; // YYYY-MM-DD
   bankNameMasked?: string | null;
   bankAcctMasked?: string | null;
+  // rich fields (v0.36.0)
+  dateOfBirth?: string | null; // YYYY-MM-DD
+  gender?: string | null;
+  maritalStatus?: string | null;
+  nationality?: string | null;
+  stateOfOrigin?: string | null;
+  personalEmail?: string | null;
+  personalPhone?: string | null;
+  residentialAddress?: string | null;
+  city?: string | null;
+  stateRegion?: string | null;
+  country?: string | null;
+  workLocation?: string | null;
+  nokName?: string | null;
+  nokRelationship?: string | null;
+  nokPhone?: string | null;
+  nokAddress?: string | null;
+  idType?: string | null;
+  idNumberMasked?: string | null;
 };
+
+const GENDERS: Option[] = [
+  { value: "MALE", label: "Male" },
+  { value: "FEMALE", label: "Female" },
+  { value: "OTHER", label: "Other" },
+  { value: "UNDISCLOSED", label: "Prefer not to say" },
+];
+const MARITAL: Option[] = [
+  { value: "SINGLE", label: "Single" },
+  { value: "MARRIED", label: "Married" },
+  { value: "DIVORCED", label: "Divorced" },
+  { value: "WIDOWED", label: "Widowed" },
+  { value: "OTHER", label: "Other" },
+];
+const WORK_LOCATIONS: Option[] = [
+  { value: "HEAD_OFFICE", label: "Head office" },
+  { value: "REMOTE", label: "Remote" },
+  { value: "HYBRID", label: "Hybrid" },
+  { value: "CLIENT_SITE", label: "Client site" },
+];
+const ID_TYPES: Option[] = [
+  { value: "NIN", label: "NIN" },
+  { value: "PASSPORT", label: "Passport" },
+  { value: "DRIVERS_LICENSE", label: "Driver’s license" },
+  { value: "VOTERS_CARD", label: "Voter’s card" },
+];
 
 const EMPTY: FormState = { ok: false };
 
@@ -169,6 +214,141 @@ export default function EmployeeForm({
             <div className="field">
               <label htmlFor="startDate">Start date</label>
               <input id="startDate" name="startDate" type="date" defaultValue={initial.startDate ?? ""} />
+            </div>
+            <div className="field">
+              <label htmlFor="workLocation">Work location</label>
+              <select id="workLocation" name="workLocation" defaultValue={initial.workLocation ?? ""}>
+                <option value="">—</option>
+                {WORK_LOCATIONS.map((w) => (
+                  <option key={w.value} value={w.value}>{w.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Personal</h3>
+          <span className="hint">Demographics are optional</span>
+        </div>
+        <div className="card-pad">
+          <div className="form-grid">
+            <div className="field">
+              <label htmlFor="dateOfBirth">Date of birth</label>
+              <input id="dateOfBirth" name="dateOfBirth" type="date" defaultValue={initial.dateOfBirth ?? ""} />
+            </div>
+            <div className="field">
+              <label htmlFor="gender">Gender</label>
+              <select id="gender" name="gender" defaultValue={initial.gender ?? ""}>
+                <option value="">—</option>
+                {GENDERS.map((g) => (
+                  <option key={g.value} value={g.value}>{g.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="maritalStatus">Marital status</label>
+              <select id="maritalStatus" name="maritalStatus" defaultValue={initial.maritalStatus ?? ""}>
+                <option value="">—</option>
+                {MARITAL.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="nationality">Nationality</label>
+              <input id="nationality" name="nationality" defaultValue={initial.nationality ?? ""} placeholder="e.g. Nigerian" />
+            </div>
+            <div className="field">
+              <label htmlFor="stateOfOrigin">State of origin</label>
+              <input id="stateOfOrigin" name="stateOfOrigin" defaultValue={initial.stateOfOrigin ?? ""} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Personal contact &amp; address</h3>
+        </div>
+        <div className="card-pad">
+          <div className="form-grid">
+            <div className="field">
+              <label htmlFor="personalEmail">Personal email</label>
+              <input id="personalEmail" name="personalEmail" defaultValue={initial.personalEmail ?? ""} />
+              <Err msg={fe.personalEmail} />
+            </div>
+            <div className="field">
+              <label htmlFor="personalPhone">Personal phone</label>
+              <input id="personalPhone" name="personalPhone" defaultValue={initial.personalPhone ?? ""} />
+            </div>
+            <div className="field">
+              <label htmlFor="residentialAddress">Residential address</label>
+              <input id="residentialAddress" name="residentialAddress" defaultValue={initial.residentialAddress ?? ""} />
+            </div>
+            <div className="field">
+              <label htmlFor="city">City</label>
+              <input id="city" name="city" defaultValue={initial.city ?? ""} />
+            </div>
+            <div className="field">
+              <label htmlFor="stateRegion">State</label>
+              <input id="stateRegion" name="stateRegion" defaultValue={initial.stateRegion ?? ""} />
+            </div>
+            <div className="field">
+              <label htmlFor="country">Country</label>
+              <input id="country" name="country" defaultValue={initial.country ?? ""} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Next of kin</h3>
+        </div>
+        <div className="card-pad">
+          <div className="form-grid">
+            <div className="field">
+              <label htmlFor="nokName">Name</label>
+              <input id="nokName" name="nokName" defaultValue={initial.nokName ?? ""} />
+            </div>
+            <div className="field">
+              <label htmlFor="nokRelationship">Relationship</label>
+              <input id="nokRelationship" name="nokRelationship" defaultValue={initial.nokRelationship ?? ""} placeholder="e.g. Spouse, Parent" />
+            </div>
+            <div className="field">
+              <label htmlFor="nokPhone">Phone</label>
+              <input id="nokPhone" name="nokPhone" defaultValue={initial.nokPhone ?? ""} />
+            </div>
+            <div className="field">
+              <label htmlFor="nokAddress">Address</label>
+              <input id="nokAddress" name="nokAddress" defaultValue={initial.nokAddress ?? ""} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Identification</h3>
+          <span className="hint">Store masked values only (e.g. last 4 digits)</span>
+        </div>
+        <div className="card-pad">
+          <div className="form-grid">
+            <div className="field">
+              <label htmlFor="idType">ID type</label>
+              <select id="idType" name="idType" defaultValue={initial.idType ?? ""}>
+                <option value="">—</option>
+                {ID_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="idNumberMasked">ID number (masked)</label>
+              <input id="idNumberMasked" name="idNumberMasked" defaultValue={initial.idNumberMasked ?? ""} placeholder="•••• 1234" />
             </div>
           </div>
         </div>

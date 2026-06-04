@@ -11,6 +11,8 @@ import EmployeeForm from "@/components/employees/EmployeeForm";
 
 export const metadata = { title: "Edit employee · Transworld PeopleOps" };
 
+const isoDay = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
+
 export default async function EditEmployeePage({
   params,
 }: {
@@ -52,9 +54,27 @@ export default async function EditEmployeePage({
           managerId: emp.managerId,
           employmentType: emp.employmentType,
           status: emp.status,
-          startDate: emp.startDate ? emp.startDate.toISOString().slice(0, 10) : "",
+          startDate: isoDay(emp.startDate),
           bankNameMasked: emp.bankNameMasked,
           bankAcctMasked: emp.bankAcctMasked,
+          dateOfBirth: isoDay(emp.dateOfBirth),
+          gender: emp.gender,
+          maritalStatus: emp.maritalStatus,
+          nationality: emp.nationality,
+          stateOfOrigin: emp.stateOfOrigin,
+          personalEmail: emp.personalEmail,
+          personalPhone: emp.personalPhone,
+          residentialAddress: emp.residentialAddress,
+          city: emp.city,
+          stateRegion: emp.stateRegion,
+          country: emp.country,
+          workLocation: emp.workLocation,
+          nokName: emp.nokName,
+          nokRelationship: emp.nokRelationship,
+          nokPhone: emp.nokPhone,
+          nokAddress: emp.nokAddress,
+          idType: emp.idType,
+          idNumberMasked: emp.idNumberMasked,
         }}
         departments={options.departments}
         jobProfiles={options.jobProfiles}
