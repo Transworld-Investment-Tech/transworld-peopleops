@@ -8,57 +8,27 @@
 // This file contains data only (no React, no server imports) so it can be
 // imported both by the Next.js app and by the standalone bootstrap script.
 //
-// v0.13.0 — Staff login provisioning / admin.users:
-//   * `admin.users` already existed in the catalog (count stays 24). This
-//     release GRANTS it to HR_ADMIN (in addition to SUPER_ADMIN via "*") and
-//     adds the "Administration -> User Management" sidebar entry.
+// v0.13.0 — Staff login provisioning / admin.users.
+// v0.16.0 — Recruitment + Onboarding (recruitment.manage, onboarding.manage).
+// v0.17.0 — Staff & Hire Document Layer (documents.manage, documents.view_own).
+// v0.18.0 — Performance toolkit (performance.self).
+// v0.18.1 — Goal agreement & sign-off (performance.team).
+// v0.20.0 — Bonus model (bonus.view/manage/approve).
+// v0.20.2 — My Bonus (bonus.view_own). Permission count reached 34.
 //
-// v0.16.0 — Recruitment + Onboarding:
-//   * Adds `recruitment.manage` and `onboarding.manage` (the *.view keys already
-//     existed and stay granted to EXEC + HR_ADMIN). Both manage keys are granted
-//     to HR_ADMIN (SUPER_ADMIN holds everything via "*"). Permission count
-//     24 -> 26; re-run `npm run auth:bootstrap` after this release.
-//
-// v0.17.0 — Staff & Hire Document Layer:
-//   * Adds `documents.manage` (HR authoring/generate/issue, granted to HR_ADMIN)
-//     and `documents.view_own` (every staff member views/signs/uploads their own,
-//     granted to all real-person roles). Adds the "People -> My Documents" and
-//     "Administration -> Document Templates" sidebar entries. Permission count
-//     26 -> 28; re-run `npm run auth:bootstrap` after this release.
-//
-// v0.18.0 — Performance toolkit:
-//   * Adds `performance.self` (every staff member views their own goals, files
-//     weekly reports, reads their development plan, and acknowledges an
-//     improvement plan), granted to all real-person roles — the same set that
-//     holds `documents.view_own` (NOT AUDITOR_RO; SUPER_ADMIN holds everything
-//     via "*"). Adds the "People -> My Performance" sidebar entry. The existing
-//     `performance.view` / `performance.manage` keys are unchanged. Permission
-//     count 28 -> 29; re-run `npm run auth:bootstrap` after this release.
-//
-// v0.18.1 — Goal agreement & sign-off:
-//   * Adds `performance.team` (a line manager reviews, agrees, and seals the
-//     goals of their own direct reports, resolved from the org chart
-//     `employee.managerId`; HR does not approve). Granted to MANAGER ("Line
-//     Manager") and to SUPER_ADMIN via "*". Adds the "People -> My Team"
-//     sidebar entry (perm `performance.team`). The existing performance keys
-//     are unchanged. Permission count 29 -> 30; role-permission links
-//     116 -> 118 (MANAGER + SUPER_ADMIN). Re-run `npm run auth:bootstrap`.
-
-// v0.20.0 — Bonus model (WS6 Part 3):
-//   * Adds `bonus.view`, `bonus.manage`, `bonus.approve`. FINANCE prepares the
-//     round (`bonus.manage`); EXEC (Remuneration Committee) approves + locks
-//     (`bonus.approve`). HR_ADMIN, COMPLIANCE, INTERNAL_CONTROL and AUDITOR_RO
-//     get read (`bonus.view`); SUPER_ADMIN holds everything via "*". Adds the
-//     "Grow & Reward -> Bonus" sidebar entry. Permission count 30 -> 33;
-//     role-permission links 118 -> 126. Re-run `npm run auth:bootstrap`.
-
-// v0.20.2 — My Bonus (self-service, WS6 Part 3):
-//   * Adds `bonus.view_own` (a staff member views their OWN target bonus,
-//     awards and deferral schedule). Granted to EXEC, HR_ADMIN, FINANCE,
-//     COMPLIANCE, INTERNAL_CONTROL, MANAGER and EMPLOYEE; SUPER_ADMIN holds
-//     everything via "*". NOT granted to AUDITOR_RO. Adds the
-//     "Payroll Control -> My Bonus" sidebar entry. Permission count 33 -> 34;
-//     role-permission links 126 -> 133. Re-run `npm run auth:bootstrap`.
+// v0.37.0 — WS5 conduct & cases (Disciplinary E8, Grievance E9, Whistleblower):
+//   * Adds NINE keys: `discipline.manage` / `discipline.approve` /
+//     `discipline.dismiss`; `grievance.manage` / `grievance.approve` /
+//     `grievance.raise`; `whistleblower.access` / `whistleblower.exec` /
+//     `whistleblower.report`. The two top-tier gates — `discipline.dismiss`
+//     (Final Written + Dismissal sign-off) and `whistleblower.exec` (reports
+//     that involve senior management, deliberately hidden from the CCO) — are
+//     granted to SUPER_ADMIN ONLY (the Chairman), via "*". `whistleblower.access`
+//     goes to COMPLIANCE (the CCO). The two self-service keys (`grievance.raise`,
+//     `whistleblower.report`) go to every real-person role. Adds the
+//     "Conduct & Cases" sidebar section plus two "People" self-service entries.
+//     Permission count 34 -> 43; re-run `npm run auth:bootstrap` after this
+//     release (first bootstrap since v0.20.2).
 
 export type Permission = { key: string; label: string };
 
@@ -97,9 +67,22 @@ export const PERMISSIONS: Permission[] = [
   { key: "admin.users", label: "Administer users & roles" },
   { key: "documents.manage", label: "Manage staff documents & templates" },
   { key: "documents.view_own", label: "View, sign & upload own documents" },
+  // v0.37.0 — WS5 conduct & cases
+  { key: "discipline.manage", label: "Manage disciplinary cases" },
+  { key: "discipline.approve", label: "Approve disciplinary warnings (COO)" },
+  { key: "discipline.dismiss", label: "Approve final warning & dismissal (MD/Chairman)" },
+  { key: "grievance.manage", label: "Manage & investigate grievances" },
+  { key: "grievance.approve", label: "Hear grievance appeals" },
+  { key: "grievance.raise", label: "Raise a grievance" },
+  { key: "whistleblower.access", label: "Access whistleblower reports (CCO)" },
+  { key: "whistleblower.exec", label: "Access senior-management whistleblower reports (Chairman)" },
+  { key: "whistleblower.report", label: "Report a concern (whistleblowing)" },
 ];
 
-// "*" means every permission (granted to SUPER_ADMIN).
+const RAISE = ["grievance.raise", "whistleblower.report"];
+
+// "*" means every permission (granted to SUPER_ADMIN, i.e. the Chairman — this
+// is the only role that holds discipline.dismiss and whistleblower.exec).
 export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   SUPER_ADMIN: "*",
   EXEC: [
@@ -122,6 +105,12 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "bonus.view",
     "bonus.approve",
     "bonus.view_own",
+    // v0.37.0: COO-tier case handling + appeals (NOT dismissal, NOT whistleblower)
+    "discipline.manage",
+    "discipline.approve",
+    "grievance.manage",
+    "grievance.approve",
+    ...RAISE,
   ],
   HR_ADMIN: [
     "documents.manage",
@@ -149,11 +138,12 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "evidence.view",
     "payslips.view_own",
     "bonus.view_own",
-    // v0.13.0: HR operator can provision/link staff logins and reset passwords.
-    // (Role *assignment* inside the screen is further gated to SUPER_ADMIN in
-    // the server action — HR_ADMIN can create/link users but cannot elevate.)
     "admin.users",
     "bonus.view",
+    // v0.37.0: People Ops prepares & investigates cases
+    "discipline.manage",
+    "grievance.manage",
+    ...RAISE,
   ],
   FINANCE: [
     "documents.view_own",
@@ -169,6 +159,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "evidence.view",
     "payslips.view_own",
     "bonus.view_own",
+    ...RAISE,
   ],
   COMPLIANCE: [
     "documents.view_own",
@@ -181,6 +172,9 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payslips.view_own",
     "bonus.view_own",
     "bonus.view",
+    // v0.37.0: the CCO is the whistleblower channel (normal-route reports only)
+    "whistleblower.access",
+    ...RAISE,
   ],
   INTERNAL_CONTROL: [
     "documents.view_own",
@@ -193,6 +187,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "payslips.view_own",
     "bonus.view_own",
     "bonus.view",
+    ...RAISE,
   ],
   MANAGER: [
     "documents.view_own",
@@ -206,6 +201,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "learning.recommend",
     "payslips.view_own",
     "bonus.view_own",
+    ...RAISE,
   ],
   EMPLOYEE: [
     "documents.view_own",
@@ -215,6 +211,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "learning.view",
     "payslips.view_own",
     "bonus.view_own",
+    ...RAISE,
   ],
   AUDITOR_RO: [
     "dashboard.view",
@@ -264,6 +261,9 @@ const I = {
   controls: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 7.5h18M6.5 7.5 5 18M17.5 7.5 19 18M3.5 18h17"/></svg>`,
   docs: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h8l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M13 2.5V7h4M8.5 12h7M8.5 16h7"/></svg>`,
   admin: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><circle cx="18" cy="16.5" r="2.4"/><path d="M18 11.6v1.4M18 20v1.4M22.2 16.5h-1.4M15.2 16.5h-1.4"/></svg>`,
+  gavel: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m14 7-7 7M9.5 4.5 16 11M4 20h9M13.5 9.5l3 3M11.5 7.5l3 3"/></svg>`,
+  raise: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M12 8v4M12 13.5v.5"/></svg>`,
+  whistle: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10a4 4 0 0 1 4-4h9l5 2-5 2H10a3 3 0 1 1-6 0Z"/><path d="M7 14v3M11 14v2"/></svg>`,
 };
 
 export const NAV: NavSection[] = [
@@ -282,6 +282,8 @@ export const NAV: NavSection[] = [
       { slug: "my-documents", label: "My Documents", perm: "documents.view_own", icon: I.docs },
       { slug: "my-performance", label: "My Performance", perm: "performance.self", icon: I.perf },
       { slug: "my-team", label: "My Team", perm: "performance.team", icon: I.emp },
+      { slug: "grievances/raise", label: "Raise a Grievance", perm: "grievance.raise", icon: I.raise },
+      { slug: "report-a-concern", label: "Report a Concern", perm: "whistleblower.report", icon: I.whistle },
     ],
   },
   {
@@ -289,6 +291,14 @@ export const NAV: NavSection[] = [
     items: [
       { slug: "recruitment", label: "Recruitment", perm: "recruitment.view", icon: I.recruit },
       { slug: "onboarding", label: "Onboarding", perm: "onboarding.view", icon: I.onboard },
+    ],
+  },
+  {
+    label: "Conduct & Cases",
+    items: [
+      { slug: "discipline", label: "Disciplinary", perm: "discipline.manage", icon: I.gavel },
+      { slug: "grievances", label: "Grievances", perm: "grievance.manage", icon: I.docs },
+      { slug: "whistleblower", label: "Whistleblower", perm: "whistleblower.access", icon: I.evidence },
     ],
   },
   {

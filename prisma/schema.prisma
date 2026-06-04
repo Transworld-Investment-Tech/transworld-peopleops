@@ -1374,3 +1374,128 @@ model EmployeeDependent {
   @@index([employeeId])
   @@map("employee_dependents")
 }
+
+// TW-WS5-CONDUCT-CASES-V0370 — Disciplinary, Grievance & Whistleblower (v0.37.0).
+// Four new tables. Cross-entity refs to EXISTING tables (employees, users) are
+// BARE columns (FKs enforced in SQL only) — Employee/User models are untouched.
+// The only Prisma relation is DisciplinaryCase <-> DisciplinaryAction (new
+// parent/child, cascade). Status vocabularies are CHECK-constrained TEXT in SQL.
+// Mirrors public.* created by supabase/migrations/0025_ws5_conduct_cases.sql.
+
+model DisciplinaryCase {
+  id                   String               @id @default(cuid())
+  employeeId           String               @map("employee_id")
+  employeeName         String               @map("employee_name")
+  concern              String
+  isRegulatory         Boolean              @default(false) @map("is_regulatory")
+  isGrossMisconduct    Boolean              @default(false) @map("is_gross_misconduct")
+  status               String               @default("OPEN")
+  currentStage         String?              @map("current_stage")
+  investigationSummary String?              @map("investigation_summary")
+  investigatedById     String?              @map("investigated_by_id")
+  investigatedByName   String?              @map("investigated_by_name")
+  investigatedAt       DateTime?            @map("investigated_at")
+  suspendedAt          DateTime?            @map("suspended_at")
+  suspensionEndsAt     DateTime?            @map("suspension_ends_at")
+  outcome              String?
+  openedAt             DateTime             @default(now()) @map("opened_at")
+  closedAt             DateTime?            @map("closed_at")
+  preparedById         String?              @map("prepared_by_id")
+  preparedByName       String?              @map("prepared_by_name")
+  ackName              String?              @map("ack_name")
+  ackAt                DateTime?            @map("ack_at")
+  ackIp                String?              @map("ack_ip")
+  actions              DisciplinaryAction[]
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("disciplinary_cases")
+}
+
+model DisciplinaryAction {
+  id                      String           @id @default(cuid())
+  caseId                  String           @map("case_id")
+  stage                   String
+  issuedAt                DateTime         @default(now()) @map("issued_at")
+  requiredStandard        String?          @map("required_standard")
+  improvementPeriodMonths Int?             @map("improvement_period_months")
+  consequence             String?
+  retentionMonths         Int?             @map("retention_months")
+  expiresAt               DateTime?        @map("expires_at")
+  approverRole            String?          @map("approver_role")
+  approvedById            String?          @map("approved_by_id")
+  approvedByName          String?          @map("approved_by_name")
+  approvedAt              DateTime?        @map("approved_at")
+  employeeResponse        String?          @map("employee_response")
+  employeeResponseAt      DateTime?        @map("employee_response_at")
+  note                    String?
+  createdById             String?          @map("created_by_id")
+  case                    DisciplinaryCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  createdAt               DateTime         @default(now()) @map("created_at")
+
+  @@index([caseId])
+  @@map("disciplinary_actions")
+}
+
+model Grievance {
+  id                String    @id @default(cuid())
+  complainantId     String    @map("complainant_id")
+  complainantName   String    @map("complainant_name")
+  respondentId      String?   @map("respondent_id")
+  respondentName    String?   @map("respondent_name")
+  subject           String
+  details           String
+  status            String    @default("RECEIVED")
+  acknowledgedAt    DateTime? @map("acknowledged_at")
+  targetDate        DateTime? @map("target_date")
+  investigatorId    String?   @map("investigator_id")
+  investigatorName  String?   @map("investigator_name")
+  investigatedAt    DateTime? @map("investigated_at")
+  finding           String?
+  findingSummary    String?   @map("finding_summary")
+  recommendedAction String?   @map("recommended_action")
+  communicatedAt    DateTime? @map("communicated_at")
+  appealRequestedAt DateTime? @map("appeal_requested_at")
+  appealHeardById   String?   @map("appeal_heard_by_id")
+  appealHeardByName String?   @map("appeal_heard_by_name")
+  appealOutcome     String?   @map("appeal_outcome")
+  appealAt          DateTime? @map("appeal_at")
+  preparedById      String?   @map("prepared_by_id")
+  preparedByName    String?   @map("prepared_by_name")
+  closedAt          DateTime? @map("closed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([complainantId])
+  @@index([status])
+  @@map("grievances")
+}
+
+model WhistleblowerReport {
+  id                       String    @id @default(cuid())
+  caseRef                  String    @unique @map("case_ref")
+  isAnonymous              Boolean   @default(false) @map("is_anonymous")
+  reporterId               String?   @map("reporter_id")
+  reporterName             String?   @map("reporter_name")
+  category                 String
+  involvesSeniorManagement Boolean   @default(false) @map("involves_senior_management")
+  route                    String    @default("CCO")
+  summary                  String
+  status                   String    @default("RECEIVED")
+  receivedAt               DateTime  @default(now()) @map("received_at")
+  handlerId                String?   @map("handler_id")
+  handlerName              String?   @map("handler_name")
+  investigationSummary     String?   @map("investigation_summary")
+  outcome                  String?
+  actionTaken              String?   @map("action_taken")
+  acknowledgedAt           DateTime? @map("acknowledged_at")
+  closedAt                 DateTime? @map("closed_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([route])
+  @@map("whistleblower_reports")
+}
