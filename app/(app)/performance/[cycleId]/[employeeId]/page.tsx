@@ -139,9 +139,14 @@ export default async function AppraisalPage({
           </div>
           <div className="card-pad">
             <p className="faint" style={{ marginTop: 0, fontSize: 12.5 }}>
-              Computed from the saved manager ratings with the role&rsquo;s job-family weighting —
+              Computed from the saved manager ratings with the role&rsquo;s dimension weighting —
               the same calculation that drives the bonus multiplier. Indicative until the
               appraisal is finalized.
+            </p>
+            <p className="faint" style={{ marginTop: 0, fontSize: 12 }}>
+              Weighting — Results {Math.round(view.scoreWeights.results * 100)}% · Competencies{" "}
+              {Math.round(view.scoreWeights.competencies * 100)}% · Behaviors{" "}
+              {Math.round(view.scoreWeights.behaviors * 100)}%
             </p>
             <div className="grid kpis">
               <div className="card kpi">

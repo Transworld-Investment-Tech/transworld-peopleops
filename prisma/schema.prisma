@@ -531,6 +531,9 @@ model Document {
 model Scorecard {
   id           String             @id @default(cuid())
   jobProfileId String             @unique @map("job_profile_id")
+  resultsWeight       Decimal? @db.Decimal(6, 4) @map("results_weight")
+  competenciesWeight  Decimal? @db.Decimal(6, 4) @map("competencies_weight")
+  behaviorsWeight     Decimal? @db.Decimal(6, 4) @map("behaviors_weight")
   mission      String?
   status       String             @default("DRAFT")
   outcomes     ScorecardOutcome[]

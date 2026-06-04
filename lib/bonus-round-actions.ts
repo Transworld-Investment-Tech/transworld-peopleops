@@ -13,7 +13,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/rbac";
 import { writeAudit } from "@/lib/auth/audit";
-import { scoreAppraisal, type ScoreItem } from "@/lib/scorecard-scoring";
+import { scoreAppraisal, type ScoreItem, type DimensionWeights } from "@/lib/scorecard-scoring";
 import {
   targetMonthsFor,
   isDeferredGrade,
@@ -77,13 +77,42 @@ export async function openRoundAction(_prev: FormState, formData: FormData): Pro
       employee: {
         select: {
           id: true, status: true, eeId: true, fullName: true, preferredName: true,
-          jobProfile: { select: { grade: true, family: true } },
+          jobProfile: { select: { id: true, grade: true, family: true } },
         },
       },
     },
   });
   const eligible = profiles.filter((p) => p.employee.status !== "EXITED" && !!p.employee.jobProfile?.grade);
   if (eligible.length === 0) return { ok: false, error: "No eligible employees (active, with a current compensation profile and a graded job profile)." };
+
+  // Per-role scorecard weighting overrides (a complete triple, or null = family
+  // default). Resolved once and applied at scoring below.
+  const profileIds = Array.from(
+    new Set(eligible.map((p) => p.employee.jobProfile?.id).filter((x): x is string => !!x)),
+  );
+  const scRows = profileIds.length
+    ? await prisma.scorecard.findMany({
+        where: { jobProfileId: { in: profileIds } },
+        select: {
+          jobProfileId: true,
+          resultsWeight: true,
+          competenciesWeight: true,
+          behaviorsWeight: true,
+        },
+      })
+    : [];
+  const weightsByProfile = new Map<string, DimensionWeights | null>(
+    scRows.map((s) => [
+      s.jobProfileId,
+      s.resultsWeight != null && s.competenciesWeight != null && s.behaviorsWeight != null
+        ? {
+            results: Number(s.resultsWeight),
+            competencies: Number(s.competenciesWeight),
+            behaviors: Number(s.behaviorsWeight),
+          }
+        : null,
+    ]),
+  );
 
   // Appraisal items for the chosen cycle, per employee — used to derive the scorecard
   // multiplier + integrity gate. Empty map when no cycle is linked (multiplier defaults to 1.0).
@@ -127,7 +156,11 @@ export async function openRoundAction(_prev: FormState, formData: FormData): Pro
       const monthlySalary = monthlySalaryFor(basis, num(p.basicSalary), num(p.utilityAllowance));
       const targetMonths = targetMonthsFor(grade);
       const targetBonus = computeTargetBonus(targetMonths, monthlySalary);
-      const sc = scoreAppraisal(itemsByEmp.get(p.employee.id) ?? [], p.employee.jobProfile?.family ?? null);
+      const sc = scoreAppraisal(
+        itemsByEmp.get(p.employee.id) ?? [],
+        p.employee.jobProfile?.family ?? null,
+        weightsByProfile.get(p.employee.jobProfile?.id ?? "") ?? null,
+      );
       const calculatedBonus = computeCalculatedBonus(targetBonus, sc.multiplier, sc.integrityGate);
       await tx.bonusAward.create({
         data: {

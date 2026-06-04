@@ -69,8 +69,43 @@ function readForm(fd: FormData) {
   return {
     mission: String(fd.get("mission") ?? ""),
     status: String(fd.get("status") ?? "DRAFT"),
+    resultsWeight: String(fd.get("resultsWeight") ?? ""),
+    competenciesWeight: String(fd.get("competenciesWeight") ?? ""),
+    behaviorsWeight: String(fd.get("behaviorsWeight") ?? ""),
     outcomes,
   };
+}
+
+// Dimension weighting override (whole-number percents). Returns fractions, or
+// null to use the family default. Enforces all-or-none, sum = 100%, and the
+// canonical bands (Ops Manual B4.2): Results 40–60 / Competencies 20–30 /
+// Behaviors 20–30.
+function parseWeights(form: {
+  resultsWeight: string;
+  competenciesWeight: string;
+  behaviorsWeight: string;
+}):
+  | { ok: true; weights: { results: number; competencies: number; behaviors: number } | null }
+  | { ok: false; message: string } {
+  const raw = [form.resultsWeight, form.competenciesWeight, form.behaviorsWeight].map((s) =>
+    s.trim(),
+  );
+  if (raw.every((s) => s === "")) return { ok: true, weights: null };
+  if (raw.some((s) => s === ""))
+    return {
+      ok: false,
+      message: "Set all three weights, or leave all three blank to use the family default.",
+    };
+  const nums = raw.map((s) => Number(s));
+  if (nums.some((n) => !Number.isInteger(n) || n < 0 || n > 100))
+    return { ok: false, message: "Each weight must be a whole-number percent." };
+  const [r, c, b] = nums;
+  if (r + c + b !== 100)
+    return { ok: false, message: `Weights must sum to 100% (currently ${r + c + b}%).` };
+  if (r < 40 || r > 60) return { ok: false, message: "Results must be between 40% and 60%." };
+  if (c < 20 || c > 30) return { ok: false, message: "Competencies must be between 20% and 30%." };
+  if (b < 20 || b > 30) return { ok: false, message: "Behaviors must be between 20% and 30%." };
+  return { ok: true, weights: { results: r / 100, competencies: c / 100, behaviors: b / 100 } };
 }
 
 export async function saveScorecardAction(
@@ -87,15 +122,33 @@ export async function saveScorecardAction(
   });
   if (!profile) return { ok: false, error: "Job profile not found." };
 
-  const parsed = scorecardSchema.safeParse(readForm(fd));
+  const form = readForm(fd);
+  const parsed = scorecardSchema.safeParse(form);
   if (!parsed.success) return { ok: false, fieldErrors: flatten(parsed.error) };
   const v = parsed.data;
+
+  const w = parseWeights(form);
+  if (!w.ok) return { ok: false, fieldErrors: { weights: w.message } };
+  const weights = w.weights;
 
   await prisma.$transaction(async (tx) => {
     const sc = await tx.scorecard.upsert({
       where: { jobProfileId },
-      create: { jobProfileId, mission: nz(v.mission), status: v.status },
-      update: { mission: nz(v.mission), status: v.status },
+      create: {
+        jobProfileId,
+        mission: nz(v.mission),
+        status: v.status,
+        resultsWeight: weights ? weights.results : null,
+        competenciesWeight: weights ? weights.competencies : null,
+        behaviorsWeight: weights ? weights.behaviors : null,
+      },
+      update: {
+        mission: nz(v.mission),
+        status: v.status,
+        resultsWeight: weights ? weights.results : null,
+        competenciesWeight: weights ? weights.competencies : null,
+        behaviorsWeight: weights ? weights.behaviors : null,
+      },
     });
     await tx.scorecardOutcome.deleteMany({ where: { scorecardId: sc.id } });
     let position = 0;
@@ -117,7 +170,7 @@ export async function saveScorecardAction(
     action: "scorecard.save",
     entityType: "job_profile",
     entityId: jobProfileId,
-    metadata: { title: profile.title, status: v.status, outcomes: v.outcomes.length },
+    metadata: { title: profile.title, status: v.status, outcomes: v.outcomes.length, weightsOverride: !!weights },
   });
 
   revalidatePath(`/job-competency/${jobProfileId}`);

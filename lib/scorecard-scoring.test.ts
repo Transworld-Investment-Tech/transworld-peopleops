@@ -95,6 +95,30 @@ const rk = scoreAppraisal([{ kind: "RESULT", rating: "3" }], "INVESTMENTS");
 eq("RESULT kind counted", rk.overall, 3);
 eq("RESULT multiplier", rk.multiplier, 0.8);
 
+// Per-scorecard weighting override replaces the family default
+const ovBase = scoreAppraisal(
+  [
+    { kind: "OUTCOME", rating: "5" },
+    { kind: "COMPETENCY", rating: "2" },
+    { kind: "BEHAVIOR", rating: "2", label: "Ownership Mentality" },
+  ],
+  "INVESTMENTS",
+);
+eq("override base overall (50/25/25)", ovBase.overall, 3.5);
+eq("override base multiplier", ovBase.multiplier, 1.0);
+
+const ovApplied = scoreAppraisal(
+  [
+    { kind: "OUTCOME", rating: "5" },
+    { kind: "COMPETENCY", rating: "2" },
+    { kind: "BEHAVIOR", rating: "2", label: "Ownership Mentality" },
+  ],
+  "INVESTMENTS",
+  { results: 0.4, competencies: 0.3, behaviors: 0.3 },
+);
+eq("override overall (40/30/30)", ovApplied.overall, 3.2);
+eq("override multiplier", ovApplied.multiplier, 0.8);
+
 const total = passed + failed;
 if (failed === 0) { console.log(`scorecard scoring: ${passed}/${total} checks passed`); process.exit(0); }
 else { console.error(`scorecard scoring: ${passed}/${total} passed, ${failed} FAILED`); process.exit(1); }

@@ -7,6 +7,7 @@ import { storageConfigured } from "@/lib/storage";
 import { empInitials, statusBadge } from "@/lib/employees";
 import JobDescriptionCard from "@/components/jobcompetency/JobDescriptionCard";
 import { getScorecard, scorecardStatusBadge } from "@/lib/scorecards";
+import { familyWeights } from "@/lib/scorecard-scoring";
 import type { EmploymentStatus } from "@prisma/client";
 
 export const metadata = { title: "Job profile · Transworld PeopleOps" };
@@ -160,6 +161,20 @@ export default async function JobProfilePage({
           ) : (
             <>
               {scorecard.mission ? <p className="sc-mission">{scorecard.mission}</p> : null}
+              {(() => {
+                const w = scorecard.weights ?? familyWeights(p.family);
+                return (
+                  <p className="faint" style={{ fontSize: 12.5, marginTop: scorecard.mission ? 6 : 0 }}>
+                    Weighting — Results {Math.round(w.results * 100)}% · Competencies{" "}
+                    {Math.round(w.competencies * 100)}% · Behaviors {Math.round(w.behaviors * 100)}%{" "}
+                    {scorecard.weights ? (
+                      <span className="b b-blu">role override</span>
+                    ) : (
+                      <span className="b b-gry">family default</span>
+                    )}
+                  </p>
+                );
+              })()}
               {scorecard.outcomes.length === 0 ? (
                 <p className="faint">No outcomes defined.</p>
               ) : (

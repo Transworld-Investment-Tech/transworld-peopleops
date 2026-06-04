@@ -11,6 +11,7 @@ type OutcomeInput = { title: string; measure: string; weight: string };
 type Initial = {
   mission: string;
   status: string;
+  weights: { results: number; competencies: number; behaviors: number } | null;
   outcomes: { title: string; measure: string | null; weight: number | null }[];
 };
 
@@ -25,11 +26,13 @@ export default function ScorecardForm({
   initial,
   statuses,
   hasExisting,
+  familyDefault,
 }: {
   jobProfileId: string;
   initial: Initial;
   statuses: { value: string; label: string }[];
   hasExisting: boolean;
+  familyDefault: { results: number; competencies: number; behaviors: number };
 }) {
   const [state, formAction, pending] = useActionState(saveScorecardAction, EMPTY);
   const [, deleteAction, deletePending] = useActionState(deleteScorecardAction, EMPTY);
@@ -94,6 +97,54 @@ export default function ScorecardForm({
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Dimension weighting</h3>
+          <span className="hint">how Results / Competencies / Behaviors combine into the score</span>
+        </div>
+        <div className="card-pad">
+          {fe.weights ? <div className="form-err" style={{ marginBottom: 10 }}>{fe.weights}</div> : null}
+          <p className="faint" style={{ marginTop: 0, fontSize: 12.5 }}>
+            Leave all three blank to use this role&rsquo;s job-family default
+            ({familyDefault.results} / {familyDefault.competencies} / {familyDefault.behaviors}).
+            To override, set all three — they must sum to 100% and stay within the approved bands
+            (Results 40–60, Competencies 20–30, Behaviors 20–30).
+          </p>
+          <div className="form-grid">
+            <div className="field">
+              <label htmlFor="resultsWeight">Results (%)</label>
+              <input
+                id="resultsWeight"
+                name="resultsWeight"
+                inputMode="numeric"
+                defaultValue={initial.weights ? String(initial.weights.results) : ""}
+                placeholder={String(familyDefault.results)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="competenciesWeight">Competencies (%)</label>
+              <input
+                id="competenciesWeight"
+                name="competenciesWeight"
+                inputMode="numeric"
+                defaultValue={initial.weights ? String(initial.weights.competencies) : ""}
+                placeholder={String(familyDefault.competencies)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="behaviorsWeight">Behaviors (%)</label>
+              <input
+                id="behaviorsWeight"
+                name="behaviorsWeight"
+                inputMode="numeric"
+                defaultValue={initial.weights ? String(initial.weights.behaviors) : ""}
+                placeholder={String(familyDefault.behaviors)}
+              />
             </div>
           </div>
         </div>

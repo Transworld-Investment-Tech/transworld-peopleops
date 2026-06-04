@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth/rbac";
 import { getScorecardEditData, SCORECARD_STATUSES } from "@/lib/scorecards";
+import { familyWeights } from "@/lib/scorecard-scoring";
 import ScorecardForm from "@/components/jobcompetency/ScorecardForm";
 
 export const metadata = { title: "Edit scorecard · Transworld PeopleOps" };
@@ -15,6 +16,20 @@ export default async function EditScorecardPage({
   const { id } = await params;
   const { profile, scorecard } = await getScorecardEditData(id);
   if (!profile) notFound();
+
+  const fw = familyWeights(profile.family);
+  const familyDefault = {
+    results: Math.round(fw.results * 100),
+    competencies: Math.round(fw.competencies * 100),
+    behaviors: Math.round(fw.behaviors * 100),
+  };
+  const initialWeights = scorecard?.weights
+    ? {
+        results: Math.round(scorecard.weights.results * 100),
+        competencies: Math.round(scorecard.weights.competencies * 100),
+        behaviors: Math.round(scorecard.weights.behaviors * 100),
+      }
+    : null;
 
   return (
     <>
@@ -35,10 +50,12 @@ export default async function EditScorecardPage({
         initial={{
           mission: scorecard?.mission ?? "",
           status: scorecard?.status ?? "DRAFT",
+          weights: initialWeights,
           outcomes: scorecard?.outcomes ?? [],
         }}
         statuses={SCORECARD_STATUSES}
         hasExisting={!!scorecard}
+        familyDefault={familyDefault}
       />
     </>
   );

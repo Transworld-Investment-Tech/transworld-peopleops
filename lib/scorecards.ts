@@ -23,6 +23,7 @@ export type ScorecardView = {
   id: string;
   mission: string | null;
   status: string;
+  weights: { results: number; competencies: number; behaviors: number } | null;
   outcomes: ScorecardOutcomeView[];
 };
 
@@ -33,10 +34,19 @@ export async function getScorecard(jobProfileId: string): Promise<ScorecardView 
     include: { outcomes: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
   });
   if (!sc) return null;
+  const weights =
+    sc.resultsWeight != null && sc.competenciesWeight != null && sc.behaviorsWeight != null
+      ? {
+          results: Number(sc.resultsWeight),
+          competencies: Number(sc.competenciesWeight),
+          behaviors: Number(sc.behaviorsWeight),
+        }
+      : null;
   return {
     id: sc.id,
     mission: sc.mission,
     status: sc.status,
+    weights,
     outcomes: sc.outcomes.map((o) => ({
       id: o.id,
       title: o.title,
@@ -48,12 +58,12 @@ export async function getScorecard(jobProfileId: string): Promise<ScorecardView 
 
 /** Everything the scorecard editor needs: the profile title + existing scorecard. */
 export async function getScorecardEditData(jobProfileId: string): Promise<{
-  profile: { id: string; title: string } | null;
+  profile: { id: string; title: string; family: string | null } | null;
   scorecard: ScorecardView | null;
 }> {
   const profile = await prisma.jobProfile.findUnique({
     where: { id: jobProfileId },
-    select: { id: true, title: true },
+    select: { id: true, title: true, family: true },
   });
   if (!profile) return { profile: null, scorecard: null };
   return { profile, scorecard: await getScorecard(jobProfileId) };

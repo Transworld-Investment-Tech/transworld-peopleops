@@ -11,7 +11,7 @@
 import { prisma } from "@/lib/db";
 import { getScorecard } from "@/lib/scorecards";
 import { levelLabel } from "@/lib/jobframework";
-import { scoreAppraisal, type ScoreResult } from "@/lib/scorecard-scoring";
+import { scoreAppraisal, familyWeights, type ScoreResult, type DimensionWeights } from "@/lib/scorecard-scoring";
 
 export { levelLabel };
 
@@ -212,6 +212,7 @@ export type AppraisalView = {
       }
     | null;
   score: ScoreResult | null;
+  scoreWeights: DimensionWeights;
 };
 
 /** Everything the appraisal page needs: cycle + employee + role mission +
@@ -247,7 +248,11 @@ export async function getAppraisalView(
 
   // Indicative score from the manager's saved ratings (read-only panel on the
   // appraisal page). Same pure engine the bonus run uses, so the breakdown the
-  // reviewer sees is exactly what would drive the multiplier.
+  // reviewer sees is exactly what would drive the multiplier — including the
+  // role scorecard's weighting override when one is set.
+  const overrideWeights = sc?.weights ?? null;
+  const scoreWeights: DimensionWeights =
+    overrideWeights ?? familyWeights(employee.jobProfile?.family ?? null);
   const score: ScoreResult | null = appraisal
     ? scoreAppraisal(
         appraisal.items.map((it) => ({
@@ -257,6 +262,7 @@ export async function getAppraisalView(
           label: it.label,
         })),
         employee.jobProfile?.family ?? null,
+        overrideWeights,
       )
     : null;
 
@@ -300,5 +306,6 @@ export async function getAppraisalView(
         }
       : null,
     score,
+    scoreWeights,
   };
 }

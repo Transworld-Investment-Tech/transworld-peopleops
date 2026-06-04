@@ -76,8 +76,17 @@ export type ScoreResult = {
   integrityGate: boolean;
 };
 
-/** Score an appraisal's items for an employee in the given family. */
-export function scoreAppraisal(items: ScoreItem[], family: string | null | undefined): ScoreResult {
+export type DimensionWeights = { results: number; competencies: number; behaviors: number };
+
+/** Score an appraisal's items for an employee in the given family. When
+ *  `overrideWeights` is provided (a complete triple from the role's scorecard),
+ *  it replaces the family default; renormalization over present dimensions is
+ *  unchanged. */
+export function scoreAppraisal(
+  items: ScoreItem[],
+  family: string | null | undefined,
+  overrideWeights?: DimensionWeights | null,
+): ScoreResult {
   const results = dimensionAverage(items.filter((i) => RESULT_KINDS.has(i.kind)));
   const competencies = dimensionAverage(items.filter((i) => i.kind === "COMPETENCY"));
   const behaviors = dimensionAverage(items.filter((i) => i.kind === "BEHAVIOR"));
@@ -91,7 +100,7 @@ export function scoreAppraisal(items: ScoreItem[], family: string | null | undef
       parseRating(i.rating) === 1,
   );
 
-  const fw = familyWeights(family);
+  const fw = overrideWeights ?? familyWeights(family);
   const dims = [
     { score: results, w: fw.results },
     { score: competencies, w: fw.competencies },
