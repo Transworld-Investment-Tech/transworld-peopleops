@@ -264,6 +264,7 @@ model Employee {
   updatedAt        DateTime             @updatedAt @map("updated_at")
 
   @@map("employees")
+  isRegulatedRole    Boolean              @default(false) @map("is_regulated_role")
 }
 
 model EmploymentRecord {
@@ -791,6 +792,23 @@ model JobOpening {
   candidates   Candidate[]
 
   @@map("job_openings")
+  reason                  String?
+  businessCase            String?   @map("business_case")
+  mustHaves               String?   @map("must_haves")
+  isControlFunction       Boolean   @default(false) @map("is_control_function")
+  raisedById              String?   @map("raised_by_id")
+  raisedByName            String?   @map("raised_by_name")
+  raisedAt                DateTime? @map("raised_at")
+  budgetBand              String?   @map("budget_band")
+  cfoApprovedById         String?   @map("cfo_approved_by_id")
+  cfoApprovedByName       String?   @map("cfo_approved_by_name")
+  cfoApprovedAt           DateTime? @map("cfo_approved_at")
+  mdApprovedById          String?   @map("md_approved_by_id")
+  mdApprovedByName        String?   @map("md_approved_by_name")
+  mdApprovedAt            DateTime? @map("md_approved_at")
+  rolePackConfirmedById   String?   @map("role_pack_confirmed_by_id")
+  rolePackConfirmedByName String?   @map("role_pack_confirmed_by_name")
+  rolePackConfirmedAt     DateTime? @map("role_pack_confirmed_at")
 }
 
 model Candidate {
@@ -817,6 +835,13 @@ model Candidate {
   @@index([openingId])
   @@index([stage])
   @@map("candidates")
+  selectionRationale      String?    @map("selection_rationale")
+  selectedById            String?    @map("selected_by_id")
+  selectedByName          String?    @map("selected_by_name")
+  selectedAt              DateTime?  @map("selected_at")
+  ccoSignoffById          String?    @map("cco_signoff_by_id")
+  ccoSignoffByName        String?    @map("cco_signoff_by_name")
+  ccoSignoffAt            DateTime?  @map("cco_signoff_at")
 }
 
 model OnboardingPlan {
@@ -909,6 +934,7 @@ model StaffDocument {
   @@index([status])
   @@index([templateId])
   @@map("staff_documents")
+  fileSlot          String?           @map("file_slot")
 }
 
 // TW-PERFORMANCE-TOOLKIT-MODELS-V0180 — Performance toolkit (v0.18.0).
@@ -1574,4 +1600,70 @@ model CalibrationEntry {
   @@unique([sessionId, employeeId])
   @@index([sessionId])
   @@map("calibration_entries")
+}
+
+// TW-WS3-DEPTH-V0390 — WS3 depth (v0.39.0).
+// Appended to schema.prisma by setup.sh (marker-guarded, idempotent). THREE new
+// models mirroring public.candidate_stage_events / candidate_checks /
+// staff_file_snapshots created by supabase/migrations/0027_ws3_depth.sql.
+//
+// Following the cross-module convention (see employee_dependents): cross-entity
+// references to EXISTING tables (candidate_id, cleared_by_id, artifact_doc_id,
+// evidence_doc_id, taken_by_id) are BARE columns here — their FKs are enforced
+// in SQL only (candidate_id ON DELETE CASCADE; user/doc refs SET NULL) — so the
+// Candidate / User / StaffDocument models are NOT edited. Ids are app-generated
+// cuid; status / stage / check_type / scope vocabularies are plain Strings
+// (CHECK-constrained in the migration), not Postgres enums.
+
+model CandidateStageEvent {
+  id            String   @id @default(cuid())
+  candidateId   String   @map("candidate_id")
+  candidateName String?  @map("candidate_name")
+  stage         String
+  clearedAt     DateTime @default(now()) @map("cleared_at")
+  clearedById   String?  @map("cleared_by_id")
+  clearedByName String?  @map("cleared_by_name")
+  artifactDocId String?  @map("artifact_doc_id")
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([candidateId])
+  @@map("candidate_stage_events")
+}
+
+model CandidateCheck {
+  id            String    @id @default(cuid())
+  candidateId   String    @map("candidate_id")
+  candidateName String?   @map("candidate_name")
+  checkType     String    @map("check_type")
+  applicable    Boolean   @default(true)
+  status        String    @default("PENDING")
+  clearedAt     DateTime? @map("cleared_at")
+  clearedById   String?   @map("cleared_by_id")
+  clearedByName String?   @map("cleared_by_name")
+  evidenceDocId String?   @map("evidence_doc_id")
+  note          String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @map("updated_at")
+
+  @@unique([candidateId, checkType])
+  @@index([candidateId])
+  @@map("candidate_checks")
+}
+
+model StaffFileSnapshot {
+  id                 String   @id @default(cuid())
+  takenAt            DateTime @default(now()) @map("taken_at")
+  scope              String   @default("ACTIVE")
+  populationCount    Int      @map("population_count")
+  completeCount      Int      @map("complete_count")
+  thresholdPct       Int      @default(90) @map("threshold_pct")
+  avgCompletenessPct Decimal  @default(0) @map("avg_completeness_pct") @db.Decimal(5, 2)
+  note               String?
+  takenById          String?  @map("taken_by_id")
+  takenByName        String?  @map("taken_by_name")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([takenAt])
+  @@map("staff_file_snapshots")
 }

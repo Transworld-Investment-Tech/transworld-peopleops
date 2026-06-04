@@ -1,6 +1,6 @@
 {
   "name": "transworld-peopleops",
-  "version": "0.38.1",
+  "version": "0.39.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -27,7 +27,8 @@
     "raise:test": "tsx lib/raise.test.ts",
     "sponsorship:test": "tsx lib/sponsorship.test.ts",
     "scorecard:test": "tsx lib/scorecard-scoring.test.ts",
-    "ws5:test": "tsx lib/ws5.test.ts"
+    "ws5:test": "tsx lib/ws5.test.ts",
+    "stafffile:test": "tsx lib/stafffile.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

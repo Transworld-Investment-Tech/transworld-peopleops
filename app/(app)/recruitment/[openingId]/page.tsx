@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
-import { getOpeningDetail, stageBadge, fmtDate } from "@/lib/recruitment";
+import {
+  getOpeningDetail,
+  stageBadge,
+  fmtDate,
+  reasonLabel,
+  requisitionStageLabel,
+} from "@/lib/recruitment";
 import { getActiveTemplates, kindLabel } from "@/lib/document-templates";
 import { getCandidateDocsLite, statusBadge as docStatusBadge } from "@/lib/staff-documents";
 import GenerateDocControl, { type DocLite } from "@/components/documents/GenerateDocControl";
@@ -12,6 +18,12 @@ import {
   OfferTermsForm,
   RequisitionStatusControl,
 } from "@/components/recruitment/CandidatePipelineControls";
+import RequisitionGates from "@/components/recruitment/RequisitionGates";
+import {
+  SelectionControl,
+  ChecksControl,
+  StageTimeline,
+} from "@/components/recruitment/CandidateAdvancedControls";
 
 export const metadata = { title: "Pipeline · Transworld PeopleOps" };
 
@@ -23,6 +35,8 @@ export default async function PipelinePage({
   const me = await requirePermission("recruitment.view");
   const canManage = hasPermission(me, "recruitment.manage");
   const canConvert = hasPermission(me, "employees.manage");
+  const canApprove = hasPermission(me, "requisition.approve");
+  const canCco = hasPermission(me, "selection.cco");
   const { openingId } = await params;
   const d = await getOpeningDetail(openingId);
   if (!d) notFound();
@@ -45,6 +59,51 @@ export default async function PipelinePage({
     });
 
   const sub = [d.departmentName, d.jobProfileTitle].filter(Boolean).join(" · ");
+  const controlFn = d.isControlFunction || d.jobProfileIsControlFunction;
+
+  const renderAdvanced = (c: (typeof d.columns)[number]["candidates"][number]) => (
+    <>
+      {canManage && (c.stage === "SHORTLISTED" || c.stage === "INTERVIEW" || c.stage === "SELECTED" || c.stage === "CHECKS") ? (
+        <SelectionControl
+          candidateId={c.id}
+          openingId={d.id}
+          selectionRationale={c.selectionRationale}
+          selectedByName={c.selectedByName}
+          selectedAt={c.selectedAt ? fmtDate(c.selectedAt) : null}
+          ccoSignoffByName={c.ccoSignoffByName}
+          ccoSignoffAt={c.ccoSignoffAt ? fmtDate(c.ccoSignoffAt) : null}
+          isControlFunction={controlFn}
+          canCco={canCco}
+        />
+      ) : null}
+      {canManage && (c.stage === "SELECTED" || c.stage === "CHECKS") ? (
+        <ChecksControl
+          candidateId={c.id}
+          openingId={d.id}
+          ready={c.checksReady}
+          checks={c.checks.map((k) => ({
+            id: k.id,
+            checkType: k.checkType,
+            applicable: k.applicable,
+            status: k.status,
+            clearedByName: k.clearedByName,
+            note: k.note,
+          }))}
+        />
+      ) : null}
+      {canManage ? (
+        <StageTimeline
+          events={c.stageEvents.map((e) => ({
+            id: e.id,
+            stage: e.stage,
+            clearedAt: fmtDate(e.clearedAt),
+            clearedByName: e.clearedByName,
+            note: e.note,
+          }))}
+        />
+      ) : null}
+    </>
+  );
 
   return (
     <>
@@ -57,11 +116,44 @@ export default async function PipelinePage({
           <p>
             <span className="faint mono">{d.code}</span>
             {sub ? ` · ${sub}` : ""} · opened {fmtDate(d.openedAt)} · {d.headcount} to hire
+            {d.reason ? ` · ${reasonLabel(d.reason)}` : ""}
           </p>
         </div>
         <Link href="/recruitment" className="btn">
           ← All requisitions
         </Link>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="card-h">
+          <h3>Requisition gates</h3>
+          <span className="hint">{requisitionStageLabel(d.reqStage)}</span>
+        </div>
+        <div className="card-pad">
+          <RequisitionGates
+            openingId={d.id}
+            reqStageLabel={requisitionStageLabel(d.reqStage)}
+            reason={d.reason}
+            mustHaves={d.mustHaves}
+            budgetBand={d.budgetBand}
+            isControlFunction={controlFn}
+            raisedByName={d.raisedByName}
+            raisedAt={fmtDate(d.raisedAt)}
+            cfoApprovedByName={d.cfoApprovedByName}
+            cfoApprovedAt={d.cfoApprovedAt ? fmtDate(d.cfoApprovedAt) : null}
+            mdApprovedByName={d.mdApprovedByName}
+            mdApprovedAt={d.mdApprovedAt ? fmtDate(d.mdApprovedAt) : null}
+            rolePackConfirmedByName={d.rolePackConfirmedByName}
+            rolePackConfirmedAt={d.rolePackConfirmedAt ? fmtDate(d.rolePackConfirmedAt) : null}
+            canApprove={canApprove}
+            canManage={canManage}
+          />
+          {d.businessCase ? (
+            <p className="faint" style={{ marginTop: 10, fontSize: 12.5 }}>
+              <b>Business case:</b> {d.businessCase}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: 18 }}>
@@ -112,6 +204,7 @@ export default async function PipelinePage({
                       {canManage ? (
                         <CandidateStageControl candidateId={c.id} openingId={d.id} stage={c.stage} />
                       ) : null}
+                      {renderAdvanced(c)}
                       {canManage && col.stage === "OFFER" ? (
                         <div style={{ marginTop: 8, borderTop: "1px dashed var(--line)", paddingTop: 8 }}>
                           <div className="faint" style={{ fontSize: 11.5, marginBottom: 4 }}>

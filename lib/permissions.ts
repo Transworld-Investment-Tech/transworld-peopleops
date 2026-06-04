@@ -16,27 +16,19 @@
 // v0.20.0 — Bonus model (bonus.view/manage/approve).
 // v0.20.2 — My Bonus (bonus.view_own). Permission count reached 34.
 //
-// v0.37.0 — WS5 conduct & cases (Disciplinary E8, Grievance E9, Whistleblower):
-//   * Adds NINE keys: `discipline.manage` / `discipline.approve` /
-//     `discipline.dismiss`; `grievance.manage` / `grievance.approve` /
-//     `grievance.raise`; `whistleblower.access` / `whistleblower.exec` /
-//     `whistleblower.report`. The two top-tier gates — `discipline.dismiss`
-//     (Final Written + Dismissal sign-off) and `whistleblower.exec` (reports
-//     that involve senior management, deliberately hidden from the CCO) — are
-//     granted to SUPER_ADMIN ONLY (the Chairman), via "*". `whistleblower.access`
-//     goes to COMPLIANCE (the CCO). The two self-service keys (`grievance.raise`,
-//     `whistleblower.report`) go to every real-person role. Adds the
-//     "Conduct & Cases" sidebar section plus two "People" self-service entries.
-//     Permission count 34 -> 43; re-run `npm run auth:bootstrap` after this
-//     release (first bootstrap since v0.20.2).
-
+// v0.37.0 — WS5 conduct & cases: +9 keys (count 34 -> 43).
 //
-// v0.38.0 — Performance-cycle follow-on:
-//   * NO new permissions. Adds two "Grow & Reward" sidebar entries —
-//     "Mid-cycle Reviews" and "Calibration" — both gated on the existing
-//     `performance.view` (managers, People Ops and the COO). Calibration write
-//     actions remain `performance.manage`; the calibration record is never
-//     shown to employees. No auth:bootstrap needed.
+// v0.38.0 — Performance-cycle follow-on: NO new permissions (nav-only).
+//
+// v0.39.0 — WS3 depth (ten-stage pipeline + staff-file completeness):
+//   * Adds FOUR keys: `requisition.approve` (Stage-2 CFO/MD budget approval —
+//     FINANCE for affordability and EXEC for the MD step), `selection.cco`
+//     (Stage-7 control-function independent sign-off — the CCO), and
+//     `stafffile.view` / `stafffile.manage` (the D6.2 staff-file completeness
+//     drive + slot classification + immutable snapshots — People Ops manages,
+//     EXEC / COMPLIANCE / INTERNAL_CONTROL / AUDITOR view). Adds a "Staff Files"
+//     entry under Talent. Permission count 43 -> 47; re-run
+//     `npm run auth:bootstrap` after this release.
 
 export type Permission = { key: string; label: string };
 
@@ -50,8 +42,12 @@ export const PERMISSIONS: Permission[] = [
   { key: "leave.manage", label: "Manage leave" },
   { key: "recruitment.view", label: "View recruitment" },
   { key: "recruitment.manage", label: "Manage recruitment" },
+  { key: "requisition.approve", label: "Approve hiring requisition budget (CFO/MD)" },
+  { key: "selection.cco", label: "Sign off control-function selections (CCO)" },
   { key: "onboarding.view", label: "View onboarding" },
   { key: "onboarding.manage", label: "Manage onboarding" },
+  { key: "stafffile.view", label: "View staff-file completeness" },
+  { key: "stafffile.manage", label: "Manage staff files (classify, snapshot)" },
   { key: "performance.view", label: "View performance" },
   { key: "performance.manage", label: "Manage performance & appraisals" },
   { key: "performance.self", label: "View & contribute to own performance" },
@@ -101,7 +97,9 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "jobframework.view",
     "leave.view",
     "recruitment.view",
+    "requisition.approve", // v0.39.0: the MD step of Stage-2 budget approval
     "onboarding.view",
+    "stafffile.view", // v0.39.0: exec oversight of the staff-file drive
     "performance.view",
     "learning.view",
     "compensation.view",
@@ -135,6 +133,8 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "recruitment.manage",
     "onboarding.view",
     "onboarding.manage",
+    "stafffile.view", // v0.39.0: People Ops runs the staff-file completion drive
+    "stafffile.manage",
     "performance.view",
     "performance.manage",
     "learning.view",
@@ -158,6 +158,8 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "performance.self",
     "dashboard.view",
     "employees.view",
+    "recruitment.view",
+    "requisition.approve", // v0.39.0: the CFO affordability step of Stage-2
     "compensation.view",
     "compensation.manage",
     "payroll.view",
@@ -174,6 +176,9 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "performance.self",
     "dashboard.view",
     "employees.view",
+    "recruitment.view",
+    "selection.cco", // v0.39.0: the CCO signs off control-function selections
+    "stafffile.view", // v0.39.0: CCO oversight of regulated-role files
     "learning.view",
     "evidence.view",
     "controls.view",
@@ -189,6 +194,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "performance.self",
     "dashboard.view",
     "employees.view",
+    "stafffile.view", // v0.39.0: internal-control oversight of staff-file gaps
     "payroll.view",
     "evidence.view",
     "controls.view",
@@ -224,6 +230,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
   AUDITOR_RO: [
     "dashboard.view",
     "employees.view",
+    "stafffile.view", // v0.39.0: read-only audit of staff-file completeness
     "payroll.view",
     "evidence.view",
     "controls.view",
@@ -268,6 +275,7 @@ const I = {
   evidence: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2.5 4 6v5c0 5 3.4 8.6 8 10.5C16.6 19.6 20 16 20 11V6Z"/><path d="m9 11.5 2 2 4-4.5"/></svg>`,
   controls: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 7.5h18M6.5 7.5 5 18M17.5 7.5 19 18M3.5 18h17"/></svg>`,
   docs: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h8l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M13 2.5V7h4M8.5 12h7M8.5 16h7"/></svg>`,
+  files: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="m9.5 13 1.7 1.7L15 11"/></svg>`,
   admin: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><circle cx="18" cy="16.5" r="2.4"/><path d="M18 11.6v1.4M18 20v1.4M22.2 16.5h-1.4M15.2 16.5h-1.4"/></svg>`,
   gavel: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m14 7-7 7M9.5 4.5 16 11M4 20h9M13.5 9.5l3 3M11.5 7.5l3 3"/></svg>`,
   raise: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M12 8v4M12 13.5v.5"/></svg>`,
@@ -299,6 +307,7 @@ export const NAV: NavSection[] = [
     items: [
       { slug: "recruitment", label: "Recruitment", perm: "recruitment.view", icon: I.recruit },
       { slug: "onboarding", label: "Onboarding", perm: "onboarding.view", icon: I.onboard },
+      { slug: "staff-files", label: "Staff Files", perm: "stafffile.view", icon: I.files },
     ],
   },
   {

@@ -1,13 +1,30 @@
 "use server";
-// Write-side server actions for Recruitment. Every mutation is gated by
-// recruitment.manage, validated with zod, and writes an audit_logs row.
+// Write-side server actions for Recruitment. Every mutation is gated, validated
+// with zod where it takes a form, and writes an audit_logs row.
+//
+// v0.39.0 (WS3 depth): the requisition gates (Stage 1 raise carries reason /
+// business case / must-haves / control-function + raiser snapshot; Stage 2
+// CFO+MD budget approval under requisition.approve, approver != raiser; Stage 3
+// role-pack confirmation), the Stage 7 selection decision + CCO sign-off
+// (selection.cco, control-function), and the Stage 8 verification checklist
+// (gates the move to OFFER). Every candidate stage move now also writes a
+// candidate_stage_events row.
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/rbac";
 import { writeAudit } from "@/lib/auth/audit";
-import { nextRequisitionCode, STAGES, OPENING_STATUSES } from "@/lib/recruitment";
+import {
+  nextRequisitionCode,
+  STAGES,
+  OPENING_STATUSES,
+  REQUISITION_REASONS,
+  CHECK_TYPES,
+  CHECK_STATUSES,
+  defaultChecklistFor,
+  checksReady,
+} from "@/lib/recruitment";
 
 export type FormState = {
   ok: boolean;
@@ -17,25 +34,30 @@ export type FormState = {
 
 const EMPTY = "" as const;
 
-function nz(v: FormDataEntryValue | null): string | null {
+function nz(v: FormDataEntryValue | string | null | undefined): string | null {
   const s = String(v ?? "").trim();
   return s === "" ? null : s;
 }
 
-function parseDateUTC(v: FormDataEntryValue | null): Date | null {
+function parseDateUTC(v: FormDataEntryValue | string | null | undefined): Date | null {
   const s = String(v ?? "").trim();
   if (!s) return null;
   const d = new Date(`${s}T00:00:00.000Z`);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-// --- Raise requisition ------------------------------------------------------
+// --- Raise requisition (Stage 1) -------------------------------------------
 const requisitionSchema = z.object({
   title: z.string().trim().min(2, "Job title is required"),
   grade: z.string().trim().optional().or(z.literal(EMPTY)),
   departmentId: z.string().optional().or(z.literal(EMPTY)),
   jobProfileId: z.string().optional().or(z.literal(EMPTY)),
   headcount: z.coerce.number().int().min(1, "At least 1").max(99),
+  reason: z.string().trim().optional().or(z.literal(EMPTY)),
+  businessCase: z.string().trim().optional().or(z.literal(EMPTY)),
+  mustHaves: z.string().trim().optional().or(z.literal(EMPTY)),
+  budgetBand: z.string().trim().optional().or(z.literal(EMPTY)),
+  isControlFunction: z.string().optional().or(z.literal(EMPTY)),
   notes: z.string().trim().optional().or(z.literal(EMPTY)),
 });
 
@@ -50,12 +72,21 @@ export async function raiseRequisitionAction(
     departmentId: fd.get("departmentId"),
     jobProfileId: fd.get("jobProfileId"),
     headcount: fd.get("headcount") || "1",
+    reason: fd.get("reason"),
+    businessCase: fd.get("businessCase"),
+    mustHaves: fd.get("mustHaves"),
+    budgetBand: fd.get("budgetBand"),
+    isControlFunction: fd.get("isControlFunction"),
     notes: fd.get("notes"),
   });
   if (!parsed.success) {
     const fe: Record<string, string> = {};
     for (const i of parsed.error.issues) fe[String(i.path[0])] = i.message;
     return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fe };
+  }
+  const reason = nz(parsed.data.reason);
+  if (reason !== null && !(REQUISITION_REASONS as readonly string[]).includes(reason)) {
+    return { ok: false, error: "Invalid reason." };
   }
   const code = await nextRequisitionCode();
   const created = await prisma.jobOpening.create({
@@ -66,8 +97,16 @@ export async function raiseRequisitionAction(
       departmentId: nz(parsed.data.departmentId ?? null),
       jobProfileId: nz(parsed.data.jobProfileId ?? null),
       headcount: parsed.data.headcount,
+      reason,
+      businessCase: nz(parsed.data.businessCase ?? null),
+      mustHaves: nz(parsed.data.mustHaves ?? null),
+      budgetBand: nz(parsed.data.budgetBand ?? null),
+      isControlFunction: nz(parsed.data.isControlFunction) === "on",
       notes: nz(parsed.data.notes ?? null),
       status: "OPEN",
+      raisedById: me.id,
+      raisedByName: me.name,
+      raisedAt: new Date(),
     },
     select: { id: true, code: true },
   });
@@ -76,10 +115,94 @@ export async function raiseRequisitionAction(
     action: "jobopening.create",
     entityType: "JobOpening",
     entityId: created.id,
-    metadata: { code: created.code, title: parsed.data.title },
+    metadata: { code: created.code, title: parsed.data.title, reason },
   });
   revalidatePath("/recruitment");
   redirect(`/recruitment/${created.id}`);
+}
+
+// --- Stage 2: budget approval (CFO -> MD) ----------------------------------
+export async function recordBudgetApprovalAction(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await requirePermission("requisition.approve");
+  const openingId = String(fd.get("openingId") ?? "");
+  const which = String(fd.get("which") ?? "");
+  if (!openingId) return { ok: false, error: "Missing requisition." };
+  if (which !== "CFO" && which !== "MD") return { ok: false, error: "Invalid approval step." };
+
+  const o = await prisma.jobOpening.findUnique({
+    where: { id: openingId },
+    select: { id: true, raisedById: true, cfoApprovedAt: true },
+  });
+  if (!o) return { ok: false, error: "That requisition no longer exists." };
+  // No self-approval: the person who raised the requisition cannot approve it.
+  if (o.raisedById && o.raisedById === me.id) {
+    return { ok: false, error: "You raised this requisition — budget approval needs a different approver." };
+  }
+  if (which === "MD" && !o.cfoApprovedAt) {
+    return { ok: false, error: "Record the CFO affordability approval before the MD approval." };
+  }
+
+  const data =
+    which === "CFO"
+      ? {
+          cfoApprovedById: me.id,
+          cfoApprovedByName: me.name,
+          cfoApprovedAt: new Date(),
+          budgetBand: nz(fd.get("budgetBand")) ?? undefined,
+        }
+      : {
+          mdApprovedById: me.id,
+          mdApprovedByName: me.name,
+          mdApprovedAt: new Date(),
+        };
+
+  await prisma.jobOpening.update({ where: { id: openingId }, data });
+  await writeAudit({
+    actorId: me.id,
+    action: "jobopening.budget_approval",
+    entityType: "JobOpening",
+    entityId: openingId,
+    metadata: { which },
+  });
+  revalidatePath(`/recruitment/${openingId}`);
+  return { ok: true };
+}
+
+// --- Stage 3: confirm role pack --------------------------------------------
+export async function confirmRolePackAction(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await requirePermission("recruitment.manage");
+  const openingId = String(fd.get("openingId") ?? "");
+  if (!openingId) return { ok: false, error: "Missing requisition." };
+  const o = await prisma.jobOpening.findUnique({
+    where: { id: openingId },
+    select: { id: true, cfoApprovedAt: true, mdApprovedAt: true },
+  });
+  if (!o) return { ok: false, error: "That requisition no longer exists." };
+  if (!o.cfoApprovedAt || !o.mdApprovedAt) {
+    return { ok: false, error: "Budget approval (CFO and MD) must be recorded first." };
+  }
+  await prisma.jobOpening.update({
+    where: { id: openingId },
+    data: {
+      rolePackConfirmedById: me.id,
+      rolePackConfirmedByName: me.name,
+      rolePackConfirmedAt: new Date(),
+    },
+  });
+  await writeAudit({
+    actorId: me.id,
+    action: "jobopening.role_pack_confirmed",
+    entityType: "JobOpening",
+    entityId: openingId,
+  });
+  revalidatePath(`/recruitment/${openingId}`);
+  return { ok: true };
 }
 
 // --- Set requisition status -------------------------------------------------
@@ -141,7 +264,6 @@ export async function addCandidateAction(
     for (const i of parsed.error.issues) fe[String(i.path[0])] = i.message;
     return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fe };
   }
-  // Confirm the opening exists (never trust a client id blindly).
   const opening = await prisma.jobOpening.findUnique({
     where: { id: parsed.data.openingId },
     select: { id: true },
@@ -158,7 +280,17 @@ export async function addCandidateAction(
       stage: parsed.data.stage,
       stageNote: nz(parsed.data.stageNote ?? null),
     },
-    select: { id: true },
+    select: { id: true, fullName: true, stage: true },
+  });
+  await prisma.candidateStageEvent.create({
+    data: {
+      candidateId: created.id,
+      candidateName: created.fullName,
+      stage: created.stage,
+      clearedById: me.id,
+      clearedByName: me.name,
+      note: "Added to pipeline",
+    },
   });
   await writeAudit({
     actorId: me.id,
@@ -171,7 +303,7 @@ export async function addCandidateAction(
   return { ok: true };
 }
 
-// --- Move candidate stage (+ optional note / interview date) ----------------
+// --- Move candidate stage (+ stage-event trail; gates the move to OFFER) ----
 export async function setCandidateStageAction(
   _prev: FormState,
   fd: FormData
@@ -184,30 +316,283 @@ export async function setCandidateStageAction(
   if (!(STAGES as readonly string[]).includes(stage)) {
     return { ok: false, error: "Invalid stage." };
   }
-  // Scope the update to a candidate that actually belongs to this opening.
   const existing = await prisma.candidate.findFirst({
     where: { id: candidateId, openingId },
-    select: { id: true },
+    select: {
+      id: true,
+      fullName: true,
+      stage: true,
+      ccoSignoffAt: true,
+      opening: { select: { grade: true, isControlFunction: true } },
+    },
+  });
+  if (!existing) return { ok: false, error: "Candidate not found for this requisition." };
+
+  // Gate the move to OFFER: every applicable Stage-8 check must be cleared or
+  // waived, and control-function roles need the CCO sign-off first.
+  if (stage === "OFFER") {
+    const checks = await prisma.candidateCheck.findMany({
+      where: { candidateId },
+      select: { applicable: true, status: true },
+    });
+    if (!checksReady(checks)) {
+      return {
+        ok: false,
+        error: "Clear (or waive) every applicable pre-employment check before extending the offer.",
+      };
+    }
+    if (existing.opening.isControlFunction && !existing.ccoSignoffAt) {
+      return { ok: false, error: "This is a control-function role — the CCO must sign off the selection first." };
+    }
+  }
+
+  // Seed the default Stage-8 checklist the first time a candidate enters CHECKS.
+  if (stage === "CHECKS") {
+    const count = await prisma.candidateCheck.count({ where: { candidateId } });
+    if (count === 0) {
+      const facts = {
+        isRegulated: existing.opening.isControlFunction,
+        grade: existing.opening.grade,
+      };
+      await prisma.candidateCheck.createMany({
+        data: defaultChecklistFor(facts).map((c) => ({
+          candidateId,
+          candidateName: existing.fullName,
+          checkType: c.checkType,
+          applicable: c.applicable,
+          status: "PENDING",
+        })),
+      });
+    }
+  }
+
+  const note = nz(fd.get("stageNote"));
+  await prisma.candidate.update({
+    where: { id: candidateId },
+    data: {
+      stage,
+      stageNote: note,
+      interviewAt: parseDateUTC(fd.get("interviewAt")),
+    },
+  });
+  if (stage !== existing.stage) {
+    await prisma.candidateStageEvent.create({
+      data: {
+        candidateId,
+        candidateName: existing.fullName,
+        stage,
+        clearedById: me.id,
+        clearedByName: me.name,
+        note,
+      },
+    });
+  }
+  await writeAudit({
+    actorId: me.id,
+    action: "candidate.set_stage",
+    entityType: "Candidate",
+    entityId: candidateId,
+    metadata: { from: existing.stage, to: stage },
+  });
+  revalidatePath(`/recruitment/${openingId}`);
+  revalidatePath("/recruitment");
+  return { ok: true };
+}
+
+// --- Stage 7: selection decision -------------------------------------------
+export async function recordSelectionAction(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await requirePermission("recruitment.manage");
+  const candidateId = String(fd.get("candidateId") ?? "");
+  const openingId = String(fd.get("openingId") ?? "");
+  const rationale = nz(fd.get("selectionRationale"));
+  if (!candidateId || !openingId) return { ok: false, error: "Missing candidate." };
+  if (!rationale) return { ok: false, error: "Record the selection rationale." };
+
+  const existing = await prisma.candidate.findFirst({
+    where: { id: candidateId, openingId },
+    select: { id: true, fullName: true },
   });
   if (!existing) return { ok: false, error: "Candidate not found for this requisition." };
 
   await prisma.candidate.update({
     where: { id: candidateId },
     data: {
-      stage,
-      stageNote: nz(fd.get("stageNote")),
-      interviewAt: parseDateUTC(fd.get("interviewAt")),
+      stage: "SELECTED",
+      selectionRationale: rationale,
+      selectedById: me.id,
+      selectedByName: me.name,
+      selectedAt: new Date(),
+    },
+  });
+  await prisma.candidateStageEvent.create({
+    data: {
+      candidateId,
+      candidateName: existing.fullName,
+      stage: "SELECTED",
+      clearedById: me.id,
+      clearedByName: me.name,
+      note: "Selection decision recorded",
     },
   });
   await writeAudit({
     actorId: me.id,
-    action: "candidate.set_stage",
+    action: "candidate.select",
     entityType: "Candidate",
     entityId: candidateId,
-    metadata: { stage },
+    metadata: { openingId },
   });
   revalidatePath(`/recruitment/${openingId}`);
-  revalidatePath("/recruitment");
+  return { ok: true };
+}
+
+// --- Stage 7/8: CCO sign-off for control-function roles --------------------
+export async function recordCcoSignoffAction(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await requirePermission("selection.cco");
+  const candidateId = String(fd.get("candidateId") ?? "");
+  const openingId = String(fd.get("openingId") ?? "");
+  if (!candidateId || !openingId) return { ok: false, error: "Missing candidate." };
+
+  const existing = await prisma.candidate.findFirst({
+    where: { id: candidateId, openingId },
+    select: { id: true, fullName: true, selectedAt: true, selectedById: true },
+  });
+  if (!existing) return { ok: false, error: "Candidate not found for this requisition." };
+  if (!existing.selectedAt) {
+    return { ok: false, error: "Record the selection decision before the CCO sign-off." };
+  }
+  if (existing.selectedById && existing.selectedById === me.id) {
+    return { ok: false, error: "The CCO sign-off must be independent of the person who made the selection." };
+  }
+
+  await prisma.candidate.update({
+    where: { id: candidateId },
+    data: { ccoSignoffById: me.id, ccoSignoffByName: me.name, ccoSignoffAt: new Date() },
+  });
+  await prisma.candidateStageEvent.create({
+    data: {
+      candidateId,
+      candidateName: existing.fullName,
+      stage: "SELECTED",
+      clearedById: me.id,
+      clearedByName: me.name,
+      note: "CCO independent sign-off (control-function role)",
+    },
+  });
+  await writeAudit({
+    actorId: me.id,
+    action: "candidate.cco_signoff",
+    entityType: "Candidate",
+    entityId: candidateId,
+    metadata: { openingId },
+  });
+  revalidatePath(`/recruitment/${openingId}`);
+  return { ok: true };
+}
+
+// --- Stage 8: seed / update verification checks ----------------------------
+export async function seedCandidateChecksAction(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await requirePermission("recruitment.manage");
+  const candidateId = String(fd.get("candidateId") ?? "");
+  const openingId = String(fd.get("openingId") ?? "");
+  if (!candidateId || !openingId) return { ok: false, error: "Missing candidate." };
+  const existing = await prisma.candidate.findFirst({
+    where: { id: candidateId, openingId },
+    select: { id: true, fullName: true, opening: { select: { grade: true, isControlFunction: true } } },
+  });
+  if (!existing) return { ok: false, error: "Candidate not found for this requisition." };
+  const present = await prisma.candidateCheck.findMany({
+    where: { candidateId },
+    select: { checkType: true },
+  });
+  const have = new Set(present.map((p) => p.checkType));
+  const toAdd = defaultChecklistFor({
+    isRegulated: existing.opening.isControlFunction,
+    grade: existing.opening.grade,
+  }).filter((c) => !have.has(c.checkType));
+  if (toAdd.length) {
+    await prisma.candidateCheck.createMany({
+      data: toAdd.map((c) => ({
+        candidateId,
+        candidateName: existing.fullName,
+        checkType: c.checkType,
+        applicable: c.applicable,
+        status: "PENDING",
+      })),
+    });
+  }
+  await writeAudit({
+    actorId: me.id,
+    action: "candidate.seed_checks",
+    entityType: "Candidate",
+    entityId: candidateId,
+    metadata: { added: toAdd.length },
+  });
+  revalidatePath(`/recruitment/${openingId}`);
+  return { ok: true };
+}
+
+export async function setCandidateCheckAction(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await requirePermission("recruitment.manage");
+  const candidateId = String(fd.get("candidateId") ?? "");
+  const openingId = String(fd.get("openingId") ?? "");
+  const checkType = String(fd.get("checkType") ?? "");
+  const status = String(fd.get("status") ?? "PENDING");
+  const applicable = nz(fd.get("applicable")) === "on" || nz(fd.get("applicable")) === "true";
+  if (!candidateId || !openingId) return { ok: false, error: "Missing candidate." };
+  if (!(CHECK_TYPES as readonly string[]).includes(checkType)) {
+    return { ok: false, error: "Invalid check." };
+  }
+  if (!(CHECK_STATUSES as readonly string[]).includes(status)) {
+    return { ok: false, error: "Invalid status." };
+  }
+  const existing = await prisma.candidate.findFirst({
+    where: { id: candidateId, openingId },
+    select: { id: true, fullName: true },
+  });
+  if (!existing) return { ok: false, error: "Candidate not found for this requisition." };
+
+  const cleared = status === "CLEARED" || status === "WAIVED";
+  const row = await prisma.candidateCheck.findFirst({
+    where: { candidateId, checkType },
+    select: { id: true },
+  });
+  const payload = {
+    applicable,
+    status,
+    note: nz(fd.get("note")),
+    evidenceDocId: nz(fd.get("evidenceDocId")),
+    clearedAt: cleared ? new Date() : null,
+    clearedById: cleared ? me.id : null,
+    clearedByName: cleared ? me.name : null,
+    updatedAt: new Date(),
+  };
+  if (row) {
+    await prisma.candidateCheck.update({ where: { id: row.id }, data: payload });
+  } else {
+    await prisma.candidateCheck.create({
+      data: { candidateId, candidateName: existing.fullName, checkType, ...payload },
+    });
+  }
+  await writeAudit({
+    actorId: me.id,
+    action: "candidate.set_check",
+    entityType: "Candidate",
+    entityId: candidateId,
+    metadata: { checkType, status, applicable },
+  });
+  revalidatePath(`/recruitment/${openingId}`);
   return { ok: true };
 }
 
@@ -265,14 +650,13 @@ export async function setCandidateOfferTermsAction(
   return { ok: true };
 }
 
-// --- Convert candidate → staff (v0.36.0) ------------------------------------
+// --- Convert candidate → staff (v0.36.0; Stage 10) --------------------------
 // Turns an offered/hired candidate into an Employee. Gated by employees.manage
 // (it creates a person), not recruitment.manage. In one transaction it creates
 // the Employee (PROBATION), the initial current CompensationProfile from the
 // offer terms, a HIRE employment-history row, and a minimal onboarding-plan
-// shell (S3), then stamps the candidate HIRED + hiredEmployeeId. Payment stays
-// with HumanManager/Remita — the comp profile is the standing record the
-// control room reads, nothing more.
+// shell, then stamps the candidate HIRED + hiredEmployeeId. Payment stays with
+// HumanManager/Remita — the comp profile is the standing record only.
 const convertSchema = z.object({
   candidateId: z.string().min(1),
   openingId: z.string().min(1),
@@ -311,7 +695,7 @@ export async function convertCandidateToStaffAction(
       offerBasic: true,
       offerUtility: true,
       offerStartDate: true,
-      opening: { select: { title: true, jobProfileId: true, departmentId: true } },
+      opening: { select: { title: true, jobProfileId: true, departmentId: true, isControlFunction: true } },
     },
   });
   if (!cand) return { ok: false, error: "Candidate not found for this requisition." };
@@ -323,11 +707,10 @@ export async function convertCandidateToStaffAction(
     return { ok: false, error: "Set the offer terms (grade, basic and utility) before converting." };
   }
 
-  // Capture the narrowed (non-null) offer values — TS widens these back to
-  // `Decimal | null` inside the $transaction closure below, so bind them here.
   const offerBasic = cand.offerBasic;
   const offerUtility = cand.offerUtility;
   const offerGrade = cand.offerGrade;
+  const isControlFn = cand.opening.isControlFunction;
 
   const trimmedEe = eeId.trim();
   const dupe = await prisma.employee.findUnique({ where: { eeId: trimmedEe }, select: { id: true } });
@@ -348,6 +731,7 @@ export async function convertCandidateToStaffAction(
         employmentType: "FULL_TIME",
         status: "PROBATION",
         startDate: start,
+        isRegulatedRole: isControlFn,
       },
     });
     await tx.compensationProfile.create({

@@ -24,7 +24,7 @@ export default function RaiseRequisitionForm({
         {fe.title ? <div className="form-err">{fe.title}</div> : null}
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <div className="field">
           <label htmlFor="grade">Grade (optional)</label>
           <input id="grade" name="grade" placeholder="e.g. G2" />
@@ -33,6 +33,15 @@ export default function RaiseRequisitionForm({
           <label htmlFor="headcount">Headcount</label>
           <input id="headcount" name="headcount" type="number" min={1} max={99} defaultValue={1} />
           {fe.headcount ? <div className="form-err">{fe.headcount}</div> : null}
+        </div>
+        <div className="field">
+          <label htmlFor="reason">Reason</label>
+          <select id="reason" name="reason" defaultValue="">
+            <option value="">—</option>
+            <option value="NEW">New role</option>
+            <option value="REPLACEMENT">Replacement</option>
+            <option value="GROWTH">Growth</option>
+          </select>
         </div>
       </div>
 
@@ -60,6 +69,29 @@ export default function RaiseRequisitionForm({
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="field">
+          <label htmlFor="budgetBand">Budget band (optional)</label>
+          <input id="budgetBand" name="budgetBand" placeholder="e.g. G2 ₦240k–₦300k/mo" />
+        </div>
+        <div className="field" style={{ justifyContent: "flex-end" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" name="isControlFunction" />
+            <span>Control-function role (routes the CCO into selection &amp; checks)</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="field">
+        <label htmlFor="mustHaves">Must-have qualifications / licenses (optional)</label>
+        <input id="mustHaves" name="mustHaves" placeholder="e.g. CIS membership, SEC sponsored-individual, ICAN" />
+      </div>
+
+      <div className="field">
+        <label htmlFor="businessCase">Business case (optional)</label>
+        <textarea id="businessCase" name="businessCase" rows={2} placeholder="2–3 lines: why this role, now." />
       </div>
 
       <div className="field">
