@@ -19,6 +19,12 @@ import WeeklyReportForm from "@/components/performance/WeeklyReportForm";
 import PipAcknowledge from "@/components/performance/PipAcknowledge";
 import MyGoalsEditor from "@/components/performance/MyGoalsEditor";
 import AmendmentsPanel from "@/components/performance/AmendmentsPanel";
+import { getMySelfAssessment } from "@/lib/self-assessment";
+import { getMyMidCycle } from "@/lib/midcycle";
+import { RATINGS } from "@/lib/performance";
+import { LEVELS } from "@/lib/jobframework";
+import SelfAssessmentEditor from "@/components/performance/SelfAssessmentEditor";
+import { MidCycleSelfForm } from "@/components/performance/MidCycleControls";
 
 export const metadata = { title: "My performance · Transworld PeopleOps" };
 
@@ -30,6 +36,8 @@ export default async function MyPerformancePage() {
   const me = await requirePermission("performance.self");
   const data = await getMyPerformance(me.id);
   const gs = await getMyGoalSetting(me.id);
+  const sa = await getMySelfAssessment(me.id);
+  const mc = await getMyMidCycle(me.id);
 
   if (!data.linked) {
     return (
@@ -121,6 +129,40 @@ export default async function MyPerformancePage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Year-end self-assessment */}
+      {sa.appraisal ? (
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card-h">
+            <h3>Year-end self-assessment</h3>
+            <span className={"b " + (sa.appraisal.selfStatus === "SUBMITTED" ? "b-grn" : "b-amb")}>
+              {sa.appraisal.selfStatus === "SUBMITTED" ? "Submitted" : "Pending"}
+            </span>
+          </div>
+          <SelfAssessmentEditor
+            appraisal={sa.appraisal}
+            ratings={RATINGS.map((r) => ({ value: r.value, label: r.label }))}
+            levels={LEVELS.map((l) => ({ value: l.value, label: l.label }))}
+          />
+        </div>
+      ) : null}
+
+      {/* Mid-cycle reflection */}
+      {mc.review ? (
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card-h">
+            <h3>Mid-cycle reflection</h3>
+            <span className="hint">Your July check-in input</span>
+          </div>
+          <div className="card-pad">
+            <MidCycleSelfForm
+              id={mc.review.id}
+              defaultSummary={mc.review.selfSummary ?? ""}
+              submitted={mc.review.selfStatus === "SUBMITTED"}
+            />
           </div>
         </div>
       ) : null}

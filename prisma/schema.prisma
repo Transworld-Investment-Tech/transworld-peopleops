@@ -1499,3 +1499,79 @@ model WhistleblowerReport {
   @@index([route])
   @@map("whistleblower_reports")
 }
+
+// TW-PERFCYCLE-V0380 — Performance-cycle follow-on (v0.38.0): mid-cycle review
+// (the July check-in) + calibration (the formal record). Three new tables.
+// Cross-entity refs to EXISTING tables (appraisal_cycles, employees, users,
+// appraisals) are BARE columns (FKs enforced in SQL only). The only Prisma
+// relation is CalibrationSession <-> CalibrationEntry (new parent/child,
+// cascade). Status vocabularies are CHECK-constrained TEXT. Mirrors public.*
+// created by supabase/migrations/0026_perf_cycle.sql.
+
+model MidCycleReview {
+  id                String    @id @default(cuid())
+  cycleId           String    @map("cycle_id")
+  employeeId        String    @map("employee_id")
+  employeeName      String    @map("employee_name")
+  selfSummary       String?   @map("self_summary")
+  selfStatus        String    @default("PENDING") @map("self_status")
+  selfSubmittedAt   DateTime? @map("self_submitted_at")
+  goalsNote         String?   @map("goals_note")
+  behaviorNote      String?   @map("behavior_note")
+  skillsNote        String?   @map("skills_note")
+  developmentNote   String?   @map("development_note")
+  managerSummary    String?   @map("manager_summary")
+  managerStatus     String    @default("PENDING") @map("manager_status")
+  reviewerId        String?   @map("reviewer_id")
+  reviewerName      String?   @map("reviewer_name")
+  managerReviewedAt DateTime? @map("manager_reviewed_at")
+  status            String    @default("OPEN")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@unique([cycleId, employeeId])
+  @@index([cycleId])
+  @@map("mid_cycle_reviews")
+}
+
+model CalibrationSession {
+  id              String             @id @default(cuid())
+  cycleId         String             @unique @map("cycle_id")
+  status          String             @default("DRAFT")
+  chairId         String?            @map("chair_id")
+  chairName       String?            @map("chair_name")
+  heldAt          DateTime?          @map("held_at")
+  finalizedById   String?            @map("finalized_by_id")
+  finalizedByName String?            @map("finalized_by_name")
+  finalizedAt     DateTime?          @map("finalized_at")
+  note            String?
+  entries         CalibrationEntry[]
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  @@map("calibration_sessions")
+}
+
+model CalibrationEntry {
+  id                   String             @id @default(cuid())
+  sessionId            String             @map("session_id")
+  employeeId           String             @map("employee_id")
+  employeeName         String             @map("employee_name")
+  grade                String?
+  jobFamily            String?            @map("job_family")
+  managerName          String?            @map("manager_name")
+  appraisalId          String?            @map("appraisal_id")
+  preliminaryRating    String?            @map("preliminary_rating")
+  indicativeMultiplier Decimal?           @map("indicative_multiplier") @db.Decimal(6, 4)
+  calibratedRating     String?            @map("calibrated_rating")
+  calibratedMultiplier Decimal?           @map("calibrated_multiplier") @db.Decimal(6, 4)
+  integrityGate        Boolean            @default(false) @map("integrity_gate")
+  note                 String?
+  session              CalibrationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  @@unique([sessionId, employeeId])
+  @@index([sessionId])
+  @@map("calibration_entries")
+}

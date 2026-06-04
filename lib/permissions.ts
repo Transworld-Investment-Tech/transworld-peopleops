@@ -30,6 +30,14 @@
 //     Permission count 34 -> 43; re-run `npm run auth:bootstrap` after this
 //     release (first bootstrap since v0.20.2).
 
+//
+// v0.38.0 — Performance-cycle follow-on:
+//   * NO new permissions. Adds two "Grow & Reward" sidebar entries —
+//     "Mid-cycle Reviews" and "Calibration" — both gated on the existing
+//     `performance.view` (managers, People Ops and the COO). Calibration write
+//     actions remain `performance.manage`; the calibration record is never
+//     shown to employees. No auth:bootstrap needed.
+
 export type Permission = { key: string; label: string };
 
 export const PERMISSIONS: Permission[] = [
@@ -305,6 +313,8 @@ export const NAV: NavSection[] = [
     label: "Grow & Reward",
     items: [
       { slug: "performance", label: "Performance", perm: "performance.view", icon: I.perf },
+      { slug: "performance/mid-cycle", label: "Mid-cycle Reviews", perm: "performance.view", icon: I.perf },
+      { slug: "performance/calibration", label: "Calibration", perm: "performance.view", icon: I.roles },
       { slug: "learning", label: "Learning & Development", perm: "learning.view", icon: I.learn },
       { slug: "compensation", label: "Compensation", perm: "compensation.view", icon: I.comp },
       { slug: "bonus", label: "Bonus", perm: "bonus.view", icon: I.bonus },
