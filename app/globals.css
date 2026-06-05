@@ -2495,3 +2495,30 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
   color: var(--red);
 }
 /* === END TW-LMS-LESSON-V0430 === */
+
+/* === TW-LMS-CSS-V0433 (marker: do not remove) — justified lesson prose + left-aligned check options === */
+.lesson p,
+.lesson .callout {
+  text-align: justify;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+.quiz-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quiz-opt {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  line-height: 1.55;
+  text-align: left;
+}
+.quiz-opt input {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+/* === END TW-LMS-CSS-V0433 === */

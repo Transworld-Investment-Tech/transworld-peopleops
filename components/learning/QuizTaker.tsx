@@ -62,9 +62,9 @@ export default function QuizTaker({
               </strong>{" "}
               {q.type === "MULTI" ? <span className="hint">(select all that apply)</span> : null}
             </p>
-            <div className="kv" style={{ gap: 6 }}>
+            <div className="quiz-opts">
               {q.options.map((o) => (
-                <label key={o.key} className="row" style={{ gap: 8, cursor: "pointer" }}>
+                <label key={o.key} className="quiz-opt">
                   <input
                     type={q.type === "MULTI" ? "checkbox" : "radio"}
                     name={`q_${q.id}`}
