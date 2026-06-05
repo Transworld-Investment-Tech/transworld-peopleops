@@ -5,15 +5,34 @@ import { getJobProfilesForList, jdStatusBadge } from "@/lib/jobframework";
 
 export const metadata = { title: "Job & Competency · Transworld PeopleOps" };
 
-export default async function JobProfilesPage() {
+export default async function JobProfilesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const me = await requirePermission("jobframework.view");
   const canManage = hasPermission(me, "jobframework.manage");
   const rows = await getJobProfilesForList();
+  const { status } = await searchParams;
+  const filter =
+    status === "PUBLISHED" || status === "DRAFT" || status === "UNSTAFFED" ? status : null;
 
   const total = rows.length;
   const published = rows.filter((r) => r.status === "PUBLISHED").length;
   const draft = rows.filter((r) => r.status === "DRAFT").length;
   const unstaffed = rows.filter((r) => r.employeeCount === 0).length;
+
+  const visible =
+    filter === "PUBLISHED" ? rows.filter((r) => r.status === "PUBLISHED")
+    : filter === "DRAFT" ? rows.filter((r) => r.status === "DRAFT")
+    : filter === "UNSTAFFED" ? rows.filter((r) => r.employeeCount === 0)
+    : rows;
+  const filterLabel =
+    filter === "PUBLISHED" ? "Published"
+    : filter === "DRAFT" ? "Draft"
+    : filter === "UNSTAFFED" ? "Unstaffed"
+    : null;
+  const activeStyle = { outline: "2px solid #1F4E79", outlineOffset: 2 } as const;
 
   return (
     <>
@@ -39,34 +58,50 @@ export default async function JobProfilesPage() {
       <JobCompetencyTabs />
 
       <div className="grid kpis">
-        <div className="card kpi">
+        <Link className="card kpi" href="/job-competency" aria-current={!filter ? "page" : undefined} style={!filter ? activeStyle : undefined}>
           <div className="lab">Job profiles</div>
           <div className="val">{total}</div>
-        </div>
-        <div className="card kpi">
+        </Link>
+        <Link className="card kpi" href="/job-competency?status=PUBLISHED" aria-current={filter === "PUBLISHED" ? "page" : undefined} style={filter === "PUBLISHED" ? activeStyle : undefined}>
           <div className="lab">Published</div>
           <div className="val">{published}</div>
-        </div>
-        <div className="card kpi">
+        </Link>
+        <Link className="card kpi" href="/job-competency?status=DRAFT" aria-current={filter === "DRAFT" ? "page" : undefined} style={filter === "DRAFT" ? activeStyle : undefined}>
           <div className="lab">Draft</div>
           <div className="val">{draft}</div>
-        </div>
-        <div className="card kpi">
+        </Link>
+        <Link className="card kpi" href="/job-competency?status=UNSTAFFED" aria-current={filter === "UNSTAFFED" ? "page" : undefined} style={filter === "UNSTAFFED" ? activeStyle : undefined}>
           <div className="lab">Unstaffed</div>
           <div className="val">{unstaffed}</div>
-        </div>
+        </Link>
       </div>
 
+      {filterLabel ? (
+        <p className="hint">
+          Showing <b>{filterLabel}</b> — {visible.length} of {total}.{" "}
+          <Link href="/job-competency" className="jc-link">Show all</Link>
+        </p>
+      ) : null}
+
       <div className="card">
-        {total === 0 ? (
+        {visible.length === 0 ? (
           <div className="card-pad">
             <div className="note">
               <span>ℹ</span>
               <div>
-                <b>No job profiles yet.</b>
-                {canManage
-                  ? " Use “Add job profile” to create the first one."
-                  : " Ask an HR admin to create the first one."}
+                {total === 0 ? (
+                  <>
+                    <b>No job profiles yet.</b>
+                    {canManage
+                      ? " Use “Add job profile” to create the first one."
+                      : " Ask an HR admin to create the first one."}
+                  </>
+                ) : (
+                  <>
+                    <b>Nothing matches this filter.</b>{" "}
+                    <Link href="/job-competency" className="jc-link">Show all</Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -83,7 +118,7 @@ export default async function JobProfilesPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {visible.map((r) => {
                 const s = jdStatusBadge(r.status);
                 return (
                   <tr key={r.id}>

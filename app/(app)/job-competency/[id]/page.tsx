@@ -7,6 +7,7 @@ import { storageConfigured } from "@/lib/storage";
 import { empInitials, statusBadge } from "@/lib/employees";
 import JobDescriptionCard from "@/components/jobcompetency/JobDescriptionCard";
 import { getScorecard, scorecardStatusBadge } from "@/lib/scorecards";
+import { getRoleTraining } from "@/lib/role-training";
 import { familyWeights } from "@/lib/scorecard-scoring";
 import type { EmploymentStatus } from "@prisma/client";
 
@@ -42,6 +43,8 @@ export default async function JobProfilePage({
 
   const scorecard = await getScorecard(p.id);
   const scb = scorecard ? scorecardStatusBadge(scorecard.status) : null;
+
+  const training = await getRoleTraining(p.id);
 
   return (
     <>
@@ -135,6 +138,53 @@ export default async function JobProfilePage({
           <p className="hint" style={{ marginTop: 10 }}>
             The six behaviors apply to every role and are scored alongside competencies at the annual review.
           </p>
+        </div>
+      </div>
+
+      <div className="card mt">
+        <div className="card-h">
+          <h3>Training for this role</h3>
+          <span className="hint">
+            {training.required.length} required · {training.recommended.length} recommended
+          </span>
+        </div>
+        <div className="card-pad">
+          <p className="hint" style={{ marginTop: 0 }}>
+            Everyone also completes the firm-wide mandatory set ({training.firmwide.length} modules).
+            The courses below are what this role adds — assigned automatically to anyone holding this profile.
+          </p>
+          {training.required.length === 0 && training.recommended.length === 0 ? (
+            <p className="faint">No role-specific training mapped yet.</p>
+          ) : (
+            <>
+              {training.required.length > 0 ? (
+                <>
+                  <div className="lab" style={{ marginTop: 6, marginBottom: 6 }}>Required</div>
+                  <div className="jc-reqs">
+                    {training.required.map((m) => (
+                      <span className="jc-req" key={"R" + m.code}>
+                        <span className="jc-req-lvl mono">{m.code}</span>
+                        <span className="jc-req-name">{m.title}</span>
+                      </span>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+              {training.recommended.length > 0 ? (
+                <>
+                  <div className="lab" style={{ marginTop: 12, marginBottom: 6 }}>Recommended</div>
+                  <div className="jc-reqs">
+                    {training.recommended.map((m) => (
+                      <span className="jc-req" key={"r" + m.code}>
+                        <span className="jc-req-lvl mono">{m.code}</span>
+                        <span className="jc-req-name">{m.title}</span>
+                      </span>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
 

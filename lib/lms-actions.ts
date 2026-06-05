@@ -407,39 +407,48 @@ export async function submitCheckAction(_prev: CheckState, fd: FormData): Promis
   const period = currentPeriodFor(mod.cadence, new Date());
   const now = new Date();
 
-  const existing = await prisma.learningRecord.findUnique({
-    where: { moduleId_employeeId_period: { moduleId, employeeId, period } },
-    select: { id: true, attemptCount: true, status: true },
-  });
+  // TW-LMS-SUBMIT-GUARD-V0431 — a persistence failure must not 500 the check page.
+  try {
+    const existing = await prisma.learningRecord.findUnique({
+      where: { moduleId_employeeId_period: { moduleId, employeeId, period } },
+      select: { id: true, attemptCount: true, status: true },
+    });
 
-  if (existing) {
-    await prisma.learningRecord.update({
-      where: { id: existing.id },
-      data: {
-        score: result.score,
-        passed: result.passed,
-        attemptCount: { increment: 1 },
-        lastAttemptAt: now,
-        status: result.passed ? "COMPLETED" : existing.status === "ASSIGNED" ? "IN_PROGRESS" : existing.status,
-        startedAt: existing.status === "ASSIGNED" ? now : undefined,
-        completedAt: result.passed ? now : undefined,
-      },
+    if (existing) {
+      await prisma.learningRecord.update({
+        where: { id: existing.id },
+        data: {
+          score: result.score,
+          passed: result.passed,
+          attemptCount: { increment: 1 },
+          lastAttemptAt: now,
+          status: result.passed ? "COMPLETED" : existing.status === "ASSIGNED" ? "IN_PROGRESS" : existing.status,
+          startedAt: existing.status === "ASSIGNED" ? now : undefined,
+          completedAt: result.passed ? now : undefined,
+        },
+      });
+    } else {
+      await prisma.learningRecord.create({
+        data: {
+          id: cuid(), moduleId, employeeId, period,
+          source: onBehalfId ? "MANDATORY" : "SELF",
+          status: result.passed ? "COMPLETED" : "IN_PROGRESS",
+          startedAt: now, completedAt: result.passed ? now : null,
+          score: result.score, passed: result.passed, attemptCount: 1, lastAttemptAt: now,
+        },
+      });
+    }
+    await writeAudit({
+      actorId: me.id, action: "learning.check.submit", entityType: "learning_record",
+      metadata: { moduleId, employeeId, period, score: result.score, passed: result.passed },
     });
-  } else {
-    await prisma.learningRecord.create({
-      data: {
-        id: cuid(), moduleId, employeeId, period,
-        source: onBehalfId ? "MANDATORY" : "SELF",
-        status: result.passed ? "COMPLETED" : "IN_PROGRESS",
-        startedAt: now, completedAt: result.passed ? now : null,
-        score: result.score, passed: result.passed, attemptCount: 1, lastAttemptAt: now,
-      },
-    });
+  } catch (e) {
+    console.error("submitCheckAction: persistence failed", e);
+    return {
+      ok: false,
+      error: "Your answers were graded, but saving the result failed. Please try again — if it keeps happening, contact People-Ops.",
+    };
   }
-  await writeAudit({
-    actorId: me.id, action: "learning.check.submit", entityType: "learning_record",
-    metadata: { moduleId, employeeId, period, score: result.score, passed: result.passed },
-  });
   revalidatePath(`/learning/modules/${moduleId}/check`);
   revalidatePath("/learning/compliance");
   return { ok: true, score: result.score, passed: result.passed };

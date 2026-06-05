@@ -321,14 +321,17 @@ export const HELP: Record<string, HelpEntry> = {
     viewPerm: "jobframework.view",
     purpose:
       `One role's full definition — grade, family, track, the job description, the competency set ` +
-      `and the scorecard weights that drive appraisal and bonus.`,
+      `the scorecard weights that drive appraisal and bonus, and the training assigned to the role.`,
     audience: `Viewable by most; editable by People Ops (jobframework.manage).`,
     actions: [
       { label: "Edit profile", perm: "jobframework.manage", what: `Changes grade, family, track and details for the role.` },
       { label: "Edit scorecard", perm: "jobframework.manage", what: `Sets the competency weights (40–60 / 20–30 / 20–30) that the bonus multiplier reads.` },
     ],
-    gotchas: [`The scorecard weights here decide the indicative score; the leadership family carries its own 55/20/25 weighting.`],
-    related: ["job-competency", "job-competency/[id]/edit", "job-competency/[id]/scorecard/edit"],
+    gotchas: [
+      `The scorecard weights here decide the indicative score; the leadership family carries its own 55/20/25 weighting.`,
+      `"Training for this role" is driven by the assignment matrix; everyone also completes the firm-wide mandatory set. Reserved (Draft) roles show their training too — it switches on automatically when someone is assigned the profile.`,
+    ],
+    related: ["job-competency", "job-competency/[id]/edit", "job-competency/[id]/scorecard/edit", "learning"],
     tutorialSection: "The job & competency framework",
   },
   "job-competency/[id]/edit": {
