@@ -435,6 +435,7 @@ export async function getEmployeeCompensation(
       fullName: true,
       preferredName: true,
       fte: true,
+      grade: true,
       jobProfile: { select: { title: true, grade: true } },
       payCategory: { select: { name: true } },
     },
@@ -507,7 +508,7 @@ export async function getEmployeeCompensation(
     employee: { id: employee.id, eeId: employee.eeId, name: personName(employee) },
     fte: employee.fte != null ? num(employee.fte) : 1,
     role: employee.jobProfile?.title ?? null,
-    grade: employee.jobProfile?.grade ?? null,
+    grade: personGrade(employee.grade, employee.jobProfile?.grade),
     payCategory: employee.payCategory?.name ?? null,
     current,
     versions,
@@ -702,7 +703,7 @@ export const CR_COO_AWARE = 1.15;
 
 /** Compa-ratio below this prioritizes the employee for the next raise milestone
  * (Ops Manual B1.3). Falling below the band minimum is a separate, harder escalation. */
-export const CR_PRIORITISE = 0.85;
+export const CR_PRIORITISE = 0.8;
 
 export type PositioningRow = {
   employeeId: string;

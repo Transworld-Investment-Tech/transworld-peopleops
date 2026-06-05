@@ -1432,7 +1432,7 @@ export const HELP: Record<string, HelpEntry> = {
     viewPerm: "compensation.view",
     purpose:
       `A read-only awareness view of where each person sits in their grade's band — their compa-ratio, ` +
-      `and flags for anyone below minimum or below 0.85. It's a lens for spotting pay that needs ` +
+      `and flags for anyone below minimum or below 0.80. It's a lens for spotting pay that needs ` +
       `attention; you act via change requests or a raise cycle.`,
     audience: `Finance/Exec/People Ops (compensation.view).`,
     actions: [
