@@ -36,16 +36,10 @@ export function levelLabel(n: number): string {
   return LEVELS.find((l) => l.value === n)?.label ?? `Level ${n}`;
 }
 
-// Job-family vocabulary (four families; control-function is a flag, not a fifth family).
-export const FAMILIES: { value: string; label: string }[] = [
-  { value: "BUSINESS_DEVELOPMENT", label: "Business Development" },
-  { value: "INVESTMENTS", label: "Investments" },
-  { value: "CONTROL_OPERATIONS", label: "Control & Operations" },
-  { value: "LEADERSHIP", label: "Leadership" },
-];
-export function familyLabel(v: string | null): string {
-  return FAMILIES.find((f) => f.value === v)?.label ?? "—";
-}
+// Job-family vocabulary lives in the pure (client-safe) module so the Job &
+// Competency form can share one source of truth. Re-exported here for the many
+// server-side callers that import it from "@/lib/jobframework".
+export { FAMILIES, familyLabel } from "./jobframework-vocab";
 export const TRACKS: { value: string; label: string }[] = [
   { value: "MANAGER", label: "Manager track" },
   { value: "EXPERT", label: "Expert track" },

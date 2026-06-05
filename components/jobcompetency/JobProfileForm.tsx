@@ -6,6 +6,7 @@ import {
   updateJobProfileAction,
   type FormState,
 } from "@/lib/jobframework-actions";
+import { FAMILIES } from "@/lib/jobframework-vocab";
 
 type Cat = { id: string; name: string; category: string | null };
 type Initial = {
@@ -23,12 +24,6 @@ type Initial = {
 
 const EMPTY: FormState = { ok: false };
 const DEFAULT_LEVEL = 2;
-const FAMILY_OPTS = [
-  { value: "BUSINESS_DEVELOPMENT", label: "Business Development" },
-  { value: "INVESTMENTS", label: "Investments" },
-  { value: "CONTROL_OPERATIONS", label: "Control & Operations" },
-  { value: "LEADERSHIP", label: "Leadership" },
-];
 const TRACK_OPTS = [
   { value: "MANAGER", label: "Manager track" },
   { value: "EXPERT", label: "Expert track" },
@@ -135,7 +130,7 @@ export default function JobProfileForm({
               <label htmlFor="family">Job family</label>
               <select id="family" name="family" defaultValue={initial.family ?? ""}>
                 <option value="">—</option>
-                {FAMILY_OPTS.map((f) => (
+                {FAMILIES.map((f) => (
                   <option key={f.value} value={f.value}>{f.label}</option>
                 ))}
               </select>

@@ -77,6 +77,12 @@ const CATALOG: { name: string; category: string }[] = [
   // Technology
   { name: "IT systems & security", category: "Technology" },
   { name: "Data protection (NDPR)", category: "Technology" },
+  // Business Development (new category, v0.44.0)
+  { name: "Business development & sales", category: "Business Development" },
+  { name: "Marketing & communications", category: "Business Development" },
+  // Administration (new category, v0.44.0)
+  { name: "People operations & HR", category: "Administration" },
+  { name: "Procurement & vendor management", category: "Administration" },
 ];
 
 // ---------------------------------------------------------------------------

@@ -10,13 +10,19 @@
 // The overall 1–5 maps to a banded multiplier; a rating of 1 on the "Integrity Above All" or
 // "Compliance by Default" behavior forces the multiplier to ×0 regardless.
 
-export type Family = "BUSINESS_DEVELOPMENT" | "INVESTMENTS" | "CONTROL_OPERATIONS" | "LEADERSHIP";
+export type Family =
+  | "BUSINESS_DEVELOPMENT"
+  | "INVESTMENTS"
+  | "CONTROL_OPERATIONS"
+  | "ADMIN_CORPORATE_SERVICES"
+  | "LEADERSHIP";
 
 export const FAMILY_WEIGHTS: Record<Family, { results: number; competencies: number; behaviors: number }> = {
   LEADERSHIP: { results: 0.55, competencies: 0.2, behaviors: 0.25 },
   BUSINESS_DEVELOPMENT: { results: 0.55, competencies: 0.2, behaviors: 0.25 },
   INVESTMENTS: { results: 0.5, competencies: 0.25, behaviors: 0.25 },
   CONTROL_OPERATIONS: { results: 0.5, competencies: 0.25, behaviors: 0.25 },
+  ADMIN_CORPORATE_SERVICES: { results: 0.5, competencies: 0.25, behaviors: 0.25 },
 };
 const DEFAULT_WEIGHTS = { results: 0.5, competencies: 0.25, behaviors: 0.25 };
 
