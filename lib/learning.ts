@@ -317,8 +317,9 @@ export async function getRecordForEmployee(
   completedAt: Date | null;
   reflection: string | null;
 } | null> {
-  const r = await prisma.learningRecord.findUnique({
-    where: { moduleId_employeeId: { moduleId, employeeId } },
+  const r = await prisma.learningRecord.findFirst({
+    where: { moduleId, employeeId },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       source: true,

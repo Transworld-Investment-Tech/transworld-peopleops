@@ -61,6 +61,8 @@ export const PERMISSIONS: Permission[] = [
   { key: "learning.view", label: "View learning & development" },
   { key: "learning.manage", label: "Manage learning & development" },
   { key: "learning.recommend", label: "Recommend development modules" },
+  { key: "learning.assign", label: "Manage the training matrix & auto-assign mandatory training" },
+  { key: "learning.compliance", label: "View the training-compliance dashboard" },
   { key: "compensation.view", label: "View compensation" },
   { key: "compensation.manage", label: "Manage compensation" },
   { key: "compensation.approve", label: "Approve compensation changes" },
@@ -109,6 +111,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "offboarding.view", // v0.41.0: COO/exec oversight of exits
     "performance.view",
     "learning.view",
+    "learning.compliance", // v0.42.0: exec view of training compliance
     "compensation.view",
     "compensation.approve",
     "payroll.view",
@@ -149,6 +152,8 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "learning.view",
     "learning.manage",
     "learning.recommend",
+    "learning.assign", // v0.42.0: matrix admin + mandatory auto-assign
+    "learning.compliance", // v0.42.0: training-compliance dashboard
     "compensation.view",
     "compensation.manage",
     "payroll.view",
@@ -190,6 +195,7 @@ export const ROLE_PERMISSIONS: Record<string, string[] | "*"> = {
     "stafffile.view", // v0.39.0: CCO oversight of regulated-role files
     "offboarding.view", // v0.41.0: CCO oversight of regulated-role exits
     "learning.view",
+    "learning.compliance", // v0.42.0: CCO view of training compliance
     "evidence.view",
     "controls.view",
     "payslips.view_own",
@@ -341,6 +347,8 @@ export const NAV: NavSection[] = [
       { slug: "performance/mid-cycle", label: "Mid-cycle Reviews", perm: "performance.view", icon: I.perf },
       { slug: "performance/calibration", label: "Calibration", perm: "performance.view", icon: I.roles },
       { slug: "learning", label: "Learning & Development", perm: "learning.view", icon: I.learn },
+      { slug: "learning/compliance", label: "Training Compliance", perm: "learning.compliance", icon: I.learn },
+      { slug: "learning/matrix", label: "Training Matrix", perm: "learning.assign", icon: I.roles },
       { slug: "compensation", label: "Compensation", perm: "compensation.view", icon: I.comp },
       { slug: "bonus", label: "Bonus", perm: "bonus.view", icon: I.bonus },
     ],

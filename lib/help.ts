@@ -121,6 +121,8 @@ export const DEEP_ROUTES: string[] = [
   "learning/modules/[moduleId]",
   "learning/modules/[moduleId]/edit",
   "learning/modules/new",
+  "learning/modules/[moduleId]/manage",
+  "learning/modules/[moduleId]/check",
   "learning/my",
   "learning/recommend",
   "compensation/[employeeId]",
@@ -1256,6 +1258,102 @@ export const HELP: Record<string, HelpEntry> = {
     ],
     gotchas: [`A recommendation is a nudge; mandatory assignment is a People-Ops/catalogue setting.`],
     related: ["learning", "learning/my"],
+    tutorialSection: "Learning & development",
+  },
+  "learning/compliance": {
+    slug: "learning/compliance",
+    navSlug: "learning/compliance",
+    section: "Grow & Reward",
+    title: "Training Compliance",
+    viewPerm: "learning.compliance",
+    purpose:
+      `The training-compliance dashboard: who has completed what, with the gaps surfaced worst-first. ` +
+      `It reads the assignment matrix against each active employee and shows, per person and per module, ` +
+      `whether a required item is completed, in progress, assigned, or not yet assigned. This is the read ` +
+      `that feeds the staff file and answers an examiner's "show me your training records".`,
+    audience: `People Ops, the CCO, and Exec (learning.compliance).`,
+    actions: [
+      { label: "Open a person", perm: "learning.compliance", what: `Drills into one employee's required training and evidence.` },
+      { label: "Author a check", perm: "learning.manage", what: `Jumps to a module's manage page to write or edit its knowledge-check.` },
+    ],
+    workflow: `Matrix (who needs what) + records (who's done what) → this dashboard ranks the gaps → clear them via assignment, completion, evidence, or a waiver.`,
+    gotchas: [
+      `A module counts as complete only when it is genuinely met — a graded module needs a PASS, not just a "read".`,
+      `"Not assigned" means a required module has no record yet for the current period; run the matrix auto-assign to create them.`,
+    ],
+    related: ["learning/matrix", "learning", "staff-files/[employeeId]"],
+    tutorialSection: "Learning & development",
+  },
+  "learning/matrix": {
+    slug: "learning/matrix",
+    navSlug: "learning/matrix",
+    section: "Grow & Reward",
+    title: "Training Matrix",
+    viewPerm: "learning.assign",
+    purpose:
+      `The role-and-grade assignment matrix and the mandatory auto-assigner. Each rule says a module is ` +
+      `required or recommended for everyone (firmwide), for a grade, or for a specific role. The auto-assigner ` +
+      `turns the mandatory rules into per-person learning records for the current period — always as a ` +
+      `preview first, then on a separate commit.`,
+    audience: `People Ops (learning.assign).`,
+    actions: [
+      { label: "Add / edit a rule", perm: "learning.assign", what: `Targets a module at ALL / a grade / a role as Required or Recommended.` },
+      { label: "Preview auto-assign", perm: "learning.assign", what: `Shows exactly which mandatory records would be created — nothing is written yet.` },
+      { label: "Commit auto-assign", perm: "learning.assign", what: `Creates the previewed mandatory records (source = Mandatory) for the current period.`, separation: true },
+    ],
+    workflow: `Define rules here → preview → commit → records appear in My Learning and the Training Compliance dashboard.`,
+    gotchas: [
+      `Auto-assign never writes on preview — you must commit deliberately.`,
+      `Annual modules re-assign per calendar year (the period key); on-join modules assign once.`,
+      `A module must be Published and mandatory, with at least one rule, to be auto-assigned.`,
+    ],
+    related: ["learning/compliance", "learning", "learning/modules/[moduleId]/manage"],
+    tutorialSection: "Learning & development",
+  },
+  "learning/modules/[moduleId]/manage": {
+    slug: "learning/modules/[moduleId]/manage",
+    navSlug: "learning",
+    section: "Grow & Reward",
+    title: "Manage module (catalogue & check)",
+    viewPerm: "learning.manage",
+    purpose:
+      `The authoring page for a module's compliance metadata and its gradable knowledge-check. Here you set ` +
+      `the curriculum code, domain, level, owner, whether it's mandatory, its cadence and pass mark, and you ` +
+      `write the check questions. Correct answers are stored server-side and never sent to the person taking it.`,
+    audience: `People Ops (learning.manage).`,
+    actions: [
+      { label: "Save catalogue & compliance", perm: "learning.manage", what: `Sets code/domain/level/owner/mandatory/cadence/pass mark on the module.` },
+      { label: "Add / edit a question", perm: "learning.manage", what: `Writes a single/multiple/true-false question with its correct answer and an explanation.` },
+      { label: "Reorder / deactivate", perm: "learning.manage", what: `Orders the check and retires questions without deleting the evidence trail.` },
+    ],
+    workflow: `Set the module's compliance metadata + pass mark → author the questions → publish → it becomes assignable from the Training Matrix.`,
+    gotchas: [
+      `If a module has a pass mark, completion requires a PASS — set the questions before making it mandatory.`,
+      `Correct answers are server-only; they are never exposed to the check-taker.`,
+    ],
+    related: ["learning/modules/[moduleId]", "learning/matrix", "learning/modules/[moduleId]/check"],
+    tutorialSection: "Learning & development",
+  },
+  "learning/modules/[moduleId]/check": {
+    slug: "learning/modules/[moduleId]/check",
+    navSlug: "learning",
+    section: "Grow & Reward",
+    title: "Take the knowledge-check",
+    viewPerm: "learning.view",
+    purpose:
+      `Where a person takes a module's gradable knowledge-check. Answers are graded on the server against the ` +
+      `pass mark; a pass completes the module's record for the current period and records the score, attempt ` +
+      `count and date as evidence. A fail can be retaken.`,
+    audience: `The assigned employee (self-scoped); People Ops can take it on someone's behalf where logins aren't yet provisioned.`,
+    actions: [
+      { label: "Submit answers", perm: "learning.view", what: `Grades the check server-side; a pass marks the record completed for this period.`, immutable: true },
+    ],
+    workflow: `Assigned (or self-enrolled) → take the check → pass → it shows complete in My Learning and the Training Compliance dashboard.`,
+    gotchas: [
+      `Your score is computed server-side; multiple-answer questions need the exact set right (no partial credit).`,
+      `A pass is the completion gate for a graded module — marking it "read" is not enough.`,
+    ],
+    related: ["learning/modules/[moduleId]", "learning/my", "learning/compliance"],
     tutorialSection: "Learning & development",
   },
   compensation: {

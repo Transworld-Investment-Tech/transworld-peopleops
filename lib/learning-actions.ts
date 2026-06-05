@@ -363,8 +363,8 @@ export async function selfEnrollAction(_prev: FormState, fd: FormData): Promise<
     return { ok: false, error: "This module isn't available to enroll in." };
   }
 
-  const existing = await prisma.learningRecord.findUnique({
-    where: { moduleId_employeeId: { moduleId, employeeId: employee.id } },
+  const existing = await prisma.learningRecord.findFirst({
+    where: { moduleId, employeeId: employee.id },
     select: { id: true },
   });
   if (existing) return { ok: false, error: "You're already enrolled in this module." };
@@ -512,8 +512,8 @@ export async function recommendModulesAction(_prev: FormState, fd: FormData): Pr
 
   let recommended = 0;
   for (const mid of okIds) {
-    const existing = await prisma.learningRecord.findUnique({
-      where: { moduleId_employeeId: { moduleId: mid, employeeId } },
+    const existing = await prisma.learningRecord.findFirst({
+      where: { moduleId: mid, employeeId },
       select: { id: true, status: true },
     });
     if (existing) {

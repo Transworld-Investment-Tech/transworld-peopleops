@@ -736,6 +736,13 @@ model LearningModule {
   records          LearningRecord[]
   createdAt        DateTime                   @default(now()) @map("created_at")
   updatedAt        DateTime                   @updatedAt @map("updated_at")
+  code             String?
+  domain           String?
+  level            String?
+  isMandatory      Boolean                    @default(false) @map("is_mandatory")
+  cadence          String?
+  owner            String?
+  passMark         Int?                       @map("pass_mark")
 
   @@map("learning_modules")
 }
@@ -768,8 +775,20 @@ model LearningRecord {
   module          LearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
+  period          String         @default("JOIN")
+  ruleId          String?        @map("rule_id")
+  evidenceDocId   String?        @map("evidence_doc_id")
+  evidenceNote    String?        @map("evidence_note")
+  attestedById    String?        @map("attested_by_id")
+  attestedAt      DateTime?      @map("attested_at")
+  waivedById      String?        @map("waived_by_id")
+  waivedReason    String?        @map("waived_reason")
+  waivedAt        DateTime?      @map("waived_at")
+  passed          Boolean?
+  attemptCount    Int            @default(0) @map("attempt_count")
+  lastAttemptAt   DateTime?      @map("last_attempt_at")
 
-  @@unique([moduleId, employeeId])
+  @@unique([moduleId, employeeId, period])
   @@index([employeeId])
   @@index([moduleId])
   @@index([status])
@@ -1750,3 +1769,44 @@ model OffboardingTask {
   @@map("offboarding_tasks")
 }
 // TW-WS4-MODELS-V0410-END
+
+
+// === TW-WS7-LMS-V0420 (marker: do not remove) =================================
+// WS7 full LMS (v0.42.0): the role/grade assignment matrix + the gradable
+// knowledge-check bank. Both reference the EXISTING learning_modules / job_profiles
+// / users tables by bare FK columns (DB-level FK only, no Prisma @relation), so no
+// existing model is edited here. Appended by setup.sh only if this marker is absent.
+model LearningAssignmentRule {
+  id           String   @id @default(cuid())
+  moduleId     String   @map("module_id")
+  scope        String
+  grade        String?
+  jobProfileId String?  @map("job_profile_id")
+  requirement  String
+  active       Boolean  @default(true)
+  createdById  String?  @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([moduleId])
+  @@index([scope])
+  @@map("learning_assignment_rules")
+}
+
+model LearningQuizQuestion {
+  id          String   @id @default(cuid())
+  moduleId    String   @map("module_id")
+  prompt      String
+  type        String
+  options     Json
+  correct     Json
+  explanation String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([moduleId])
+  @@map("learning_quiz_questions")
+}
+// === END TW-WS7-LMS-V0420 ====================================================
