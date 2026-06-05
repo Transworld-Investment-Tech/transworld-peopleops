@@ -188,6 +188,11 @@ export default async function EmployeeCompensationPage({
                       Above {positioning.crThreshold.toFixed(2)}
                     </span>
                   ) : null}
+                  {positioning.atTarget ? (
+                    <span className="b b-grn" style={{ marginLeft: 6 }}>
+                      At {positioning.prioritiseThreshold.toFixed(2)}
+                    </span>
+                  ) : null}
                   {positioning.prioritise ? (
                     <span className="b b-amb" style={{ marginLeft: 6 }}>
                       Below {positioning.prioritiseThreshold.toFixed(2)}

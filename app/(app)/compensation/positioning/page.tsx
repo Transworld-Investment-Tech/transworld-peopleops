@@ -180,6 +180,11 @@ export default async function PositioningPage() {
                           Above {crThreshold.toFixed(2)}
                         </span>
                       ) : null}
+                      {r.atTarget ? (
+                        <span className="b b-grn" style={{ marginLeft: 6 }}>
+                          At {CR_PRIORITISE.toFixed(2)}
+                        </span>
+                      ) : null}
                       {r.prioritise ? (
                         <span className="b b-amb" style={{ marginLeft: 6 }}>
                           Below {CR_PRIORITISE.toFixed(2)}

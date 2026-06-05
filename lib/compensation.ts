@@ -718,6 +718,7 @@ export type PositioningRow = {
   bandFlag: BandFlag | null; // null when no band to compare against
   cooAware: boolean; // compaRatio > CR_COO_AWARE
   prioritise: boolean; // compaRatio < CR_PRIORITISE — prioritize at next raise
+  atTarget: boolean; // at the floor target (displayed compaRatio equals CR_PRIORITISE)
   belowMin: boolean; // fully-loaded rate below band minimum — escalate
   fullyLoaded: number | null; // fully-loaded FTE-normalized monthly-equivalent
 };
@@ -772,7 +773,8 @@ export async function getCompensationPositioning(): Promise<CompensationPosition
       compaRatio: cr,
       bandFlag: flag,
       cooAware: cr !== null && cr > CR_COO_AWARE,
-      prioritise: cr !== null && cr < CR_PRIORITISE,
+      prioritise: cr !== null && cr < CR_PRIORITISE && cr.toFixed(2) !== CR_PRIORITISE.toFixed(2),
+      atTarget: cr !== null && cr.toFixed(2) === CR_PRIORITISE.toFixed(2),
       belowMin: flag === "BELOW_MIN",
       fullyLoaded: fl,
     };
@@ -829,6 +831,7 @@ export type EmployeePositioning = {
   bandFlag: BandFlag | null;
   cooAware: boolean;
   prioritise: boolean;
+  atTarget: boolean;
   belowMin: boolean;
   fullyLoaded: number | null;
   crThreshold: number;
@@ -884,7 +887,8 @@ export async function getEmployeePositioning(
     compaRatio: cr,
     bandFlag: flag,
     cooAware: cr !== null && cr > CR_COO_AWARE,
-    prioritise: cr !== null && cr < CR_PRIORITISE,
+    prioritise: cr !== null && cr < CR_PRIORITISE && cr.toFixed(2) !== CR_PRIORITISE.toFixed(2),
+    atTarget: cr !== null && cr.toFixed(2) === CR_PRIORITISE.toFixed(2),
     belowMin: flag === "BELOW_MIN",
     fullyLoaded: fl,
     crThreshold: CR_COO_AWARE,
