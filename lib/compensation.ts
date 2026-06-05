@@ -867,6 +867,7 @@ export async function getEmployeePositioning(
       bandFlag: null,
       cooAware: false,
       prioritise: false,
+      atTarget: false,
       belowMin: false,
       fullyLoaded: null,
       crThreshold: CR_COO_AWARE,
