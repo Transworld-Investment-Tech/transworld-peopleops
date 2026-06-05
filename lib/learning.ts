@@ -142,6 +142,10 @@ export async function getMyEmployee(
 export type LibraryRow = {
   id: string;
   title: string;
+  code: string | null;
+  domain: string | null;
+  level: string | null;
+  isMandatory: boolean;
   category: string;
   status: string;
   estimatedMinutes: number | null;
@@ -160,12 +164,12 @@ export type LibraryView = {
 
 export async function getLibrary(includeDrafts: boolean): Promise<LibraryView> {
   const modules = await prisma.learningModule.findMany({
-    where: includeDrafts ? {} : { status: "PUBLISHED" },
+    where: includeDrafts ? { status: { not: "ARCHIVED" } } : { status: "PUBLISHED" },
     include: {
       competencies: { select: { competencyId: true } },
       records: { select: { status: true, dueDate: true } },
     },
-    orderBy: [{ category: "asc" }, { title: "asc" }],
+    orderBy: [{ domain: "asc" }, { code: "asc" }, { category: "asc" }, { title: "asc" }],
   });
 
   const names = await competencyNames(
@@ -189,6 +193,10 @@ export async function getLibrary(includeDrafts: boolean): Promise<LibraryView> {
     return {
       id: m.id,
       title: m.title,
+      code: m.code,
+      domain: m.domain,
+      level: m.level,
+      isMandatory: m.isMandatory,
       category: m.category,
       status: m.status,
       estimatedMinutes: m.estimatedMinutes,
@@ -232,6 +240,11 @@ export type ModuleView = {
   module: {
     id: string;
     title: string;
+    code: string | null;
+    domain: string | null;
+    level: string | null;
+    isMandatory: boolean;
+    passMark: number | null;
     category: string;
     summary: string | null;
     body: string | null;
@@ -287,6 +300,11 @@ export async function getModule(moduleId: string): Promise<ModuleView | null> {
     module: {
       id: m.id,
       title: m.title,
+      code: m.code,
+      domain: m.domain,
+      level: m.level,
+      isMandatory: m.isMandatory,
+      passMark: m.passMark,
       category: m.category,
       summary: m.summary,
       body: m.body,
@@ -641,6 +659,7 @@ export function markdownToHtml(src: string | null | undefined): string {
   const out: string[] = [];
   let para: string[] = [];
   let list: { type: "ul" | "ol"; items: string[] } | null = null;
+  let callout: { warn: boolean; lines: string[] } | null = null;
 
   const flushPara = () => {
     if (para.length) {
@@ -655,28 +674,49 @@ export function markdownToHtml(src: string | null | undefined): string {
       list = null;
     }
   };
+  const flushCallout = () => {
+    if (callout) {
+      const cls = callout.warn ? "callout callout-warn" : "callout";
+      out.push(`<div class="${cls}">${inline(callout.lines.join(" "))}</div>`);
+      callout = null;
+    }
+  };
+  const flushAll = () => {
+    flushPara();
+    flushList();
+    flushCallout();
+  };
 
   for (const raw of lines) {
     const line = raw.trimEnd();
     if (line.trim() === "") {
-      flushPara();
-      flushList();
+      flushAll();
       continue;
     }
+    const quote = line.match(/^>(!)?\s?(.*)$/);
+    const hr = line.match(/^-{3,}$/);
     const h3 = line.match(/^###\s+(.*)$/);
     const h2 = line.match(/^##\s+(.*)$/);
     const ul = line.match(/^[-*]\s+(.*)$/);
     const ol = line.match(/^\d+\.\s+(.*)$/);
-    if (h3) {
+    if (quote) {
       flushPara();
       flushList();
+      const warn = quote[1] === "!";
+      if (!callout) callout = { warn, lines: [] };
+      callout.lines.push(quote[2]);
+    } else if (hr) {
+      flushAll();
+      out.push(`<hr class="rule" />`);
+    } else if (h3) {
+      flushAll();
       out.push(`<h3>${inline(h3[1])}</h3>`);
     } else if (h2) {
-      flushPara();
-      flushList();
+      flushAll();
       out.push(`<h2>${inline(h2[1])}</h2>`);
     } else if (ul) {
       flushPara();
+      flushCallout();
       if (!list || list.type !== "ul") {
         flushList();
         list = { type: "ul", items: [] };
@@ -684,6 +724,7 @@ export function markdownToHtml(src: string | null | undefined): string {
       list.items.push(ul[1]);
     } else if (ol) {
       flushPara();
+      flushCallout();
       if (!list || list.type !== "ol") {
         flushList();
         list = { type: "ol", items: [] };
@@ -691,10 +732,10 @@ export function markdownToHtml(src: string | null | undefined): string {
       list.items.push(ol[1]);
     } else {
       flushList();
+      flushCallout();
       para.push(line.trim());
     }
   }
-  flushPara();
-  flushList();
+  flushAll();
   return out.join("\n");
 }

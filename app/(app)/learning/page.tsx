@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { getLibrary, fmtMinutes, moduleStatusBadge } from "@/lib/learning";
+import { domainLabel, levelLabel } from "@/lib/lms";
 import LearningTabs from "@/components/learning/LearningTabs";
 
 export const metadata = { title: "Learning & Development · Transworld PeopleOps" };
@@ -67,8 +68,9 @@ export default async function LearningPage() {
             <table>
               <thead>
                 <tr>
+                  <th>Code</th>
                   <th>Module</th>
-                  <th>Category</th>
+                  <th>Domain</th>
                   <th>Competencies</th>
                   <th className="num">Time</th>
                   <th className="num">Enrolled</th>
@@ -79,12 +81,17 @@ export default async function LearningPage() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
+                    <td className="mono faint">{r.code ?? "—"}</td>
                     <td>
                       <Link href={`/learning/modules/${r.id}`} className="jc-link">
                         {r.title}
                       </Link>
+                      <div className="ln-meta" style={{ marginTop: 4 }}>
+                        {r.level ? <span className="b b-gry">{levelLabel(r.level)}</span> : null}
+                        {r.isMandatory ? <span className="b b-red">Mandatory</span> : null}
+                      </div>
                     </td>
-                    <td>{r.category}</td>
+                    <td>{r.domain ? domainLabel(r.domain) : <span className="faint">{r.category}</span>}</td>
                     <td>
                       {r.competencies.length ? (
                         <div className="ln-tags">

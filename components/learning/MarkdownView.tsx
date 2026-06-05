@@ -9,5 +9,5 @@ export default function MarkdownView({ source }: { source: string | null | undef
   if (!html) {
     return <p className="faint">No reading content has been added yet.</p>;
   }
-  return <div className="ln-body" dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className="lesson ln-body" dangerouslySetInnerHTML={{ __html: html }} />;
 }

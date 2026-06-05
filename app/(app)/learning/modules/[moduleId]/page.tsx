@@ -11,6 +11,7 @@ import {
   sourceBadge,
 } from "@/lib/learning";
 import MarkdownView from "@/components/learning/MarkdownView";
+import { domainLabel, levelLabel } from "@/lib/lms";
 import { SelfLearning, RosterControls } from "@/components/learning/RecordControls";
 import ModuleDelete from "@/components/learning/ModuleDelete";
 
@@ -42,19 +43,36 @@ export default async function ModulePage({
             ← Library
           </Link>
           <h1 className="serif" style={{ marginTop: 6 }}>
+            {view.module.code ? <span className="mono faint" style={{ fontSize: 16 }}>{view.module.code} · </span> : null}
             {view.module.title}
           </h1>
           <div className="ln-meta">
+            {view.module.domain ? <span className="b b-blu">{domainLabel(view.module.domain)}</span> : null}
+            {view.module.level ? <span className="b b-gry">{levelLabel(view.module.level)}</span> : null}
+            {view.module.isMandatory ? <span className="b b-red">Mandatory</span> : null}
+            {view.module.passMark != null ? <span className="b b-amb">Pass {view.module.passMark}%</span> : null}
             <span>{view.module.category}</span>
             <span className="dot-sep">{fmtMinutes(view.module.estimatedMinutes)}</span>
             {canManage ? <span className={`b ${sb.cls}`}>{sb.label}</span> : null}
           </div>
         </div>
-        {canManage ? (
-          <Link href={`/learning/modules/${moduleId}/edit`} className="btn">
-            Edit
-          </Link>
-        ) : null}
+        <div className="row" style={{ gap: 8 }}>
+          {view.module.status === "PUBLISHED" || canManage ? (
+            <Link href={`/learning/modules/${moduleId}/check`} className="btn btn-pri">
+              Take the knowledge-check
+            </Link>
+          ) : null}
+          {canManage ? (
+            <Link href={`/learning/modules/${moduleId}/manage`} className="btn">
+              Manage
+            </Link>
+          ) : null}
+          {canManage ? (
+            <Link href={`/learning/modules/${moduleId}/edit`} className="btn">
+              Edit
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {view.competencies.length ? (
