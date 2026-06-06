@@ -25,6 +25,8 @@ export const LMS_DOMAINS = [
   { value: "OPS", label: "Operations & Controls" },
   { value: "REG", label: "Regulatory & Compliance" },
   { value: "TEC", label: "Technology" },
+  { value: "BDV", label: "Business Development" },
+  { value: "PPL", label: "People Operations" },
 ] as const;
 export type LmsDomain = (typeof LMS_DOMAINS)[number]["value"];
 
