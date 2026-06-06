@@ -1,13 +1,13 @@
 # HANDOVER — Transworld PeopleOps Portal
-_Last updated: June 5, 2026 · **HEAD v0.43.7** · `main` · green in production (`<filled after push>`)_
+_Last updated: June 6, 2026 · **HEAD v0.46.0** · `main` · green in production (FND-108 seed `b33a42d`; v0.46.0 six-seed batch STAGED; docs `<filled after push>`)_
 
 Read this first when continuing, alongside `STATE_OF_APP.md`, `SCHEMA_DB.md`, `APP_INSTRUCTIONS.md`, and
 `PORTAL_DOC_RECONCILIATION.md`. Confirm pay/competency facts against the canonical framework doc
 (`Transworld_Competency_Scorecard_Reward_Framework_Canonical.md`); confirm WS-procedure + cycle facts
 against the **consolidated HR Operations Manual + Employee Handbook + the Manager & Employee PD Guides**
 (the canonical docs in Project files) — not memory. The **LMS curriculum is canonical** and the Portal
-catalogue matches it. The **LMS Curriculum Source Map** (in Project files) is the authoring-source index
-(primary/supporting governing doc + Tier + build mode per module) — not a role matrix.
+catalogue matches it. The **LMS Curriculum Source Map v2.0** (in Project files) is the authoring-source
+index (primary/supporting governing doc + Tier + build mode per module) — not a role matrix.
 
 ## What this project is
 An internal HR + payroll-control + compensation/bonus + compliance-evidence web portal for **TISL** — a
@@ -66,6 +66,11 @@ migrates/seeds/touches `.env`). For edits to existing files, ship an **idempoten
   override (v0.43.4 fix). `lib/sponsorship-reads.ts` still has the role-only pattern (parking lot).
 - **No self-approval** — approver ≠ preparer, action-layer enforced. **Profile versioning** is the
   pay-change contract. **Reuse before re-writing.**
+- **Project-file policy "PDFs" are readable — correcting an earlier wrong assumption (v0.45.1):** they are
+  bundles that ship a clean per-page `.txt` beside each page image, and some sources (HR Ops Manual, the LMS
+  Source Map) are plain UTF-8 text saved with a `.pdf`/`.docx` name. Always run a content-inventory
+  (`file`, `unzip -l`, look for per-page `.txt`) before assuming a source is unreadable. The Whistleblower,
+  Compliance Manual, ICF, Operational Manual, Code of Ethics, Handbook, and Retreat sources are all readable.
 
 ## Canonical models (do not re-litigate)
 Pay (gross × 17; fully-loaded = gross × 17 ÷ 12 ÷ FTE), bonus, scorecard multiplier, person grade
@@ -98,61 +103,96 @@ Onboarding/Offboarding (+WS4 depth); Disciplinary/Grievance/Whistleblower (WS5);
 - **v0.43.7 — FND-107 content (Conflicts of Interest):** `seed_fnd107_content.sql` — lesson + 20-question
   check (80%), PUBLISHED, 35 min; FROM POLICY (CO-POL-002 v3.0; supporting CO-POL-001, HR-POL-006);
   Tier A. No schema/permission change.
-- **Content:** FND-103 + FND-104 + FND-107 authored. 62 shells remain DRAFT; Tier A modules are CCO-owned.
+- **v0.44.0 — Job Family Restructure (code + schema):** families **four → five** (new Administration &
+  Corporate Services, `ADMIN_CORPORATE_SERVICES`); migration **`0033`** widens the `job_profiles.family`
+  CHECK (text + CHECK, no enum). Vocabulary consolidated into `lib/jobframework-vocab.ts`; scoring engine
+  `Family` union + `FAMILY_WEIGHTS` gain ADM at **50/25/25** (= Control & Ops fallback → **no bonus math
+  change**). Functional competencies **22 → 26** (categories Business Development + Administration; category
+  is free text). ADM revenue-free (authoring rule; no revenue primitive in the engine).
+- **v0.45.0 — Job Family Restructure (data):** new role profiles Procurement Officer (G2 ADM),
+  Marketing & Communications Officer (G2 BD), Office Administrator (G1 ADM); family moves People-Ops Officer
+  → ADM, COO/CFO → Leadership. Grades/pay untouched; RemCom ratified before commit.
+- **v0.45.1 — FND-108 content (Whistleblowing & Speaking Up):** `seed_fnd108_content.sql` — lesson +
+  20-question check (80%), 30 min; FROM POLICY (Whistleblower Policy v1.0; supporting Compliance Manual).
+  **Seed committed (`b33a42d`) and STAGED — running it by hand is the CCO publish gate (sets PUBLISHED).**
+  Data-only (no schema/permission change; `package.json` unchanged at 0.45.0). Logged two Whistleblower-
+  Policy doc-fixes (reporting email → whistleblower@transworldltd.com.ng; add the portal Report-a-Concern channel).
+- **v0.46.0 — FND-10X go-live batch (six content seeds; data-only):** the remaining Foundational tier authored
+  as one release. Graded Tier-A (CCO publish gate): **FND-105 NDPR** (CM §12.1 + HR Ops H3; standalone-policy GAP),
+  **FND-106 Confidentiality & Info-Sec** (CM §12.2 + §15.1 + HR Ops H4; dedicated phishing section, "when in doubt
+  DO NOT CLICK"; standalone-policy GAP), **FND-109 SEC/NGX Conduct** (CM §3 + §10 awareness-level market conduct +
+  §15; Op Manual §1; Code of Ethics) — each lesson + 20-Q check at 80%, 30/30/35 min. Lesson-only (pass_mark NULL):
+  **FND-101 Welcome** (WS1 Part 3 + WS2 Layer 3 six behaviors), **FND-102 How the firm works** (WS2 Parts 1-3 + WS1
+  Part 2 + HR Ops A/B), **FND-110 Documentation discipline** (ICF §1 + Op Manual §19 + WS2 Behavior 5). WS1/WS2 now
+  in Project files (refreshed) — the "WS absent" flag retired. One generate-only setup.sh writes all six seeds;
+  all STAGED. No schema/permission change. `package.json` → `0.46.0`.
+- **Content:** FND-103/104/107 authored & PUBLISHED; **FND-108 + the v0.46.0 batch (105/106/109/101/102/110)
+  authored, seeds staged (pending the CCO publish run)**. Any remaining FND shells DRAFT; Tier A modules CCO-owned.
 
 ## What is NEXT (recommended order)
-1. **LMS content authoring** — **FND-107 (Conflicts of Interest) DONE (v0.43.7, PUBLISHED).** Next: the rest
-   of the FND mandatory set (e.g. FND-106 Confidentiality & Information Security; FND-108 Whistleblowing &
-   Speaking Up), same content-seed pattern; Tier A → CCO review before publish.
+1. **LMS content authoring — FND-10X go-live: AUTHORED & STAGED.** PUBLISHED: FND-103/104/107. **Authored with
+   seeds STAGED: FND-108 + the v0.46.0 batch (FND-105/106/109 graded Tier-A; FND-101/102/110 lesson-only).**
+   The only remaining gate is the single consolidated CCO review of the four Tier-A modules (108/105/106/109);
+   after sign-off, run the seeds (graded publish then; lesson-only publish on run) and run auto-assign. **The "scanned-image, no text" blocker is CLEARED** — all
+   FND-10X sources are readable (see the lesson above). Remaining: **graded Tier-A (CCO gate) — FND-105
+   (NDPR), FND-106 (Info-Sec), FND-109 (SEC/NGX Conduct)**; **lighter — FND-101/102 (Tier C, lesson-only,
+   ADAPT), FND-110 (Tier B, lesson-only, FROM POLICY)**. FND-105/106 carry a standalone-policy GAP (author
+   from Compliance Manual §12.1/§12.2 + HR Ops Manual; CCO accepts the gap at publish). WS1/WS2 (FND-101/102)
+   absent from Project files — author from Handbook + Retreat + HR Ops Manual + canonical framework doc.
+   **Fastest path: batch all six into one release + one consolidated CCO review of the four Tier-A modules
+   (108/105/106/109). The go-live constraint is the CCO gate, not authoring.** Per-module workflow unchanged
+   (lesson + 20-question check → content seed); the batch just parallelizes the round-trips.
 2. **MANR role-specific mandatory layer (deferred):** three items have no 1:1 module (Best Execution,
    Client Funds Handling, Payroll & Statutory Remittance Controls) — author-new vs map-to-nearest.
 3. **Phase 4 governance:** Evidence Vault; Internal Controls + RemCo; generated Employment Agreement.
-4. **Doc fix:** Ops Manual + Handbook performance-calendar → calendar-year.
+4. **Doc fixes:** (a) Ops Manual + Handbook performance-calendar → calendar-year; (b) Whistleblower Policy
+   v1.0 — correct reporting email to **whistleblower@transworldltd.com.ng** and add the portal **Report a
+   Concern** channel (reflected in FND-108; owed in the policy at next review).
 5. **Reserved roles at hire:** set department/rung/track, flip DRAFT→PUBLISHED; training auto-switches on.
 6. **Hygiene:** align `lib/sponsorship-reads.ts` grade to `personGrade`; positioning-note copy mentions the
    green "At 0.80"; Dependabot/security rotations; retire vestigial `EmployeeDocument`.
 
 ## Continuation prompt (paste into the next conversation)
-> Continuing the Transworld PeopleOps Portal. HEAD is **v0.43.7** (`main`, green in production). Read the
-> five governing docs first — STATE_OF_APP, SCHEMA_DB, HANDOVER, APP_INSTRUCTIONS,
-> PORTAL_DOC_RECONCILIATION — plus the canonical framework doc and the **LMS Curriculum Source Map** (an
-> authoring-source index: primary/supporting governing doc + Tier + build mode per module — NOT a role
-> matrix). Confirm WS-procedure + cycle facts against the consolidated HR Operations Manual + Employee
-> Handbook + the Manager & Employee PD Guides (canonical docs in Project files), not memory. NOTE: the
-> performance cycle is the **calendar year (Jan–Dec), mid-cycle July** — PD Guides canonical; Ops Manual +
-> Handbook still print the stale June–May calendar (open doc-fix). The **LMS curriculum is canonical** and
-> the Portal catalogue matches it.
+> Continuing the Transworld PeopleOps Portal. HEAD is **v0.46.0** (`main`, green in production). Read the five
+> governing docs first — STATE_OF_APP, SCHEMA_DB, HANDOVER (repo root), APP_INSTRUCTIONS (`docs/APP_INSTRUCTIONS.md`,
+> static v0.1.1) — and PORTAL_DOC_RECONCILIATION if you have it locally (it is NOT in the public repo; ask me for it
+> or skip). Confirm pay/competency facts against the canonical framework doc and WS-procedure/cycle facts against the
+> consolidated HR Operations Manual + Employee Handbook + the PD Guides + the refreshed WS1–WS7 packs (all in Project
+> files), not memory. The **LMS Curriculum Source Map v2.0** is the authoring-source index. Performance cycle is the
+> **calendar year (Jan–Dec), mid-cycle July** — PD Guides canonical; Ops Manual + Handbook still print the stale
+> June–May calendar (open doc-fix).
 >
-> Where we are: the **WS7 full LMS is live** with the role-and-grade matrix (v0.42–v0.43.1), and **three
-> mandatory modules are now authored and PUBLISHED — FND-103 (Code of Conduct & Ethics), FND-104 (AML/CFT &
-> KYC Awareness), and FND-107 (Conflicts of Interest)** — each a lesson (callouts/dividers) + a 20-question
-> server-graded check at 80%, shipped as idempotent content seeds (`seed_fnd103_content.sql`,
-> `seed_fnd104_content.sql`, `seed_fnd107_content.sql`). Lesson prose is justified and check options are
-> left-aligned (v0.43.3, CSS marker `TW-LMS-CSS-V0433`). Compensation: individual page resolves grade via
-> `personGrade(employees.grade ?? jobProfile.grade)` (v0.43.4); compa floor target **0.80**
-> (`CR_PRIORITISE`); people at the floor show a green **"At 0.80"** chip (amber "Below 0.80" otherwise),
-> decided on the displayed 2-dp CR via the `atTarget` flag (v0.43.5; v0.43.6 hotfix). **75 models, migrations
-> to `0032`, 8 legacy enums (CHECK text), 51 permissions, no `auth:bootstrap` pending.**
+> Where we are: the **WS7 full LMS is live**. **The whole Foundational (FND-10X) mandatory + culture tier is now
+> authored.** PUBLISHED: FND-103/104/107. **Authored with content seeds committed and STAGED (run by hand to
+> publish):** FND-108 (Whistleblowing) and the **v0.46.0 batch** — graded Tier-A (CCO publish gate) **FND-105
+> Data Protection/NDPR, FND-106 Confidentiality & Info-Sec (incl. a phishing section), FND-109 SEC/NGX Conduct
+> Essentials** (each lesson + 20-Q server-graded check at 80%, 30/30/35 min); and lesson-only (pass_mark NULL)
+> **FND-101 Welcome, FND-102 How the firm works, FND-110 Documentation discipline.** Seeds are idempotent (module
+> UPDATE by code + questions upsert by id) and shipped via one generate-only setup.sh; **no schema/permission
+> change — migrations stay `0033`, `package.json` is `0.46.0`.** The binding go-live constraint is the **single
+> consolidated CCO review of the four Tier-A modules (108/105/106/109)** — a CCO pack was produced for one sitting.
+> The FND-105/106 standalone-policy GAP and the breach-window doc-fix (CM §12.2 "2 hours" vs HR Ops "same day")
+> are flagged in that pack. After CCO sign-off: run all the seeds, then run auto-assign to push the newly-published
+> mandatory modules to staff.
 >
-> Keep the working conventions (build in chat; one versioned zip per release with a generate-only setup.sh +
-> wrapper; for edits to existing files ship an idempotent, fail-loud patcher with exact-string anchors;
-> read-first from raw.githubusercontent.com / codeload tarball; real globals.css classes, additive CSS =
-> one marker-guarded palette-/typography-only block discussed first; no new Postgres enums — CHECK text;
-> bare snapshot FK columns except new-to-new; in-place column injection; new tables = marker-guarded append;
-> data seeds under seed/ run by hand; SQL inline in its own box + shipped; migration before the push;
-> auth:bootstrap only on a permission change; help entry updated + help:test before push; staging checks =
-> esbuild syntax + cross-file import/export resolution + pglast SQL parse + pure-engine tests + help:test,
-> PLUS tsc-with-prisma-stub for any change touching a shared type or server-action signature; American
-> English, ₦, navy/gold; deploy steps and SQL in separate boxes; npm run build before push; ship into
-> ~/transworld-peopleops, never ~/transworld-portal; unzip to a temp folder and run from there).
+> Job Family Restructure remains LIVE (v0.44.0 code+schema, v0.45.0 data): five families incl. Administration &
+> Corporate Services; 26 competencies / 9 categories; grades G0–G5; compa floor **0.80** (`CR_PRIORITISE`),
+> green "At 0.80" / amber "Below 0.80" via `atTarget`; grade via `personGrade`. **75 models, migrations to `0033`,
+> 8 legacy enums (CHECK text), 51 permissions, no `auth:bootstrap` pending.**
 >
-> What I want to build next: **continue the FND mandatory set** — the next content seed to the
-> FND-103/104/107 pattern (lesson with callouts + a 20-question check at 80%), built FROM POLICY off its
-> primary governing doc per the LMS Curriculum Source Map; Tier A → CCO review before publish. Give me the
-> lesson outline for sign-off first, then the full module + questions, then ship the content seed. Deferred:
-> the MANR role-specific mandatory layer (three items have no 1:1 catalogue module). Small later passes:
-> align `lib/sponsorship-reads.ts` grade to `personGrade`; add a half-sentence to the positioning note about
-> the green "At 0.80".
+> Keep all working conventions (build in chat; one versioned zip per release with a generate-only setup.sh + wrapper;
+> idempotent fail-loud patchers for edits to existing files; read-first from raw.githubusercontent.com / codeload
+> tarball; no new Postgres enums — CHECK text; data seeds under seed/ run by hand; SQL inline + shipped; npm run build
+> before push; help:test + tsc-with-prisma-stub for type/server-action changes; American English, ₦, navy/gold; ship
+> into ~/transworld-peopleops, never ~/transworld-portal; unzip to a TEMP folder and run from there).
+>
+> What to build next: your call. Candidates — (a) **MANR role-specific mandatory layer** (Best Execution, Client
+> Funds Handling, Payroll & Statutory Remittance Controls — author-new vs map-to-nearest); (b) **next curriculum
+> tier** (FND-201/202, CLA, REG, OPS from the Source Map); (c) **Phase 4 governance** (Evidence Vault; Internal
+> Controls + RemCo; generated Employment Agreement). Small later passes: align `lib/sponsorship-reads.ts` grade to
+> `personGrade`; positioning-note copy for the green "At 0.80"; doc-fixes (Ops Manual/Handbook calendar; WS2 compa
+> 0.85→0.80; the breach-window window; the Whistleblower email + Report-a-Concern channel).
+
 
 ## Working preferences (please keep)
 American English; ₦; navy/gold. Concrete deliverables over abstract questions; don't get ahead of the

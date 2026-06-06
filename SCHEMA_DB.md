@@ -1,13 +1,16 @@
 # SCHEMA_DB — Transworld PeopleOps Portal
-_Version: **v0.43.7** · PostgreSQL (Supabase) · Prisma 6_
+_Version: **v0.46.0** · PostgreSQL (Supabase) · Prisma 6_
 
 Source of truth: `prisma/schema.prisma` (snake_case via `@@map`/`@map`). Schema applied to Supabase via
 SQL; the app uses `prisma generate` only (NOT `prisma migrate`). **75 models** · **8 legacy Postgres
-enums** (no new enums) · migrations sequential to **`0032`**.
+enums** (no new enums) · migrations sequential to **`0033`**.
 
-> **No schema change in v0.43.2 → v0.43.7.** This session was content (a data seed), CSS, and TypeScript
-> in `lib/`/pages only — no new table, column, enum, migration, or permission. Migrations remain at
-> `0032`; permissions remain 51 (no `auth:bootstrap`).
+> **v0.44.0 — Job Family Restructure (schema):** migration **`0033`** widens the `job_profiles.family`
+> CHECK from four to **five** values (adds `ADMIN_CORPORATE_SERVICES`) — `text` + CHECK, **no new enum**.
+> Functional competencies **22 → 26** via a data seed (`competencies.category` is free text, **no CHECK**;
+> `kind` CHECK stays FUNCTIONAL/BEHAVIOR). **v0.45.0 — data only:** three new role profiles (stable ids
+> `jp_procurement_officer`/`jp_marketing_comms`/`jp_office_admin`) + family moves. No new table/column/enum;
+> permissions remain 51 (no `auth:bootstrap`). Migrations now at **`0033`**.
 
 ## Conventions (how schema is shaped here)
 - **No new Postgres enums.** New status vocabularies are `text` with a CHECK constraint.
@@ -37,13 +40,19 @@ enums** (no new enums) · migrations sequential to **`0032`**.
   `(module_id,employee_id,period)`.
 - **`0032_drop_legacy_learning_records_unique.sql` (v0.43.1)** — drops the stray
   `learning_records_module_employee_key` unique the `0031` swap missed; the correct 3-col unique stays.
+- **`0033_job_family_add_adm.sql` (v0.44.0)** — widens the `job_profiles.family` CHECK to five families
+  (drops the existing check by its ACTUAL `pg_constraint` name, re-adds canonical). Idempotent; no new
+  column/enum. Data seeds `seed_competency_2026_adm_bdv.sql` (competencies 22→26) and
+  `seed_restructure_profiles_2026.sql` (new role profiles + family moves) run by hand after it.
 
 > **v0.43.0 onward add no migrations.** Data seeds (not schema, run by hand) under `supabase/seed/`:
 > `seed_lms_curriculum.sql` (65 modules upsert by code + archive legacy), `seed_fnd103_content.sql`
 > (FND-103 body + 20 questions), **`seed_fnd104_content.sql` (v0.43.2 — FND-104 body + 20 questions,
 > PUBLISHED, 80% pass, 30 min; idempotent: module UPDATE by code + questions upsert by id)**,
 > **`seed_fnd107_content.sql` (v0.43.7 — FND-107 Conflicts of Interest body + 20 questions, PUBLISHED, 80%
-> pass, 35 min; idempotent: module UPDATE by code + questions upsert by id)**, and `seed_ws7_role_matrix.sql` (v0.43.1 — 8 DRAFT job_profiles + 164 JOB_PROFILE rules). Plus the original
+> pass, 35 min; idempotent: module UPDATE by code + questions upsert by id)**, **`seed_fnd108_content.sql` (v0.45.1 —
+> FND-108 Whistleblowing & Speaking Up body + 20 questions, PUBLISHED on run, 80% pass, 30 min; idempotent:
+> module UPDATE by code + questions upsert by id; **STAGED — running it is the CCO publish gate**)**, **the v0.46.0 FND-10X batch — `seed_fnd105_content.sql` (NDPR, graded), `seed_fnd106_content.sql` (Info-Sec, graded), `seed_fnd109_content.sql` (SEC/NGX Conduct, graded; all three 20 Q at 80%, PUBLISHED on run, 30/30/35 min, CCO publish gate), plus lesson-only `seed_fnd101_content.sql` / `seed_fnd102_content.sql` / `seed_fnd110_content.sql` (body + minutes + status PUBLISHED, pass_mark stays NULL); all idempotent + STAGED)**, and `seed_ws7_role_matrix.sql` (v0.43.1 — 8 DRAFT job_profiles + 164 JOB_PROFILE rules). Plus the original
 > `seed_fnd_lms.sql` / `seed_payroll_history.sql`. **Seed run order:** content seeds run AFTER
 > `seed_lms_curriculum.sql` (which creates the module shells); re-running the curriculum seed reverts a
 > module to DRAFT, so re-run its content seed afterward.
@@ -52,7 +61,7 @@ enums** (no new enums) · migrations sequential to **`0032`**.
 - **`learning_modules`** — catalogue. `code` (stable, partial-unique), `domain`/`level`/`owner`/`cadence`
   (CHECK text), `is_mandatory`, `pass_mark` (0–100), `status` (DRAFT/PUBLISHED/ARCHIVED),
   `estimated_minutes`, title/category/summary/`body` (markdown). `body` rendered by `markdownToHtml`
-  (callouts `>`/`>!`, dividers `---`). **FND-103 + FND-104 + FND-107 are PUBLISHED with content; the rest DRAFT.**
+  (callouts `>`/`>!`, dividers `---`). **FND-103 + FND-104 + FND-107 are PUBLISHED with content; FND-108's content seed is staged (pending the CCO publish run); the rest DRAFT.**
 - **`learning_assignment_rules`** — `module_id` (bare FK CASCADE), `scope`, `grade?`, `job_profile_id?`
   (bare FK SET NULL), `requirement`, `active`, `created_by_id?`.
 - **`learning_quiz_questions`** — `module_id` (bare FK CASCADE), `prompt`, `type` (SINGLE/MULTI/
