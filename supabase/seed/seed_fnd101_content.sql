@@ -1,15 +1,15 @@
 -- ===========================================================================
--- FND-101 Welcome to Transworld: mission, values & the six behaviors -- lesson only (v0.46.0 content)
--- Tier C, ADAPT. Sources: WS1 Part 3 (mission/vision/promises/asks) + WS2 Layer 3 (six behaviors);
---   supporting Employee Handbook v2.1 + Retreat Report 2026. Owner: People Operations.
--- Lesson-only: no graded check; pass_mark stays NULL. Publishes on run.
+-- seed_fnd101_content.sql -- FND-101 Welcome to Transworld: lesson + 10-question check (v0.46.1 content)
+-- Tier C, ADAPT (People Operations). Sources: WS1 Part 3 + WS2 Layer 3.
+-- v0.46.1: a 10-question server-graded check (80% pass) was ADDED to this previously lesson-only
+--   module. Owner-reviewed; Tier C/B -> NO CCO hard gate; publishes on run.
 -- DATA, not schema. Run AFTER seed_lms_curriculum.sql (which creates the module shell).
 -- Idempotent: module UPDATE by code; questions upsert by stable id (ON CONFLICT DO UPDATE).
 -- ===========================================================================
 
 BEGIN;
 
--- 1. lesson body + publish (lesson-only; pass_mark stays NULL)
+-- 1. lesson body + publish with the graded-check pass mark and estimated duration
 UPDATE "learning_modules"
 SET body = $body$Welcome to Transworld. This first module is short and matters more than its length suggests: it tells you what kind of firm you have joined, what we are trying to build together, and the handful of behaviors we ask of every single person here — from the newest intern to the Chairman.
 
@@ -66,9 +66,92 @@ We will be straight about the limits. We are not promising the easiest job in th
 - **WS2 Workforce Architecture & Jobs, Part 3, Layer 3 — Behavioral Expectations** (the six behaviors) — primary source.
 - Supporting: Employee Handbook v2.1 (culture voice); Transworld Retreat Report 2026 (tone and ownership mindset).
 - *Foundational induction module · content owner: People Operations. Tier C — adapted from the firm's own canonical material.*$body$,
+    pass_mark = 80,
     estimated_minutes = 15,
     status = 'PUBLISHED',
     updated_at = CURRENT_TIMESTAMP
 WHERE code = 'FND-101';
+
+-- 2. the 10-question graded knowledge-check (correct answers stored server-side)
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_01$id$, m.id, $p$What is Transworld's mission, as stated in this module?$p$, $t$SINGLE$t$, $o$[{"key": "a", "text": "To become the largest broker on the NGX"}, {"key": "b", "text": "To invest in our people — train them to be the best, pay them among the best, and grow what they earn as the firm grows"}, {"key": "c", "text": "To minimize payroll costs"}, {"key": "d", "text": "To avoid all regulatory scrutiny"}]$o$::jsonb, $c$["b"]$c$::jsonb, $e$The mission is to invest in our people: train them to be the best, pay them among the best, and grow what they earn as the firm grows.$e$, 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_02$id$, m.id, $p$Under the promise 'when the firm grows, you grow with it', the annual raise is:$p$, $t$SINGLE$t$, $o$[{"key": "a", "text": "The same percentage for everyone, top to bottom"}, {"key": "b", "text": "Larger for senior staff"}, {"key": "c", "text": "Negotiated individually in secret"}, {"key": "d", "text": "Guaranteed every year regardless of results"}]$o$::jsonb, $c$["a"]$c$::jsonb, $e$The growth everyone helps create becomes everyone's raise — the same percentage for everyone, top to bottom. We rise together or not at all.$e$, 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_03$id$, m.id, $p$At Transworld you must move into people management to reach senior pay.$p$, $t$TRUE_FALSE$t$, $o$[{"key": "a", "text": "True"}, {"key": "b", "text": "False"}]$o$::jsonb, $c$["b"]$c$::jsonb, $e$False. You can become a master of your craft without managing people — the expert path pays as well as the manager path. We treat people as a career, not a cost.$e$, 3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_04$id$, m.id, $p$Which of these are among the firm's six behaviors? (Select all that apply.)$p$, $t$MULTI$t$, $o$[{"key": "a", "text": "Integrity Above All"}, {"key": "b", "text": "Trust Through Documentation"}, {"key": "c", "text": "Compliance by Default"}, {"key": "d", "text": "Cut corners when busy"}]$o$::jsonb, $c$["a", "b", "c"]$c$::jsonb, $e$The six behaviors are Mastery & Growth, Integrity Above All, Compliance by Default, Ownership Mentality, Trust Through Documentation, and Lifting Others. Cutting corners is the opposite of what the firm asks.$e$, 4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_05$id$, m.id, $p$'The right way is always the best way' best expresses which behavior?$p$, $t$SINGLE$t$, $o$[{"key": "a", "text": "Lifting Others"}, {"key": "b", "text": "Integrity Above All"}, {"key": "c", "text": "Mastery & Growth"}, {"key": "d", "text": "Ownership Mentality"}]$o$::jsonb, $c$["b"]$c$::jsonb, $e$Integrity Above All — do the right thing, the right way, always, especially when it costs. The right way is always the best way.$e$, 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_06$id$, m.id, $p$The behaviour 'Compliance by Default' means:$p$, $t$SINGLE$t$, $o$[{"key": "a", "text": "Compliance is assembled only when an inspector arrives"}, {"key": "b", "text": "Compliance is built into how you work — aim to be ahead of the regulator"}, {"key": "c", "text": "Compliance applies only to senior staff"}, {"key": "d", "text": "Compliance is optional if results are strong"}]$o$::jsonb, $c$["b"]$c$::jsonb, $e$Compliance by Default means it is built into everyday work, never assembled when an inspector knocks — and we aim to be ahead of the regulator.$e$, 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_07$id$, m.id, $p$Which is one of the things the firm asks of you?$p$, $t$SINGLE$t$, $o$[{"key": "a", "text": "Master your craft and run toward hard problems"}, {"key": "b", "text": "Keep your knowledge to yourself for advantage"}, {"key": "c", "text": "Do the minimum to keep your seat"}, {"key": "d", "text": "Avoid documenting your work"}]$o$::jsonb, $c$["a"]$c$::jsonb, $e$The asks include master your craft, be someone people can trust, create value, solve hard things, and lift the people beside you.$e$, 7, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_08$id$, m.id, $p$The firm promises raises every year regardless of how the firm performs.$p$, $t$TRUE_FALSE$t$, $o$[{"key": "a", "text": "True"}, {"key": "b", "text": "False"}]$o$::jsonb, $c$["b"]$c$::jsonb, $e$False. The firm is explicit that it does not promise raises in years it does not grow. Reward follows results, and the rules are the same for everyone.$e$, 8, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_09$id$, m.id, $p$'Lifting Others' as a behaviour asks you to:$p$, $t$SINGLE$t$, $o$[{"key": "a", "text": "Compete so your scorecard always beats the team's"}, {"key": "b", "text": "Empower and develop the people around you; make the team stronger than your own scorecard"}, {"key": "c", "text": "Delegate all your own work"}, {"key": "d", "text": "Only help people more senior than you"}]$o$::jsonb, $c$["b"]$c$::jsonb, $e$Lifting Others means empowering and developing the people around you and making the team stronger than your own scorecard — giving people time, space, and resources.$e$, 9, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO "learning_quiz_questions"
+  ("id","module_id","prompt","type","options","correct","explanation","sort_order","active","created_at","updated_at")
+SELECT $id$q_fnd101_10$id$, m.id, $p$The promises in this module are best understood as:$p$, $t$SINGLE$t$, $o$[{"key": "a", "text": "Aspirations the firm may or may not honour"}, {"key": "b", "text": "Commitments you can hold the firm to, with rules identical for everyone"}, {"key": "c", "text": "Rules that apply only to new joiners"}, {"key": "d", "text": "Marketing for clients"}]$o$::jsonb, $c$["b"]$c$::jsonb, $e$They are commitments you can hold the firm to, not sentiments — and the rules are identical for all, with the upside genuinely shared.$e$, 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM "learning_modules" m WHERE m.code = 'FND-101'
+ON CONFLICT ("id") DO UPDATE SET
+  prompt = EXCLUDED.prompt, type = EXCLUDED.type, options = EXCLUDED.options, correct = EXCLUDED.correct,
+  explanation = EXCLUDED.explanation, sort_order = EXCLUDED.sort_order, active = true, updated_at = CURRENT_TIMESTAMP;
 
 COMMIT;

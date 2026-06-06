@@ -1,5 +1,10 @@
 # STATE_OF_APP — Transworld PeopleOps Portal
-_Version: **v0.46.0** · Updated: June 6, 2026 · `main` · green in production (FND-108 seed `b33a42d`; v0.46.0 six-seed batch STAGED; docs commit `<filled after push>`)_
+_Version: **v0.46.1** · Updated: June 6, 2026 · `main` · green in production (FND-108 seed `b33a42d`; v0.46.x seed batch STAGED; docs commit `<filled after push>`)_
+
+> **v0.46.1 — lighter-tier checks added (data-only).** FND-101/102/110 each gained a **10-question** server-graded
+> check at **80%** (`pass_mark` set from NULL → 80; also corrects the check-page "pass of 100%" display). Still
+> Tier C/B, owner People-Ops / CCO-function-review — **no CCO publish gate; publishes on run.** Seeds regenerated
+> idempotently; `package.json` → `0.46.1`. The graded Tier-A trio (105/106/109) is unchanged.
 
 ## Current status: WS7 LMS live + content authoring underway ✅
 The HRIS spine, the full compensation/reward stack, WS5 conduct & cases, the performance cycle,

@@ -1,5 +1,5 @@
 # SCHEMA_DB — Transworld PeopleOps Portal
-_Version: **v0.46.0** · PostgreSQL (Supabase) · Prisma 6_
+_Version: **v0.46.1** · PostgreSQL (Supabase) · Prisma 6_
 
 Source of truth: `prisma/schema.prisma` (snake_case via `@@map`/`@map`). Schema applied to Supabase via
 SQL; the app uses `prisma generate` only (NOT `prisma migrate`). **75 models** · **8 legacy Postgres

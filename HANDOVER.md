@@ -1,5 +1,7 @@
 # HANDOVER — Transworld PeopleOps Portal
-_Last updated: June 6, 2026 · **HEAD v0.46.0** · `main` · green in production (FND-108 seed `b33a42d`; v0.46.0 six-seed batch STAGED; docs `<filled after push>`)_
+_Last updated: June 6, 2026 · **HEAD v0.46.1** · `main` · green in production (FND-108 seed `b33a42d`; v0.46.x seed batch STAGED; docs `<filled after push>`)_
+
+> **v0.46.1:** FND-101/102/110 each gained a 10-question server-graded check at 80% (`pass_mark` NULL → 80; fixes the check-page "pass of 100%" display). Still Tier C/B, no CCO gate, publish on run. `package.json` → `0.46.1`.
 
 Read this first when continuing, alongside `STATE_OF_APP.md`, `SCHEMA_DB.md`, `APP_INSTRUCTIONS.md`, and
 `PORTAL_DOC_RECONCILIATION.md`. Confirm pay/competency facts against the canonical framework doc
