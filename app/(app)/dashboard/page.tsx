@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePermission } from "@/lib/auth/rbac";
+import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { ROLE_LABELS } from "@/lib/permissions";
 import { getDashboardData } from "@/lib/dashboard";
 
@@ -59,6 +59,7 @@ export default async function DashboardPage() {
   // inside getDashboardData().
   const me = await requirePermission("dashboard.view");
   const d = await getDashboardData(me);
+  const canMyPay = hasPermission(me, "compensation.view_own");
 
   // A "pure staff" viewer has a personal strip but no org tiles — they get the
   // welcoming, mobile-first layout (the greeting hero leads, no "Dashboard"
@@ -323,6 +324,7 @@ export default async function DashboardPage() {
           {d.hasPersonal ? (
             <div className="qa-list">
               <QAItem href="/payslips" label="My payslips" />
+              {canMyPay ? <QAItem href="/my-pay" label="My pay" /> : null}
               <QAItem href="/learning/my" label="My learning" badge={learnDue ? `${learnDue} due` : null} />
               <QAItem href="/leave/request" label="Request leave" />
               <QAItem

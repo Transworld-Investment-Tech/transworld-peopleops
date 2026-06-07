@@ -180,6 +180,19 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
   const canBonus = hasPermission(me, "bonus.view");
   const canPerformance = hasPermission(me, "performance.view");
   const canPayslipsOwn = hasPermission(me, "payslips.view_own");
+  // A manager/HR/exec viewer holds at least one org-management permission.
+  // A pure staff member holds none (their lone learning.view is personal), so
+  // the org-wide tiles are suppressed and they get the employee-first layout.
+  const isManager =
+    canEmployees ||
+    canAdminUsers ||
+    canComp ||
+    canLeaveManage ||
+    canPayroll ||
+    canBonus ||
+    canPerformance ||
+    hasPermission(me, "learning.compliance") ||
+    hasPermission(me, "learning.assign");
 
   // Every permitted read fires in parallel; unpermitted sections resolve to
   // undefined and are never queried.
@@ -189,7 +202,7 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
       canAdminUsers ? getUsersForList() : undefined,
       canAdminUsers ? getUnlinkedEmployees() : undefined,
       canComp ? getPendingRequestCount() : undefined,
-      canLearning ? getLibrary(false) : undefined,
+      isManager && canLearning ? getLibrary(false) : undefined,
       canLearning ? getHandbook(me.id) : undefined,
       canLearning ? getMyLearning(me.id) : undefined,
       canLeaveManage ? getLeaveDashboardStats() : undefined,

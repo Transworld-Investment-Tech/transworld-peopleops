@@ -1720,6 +1720,20 @@ export const HELP: Record<string, HelpEntry> = {
     related: ["payroll", "my-bonus", "account/profile"],
     tutorialSection: "Your self-service",
   },
+  "my-pay": {
+    slug: "my-pay",
+    navSlug: "my-pay",
+    section: "Payroll Control",
+    title: "My Pay",
+    viewPerm: "compensation.view_own",
+    purpose: `Your standing pay structure — basic salary, utility allowance, monthly gross, your fully-loaded monthly figure, and your tax treatment (PAYE or a flat rate). Read-only. This is the structure behind your pay; your month-by-month figures live under My Payslips.`,
+    audience: `Every employee, for themselves.`,
+    actions: [],
+    gotchas: [`These are your current compensation figures, not a payment instruction — pay runs in HumanManager / Remita. How your pay sits against your grade band is reviewed with HR during your appraisal, not shown here.`],
+    related: ["payslips", "my-bonus", "account/profile"],
+    tutorialSection: "Your self-service",
+  },
+
   "my-bonus": {
     slug: "my-bonus",
     navSlug: "my-bonus",

@@ -17,10 +17,22 @@ import PayBreakdown from "@/components/compensation/PayBreakdown";
 import CompProfileForm from "@/components/compensation/CompProfileForm";
 import CompChangeRequestForm from "@/components/compensation/CompChangeRequestForm";
 import CompChangeReview from "@/components/compensation/CompChangeReview";
+import BandBar from "@/components/compensation/BandBar";
 import type { CompFormInitial } from "@/components/compensation/CompFields";
 
 export const metadata = { title: "Compensation profile · Transworld PeopleOps" };
 
+function initialsOf(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((s) => s[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -56,24 +68,31 @@ const BLANK_INITIAL: CompFormInitial = {
 
 function ProfileSummary({ p }: { p: ProfileView }) {
   const tb = treatmentBadge(p.taxTreatment);
+  const gross = p.basicSalary + p.utilityAllowance;
   return (
-    <div className="kpis">
-      <div className="kpi">
-        <span className="lab">Basic salary</span>
-        <span className="val mono">{fmtNaira(p.basicSalary)}</span>
+    <>
+      <div className="comp-figs">
+        <div className="comp-fig">
+          <span className="comp-fig-lab">Basic salary</span>
+          <span className="comp-fig-val serif">{fmtNaira(p.basicSalary)}</span>
+        </div>
+        <div className="comp-fig">
+          <span className="comp-fig-lab">Utility allowance</span>
+          <span className="comp-fig-val serif">{fmtNaira(p.utilityAllowance)}</span>
+        </div>
+        <div className="comp-fig">
+          <span className="comp-fig-lab">Monthly gross</span>
+          <span className="comp-fig-val serif">{fmtNaira(gross)}</span>
+        </div>
       </div>
-      <div className="kpi">
-        <span className="lab">Utility allowance</span>
-        <span className="val mono">{fmtNaira(p.utilityAllowance)}</span>
-      </div>
-      <div className="kpi">
-        <span className="lab">Tax treatment</span>
-        <span className="val">
+      <div className="comp-tax">
+        <span className="comp-fig-lab">Tax treatment</span>
+        <span>
           <span className={`b ${tb.cls}`}>{tb.label}</span>
           {p.taxTreatment === "FLAT_RATE" ? <span className="faint"> {fmtPct(p.flatTaxRate)}</span> : null}
         </span>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -102,19 +121,28 @@ export default async function EmployeeCompensationPage({
 
   return (
     <>
-      <div className="page-h">
-        <div>
-          <h1 className="serif">{employee.name}</h1>
-          <p>
-            <span className="mono">{employee.eeId}</span>
-            {role ? ` · ${role}` : ""}
-            {grade ? ` · ${grade}` : ""}
-            {payCategory ? ` · ${payCategory}` : ""}
-          </p>
+      <div className="comp-head">
+        <div className="comp-head-id">
+          <span className="comp-avatar" aria-hidden="true">{initialsOf(employee.name)}</span>
+          <div>
+            <h1 className="serif comp-head-name">{employee.name}</h1>
+            <div className="comp-head-chips">
+              <span className="chip"><span className="chip-k">EID</span> {employee.eeId}</span>
+              {role ? <span className="chip"><span className="chip-k">Role</span> {role}</span> : null}
+              {grade ? <span className="chip"><span className="chip-k">Grade</span> {grade}</span> : null}
+              {payCategory ? <span className="chip"><span className="chip-k">Pay cat.</span> {payCategory}</span> : null}
+            </div>
+          </div>
         </div>
-        <Link href="/compensation" className="btn">
-          ← Register
-        </Link>
+        <div className="comp-head-right">
+          <Link href="/compensation" className="btn">← Register</Link>
+          {current ? (
+            <div className="comp-head-eff">
+              <span>Effective</span>
+              {fmtDate(current.effectiveDate)}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {!hasActiveRuleSet ? (
@@ -160,51 +188,38 @@ export default async function EmployeeCompensationPage({
         <div className="card mt">
           <div className="card-h">
             <h3>Band positioning</h3>
-            <span className="hint">{positioning.band.label}</span>
+            <span className="hint">{positioning.band.label} · fully-loaded basis</span>
           </div>
           <div className="card-pad">
-            <div className="kpis">
-              <div className="kpi">
-                <span className="lab">Monthly gross</span>
-                <span className="val mono">{fmtNaira(positioning.monthlyGross)}</span>
+            <div className="bandbar-stats">
+              <div className="bandbar-stat">
+                <span className="comp-fig-lab">Fully-loaded{fte !== 1 ? ` (FTE ${fte})` : ""}</span>
+                <span className="comp-fig-val serif">{fmtNaira(positioning.fullyLoaded)}</span>
               </div>
-              <div className="kpi">
-                <span className="lab">Fully-loaded{fte !== 1 ? ` (FTE ${fte})` : ""}</span>
-                <span className="val mono">{fmtNaira(positioning.fullyLoaded)}</span>
-              </div>
-              <div className="kpi">
-                <span className="lab">Band (min · mid · max)</span>
-                <span className="val mono">
-                  {fmtNaira(positioning.band.min)} · {fmtNaira(positioning.band.midpoint)} ·{" "}
-                  {fmtNaira(positioning.band.max)}
-                </span>
-              </div>
-              <div className="kpi">
-                <span className="lab">Compa-ratio</span>
-                <span className="val">
-                  <span className="mono">
-                    {positioning.compaRatio === null ? "—" : positioning.compaRatio.toFixed(2)}
-                  </span>
+              <div className="bandbar-stat">
+                <span className="comp-fig-lab">Compa-ratio</span>
+                <span className="comp-fig-val serif">
+                  {positioning.compaRatio === null ? "—" : positioning.compaRatio.toFixed(2)}
                   {positioning.cooAware ? (
-                    <span className="b b-red" style={{ marginLeft: 6 }}>
+                    <span className="b b-red" style={{ marginLeft: 8 }}>
                       Above {positioning.crThreshold.toFixed(2)}
                     </span>
                   ) : null}
                   {positioning.atTarget ? (
-                    <span className="b b-grn" style={{ marginLeft: 6 }}>
+                    <span className="b b-grn" style={{ marginLeft: 8 }}>
                       At {positioning.prioritiseThreshold.toFixed(2)}
                     </span>
                   ) : null}
                   {positioning.prioritise ? (
-                    <span className="b b-amb" style={{ marginLeft: 6 }}>
+                    <span className="b b-amb" style={{ marginLeft: 8 }}>
                       Below {positioning.prioritiseThreshold.toFixed(2)}
                     </span>
                   ) : null}
                 </span>
               </div>
-              <div className="kpi">
-                <span className="lab">Position</span>
-                <span className="val">
+              <div className="bandbar-stat">
+                <span className="comp-fig-lab">Position</span>
+                <span>
                   {positionFlagBadge ? (
                     <span className={`b ${positionFlagBadge.cls}`}>{positionFlagBadge.label}</span>
                   ) : (
@@ -213,9 +228,17 @@ export default async function EmployeeCompensationPage({
                 </span>
               </div>
             </div>
-            <p className="faint" style={{ marginTop: 10, marginBottom: 0 }}>
-              Compa-ratio is the fully-loaded, FTE-normalized monthly-equivalent (monthly gross × 17 ÷ 12 ÷ FTE)
-              ÷ grade midpoint, on the same basis as the bands. Awareness only — it doesn’t change pay.
+
+            <BandBar
+              min={positioning.band.min}
+              mid={positioning.band.midpoint}
+              max={positioning.band.max}
+              value={positioning.fullyLoaded ?? positioning.band.min}
+            />
+
+            <p className="faint" style={{ marginTop: 18, marginBottom: 0 }}>
+              The marker is the fully-loaded, FTE-normalized monthly-equivalent (monthly gross × 17 ÷ 12 ÷ FTE)
+              against the {grade} midpoint, on the same basis as the bands. Awareness only — it doesn’t change pay.
               {positioning.belowMin ? " This rate is below the band minimum — escalate to the COO." : ""}
             </p>
           </div>

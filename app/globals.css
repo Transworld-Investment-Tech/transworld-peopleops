@@ -3150,3 +3150,247 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
   }
 }
 /* === END TW-DASH-V0560 === */
+
+
+/* === TW-BANDBAR-V0570 (marker: do not remove) — Compensation design refresh
+   (surface #3): the record header (avatar + serif name + grade chips + effective
+   date), the serif money figures, the salary-band POSITION BAR (HR-only), and
+   the employee "My Pay" page. Appended by the v0.57.0 setup; additive only;
+   reuses the theme + --gold tokens. ============================================ */
+
+/* Record header — used by the admin comp record AND the employee My Pay page. */
+.comp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.comp-head-id {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.comp-avatar {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--navy) 0%, var(--navy-3) 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif), serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.comp-head-name {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  line-height: 1.1;
+}
+.comp-head-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.comp-head-chips .chip {
+  display: inline-flex;
+  align-items: baseline;
+  width: auto;
+  height: auto;
+  gap: 6px;
+  background: var(--line-2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.comp-head-chips .chip-k {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: var(--faint);
+}
+.comp-head-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex: none;
+}
+.comp-head-eff {
+  text-align: right;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.comp-head-eff span {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: var(--faint);
+}
+
+/* Serif money figures (Current profile / My Pay). */
+.comp-figs {
+  display: grid;
+  gap: 18px 32px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.comp-fig {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.comp-fig-lab {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.comp-fig-val {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  color: var(--navy);
+}
+.comp-fig-val.serif {
+  font-family: var(--font-serif), serif;
+}
+.comp-fig-lg {
+  font-size: 34px;
+}
+.comp-tax {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-2);
+}
+
+/* Band position bar — HR-only (admin comp record). */
+.bandbar-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 36px;
+  margin-bottom: 26px;
+}
+.bandbar-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bandbar-stat .comp-fig-val {
+  display: inline-flex;
+  align-items: center;
+}
+.bandbar {
+  margin-top: 6px;
+}
+.bandbar-track {
+  position: relative;
+  height: 8px;
+  border-radius: 6px;
+  background: var(--line-2);
+}
+.bandbar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--navy-3);
+  opacity: 0.5;
+}
+.bandbar-mid {
+  position: absolute;
+  top: -4px;
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--gold);
+  transform: translateX(-50%);
+}
+.bandbar-handle {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--navy);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(11, 31, 58, 0.35);
+  transform: translate(-50%, -50%);
+}
+.bandbar-scale {
+  position: relative;
+  height: 40px;
+  margin-top: 12px;
+}
+.bandbar-pt {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bandbar-pt.min {
+  left: 0;
+  align-items: flex-start;
+  text-align: left;
+}
+.bandbar-pt.max {
+  right: 0;
+  align-items: flex-end;
+  text-align: right;
+}
+.bandbar-pt.mid {
+  transform: translateX(-50%);
+  align-items: center;
+  text-align: center;
+}
+.bandbar-pt-lab {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: var(--faint);
+}
+.bandbar-pt-val {
+  font-family: var(--font-mono), monospace;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.bandbar-pt.mid .bandbar-pt-val {
+  color: var(--gold-deep);
+}
+
+/* Mobile. */
+@media (max-width: 640px) {
+  .comp-head {
+    flex-direction: column;
+  }
+  .comp-head-right {
+    align-items: flex-start;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .comp-head-eff {
+    text-align: left;
+  }
+  .comp-fig-val {
+    font-size: 26px;
+  }
+}
+/* === END TW-BANDBAR-V0570 === */
