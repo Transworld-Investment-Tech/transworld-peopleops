@@ -40,7 +40,7 @@ INSERT INTO "learning_assignment_rules"
   ("id","module_id","scope","grade","job_profile_id","requirement","active","created_at","updated_at")
 SELECT 'lr_' || m.id, m.id, 'ALL', NULL, NULL, 'REQUIRED', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM "learning_modules" m
-WHERE m.code IN ('FND-101','FND-103','FND-104','FND-105','FND-106','FND-107','FND-108','FND-109')
+WHERE m.code IN ('FND-101','FND-102','FND-103','FND-104','FND-105','FND-106','FND-107','FND-108','FND-109','FND-110')
   AND NOT EXISTS (
     SELECT 1 FROM "learning_assignment_rules" r
     WHERE r.module_id = m.id AND r.scope = 'ALL' AND r.grade IS NULL AND r.job_profile_id IS NULL
