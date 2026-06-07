@@ -2595,3 +2595,196 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
 .content:has(.aud-wide) { max-width: 1480px; }
 .table-scroll { overflow-x: auto; }
 /* === END TW-AUDIT-WIDE-V0530 === */
+
+/* === TW-LMS-FILTER-V0540 (marker: do not remove) — L&D library command toolbar
+   (search + level select + multi-select category + dismissable filter pills) and
+   the refreshed dense module table with a per-domain colour tab on the first cell.
+   Surface #1 of the portal design refresh; also introduces the --gold accent
+   tokens used across the refreshed language. Appended by the v0.54.0 setup.
+   Additive only — new .lib-* classes; nothing existing is restyled. ===== */
+:root {
+  --gold: #b8960c;
+  --gold-deep: #7d4e00;
+  --gold-soft: #fbf3d6;
+}
+
+.lib-tool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.lib-search {
+  flex: 1 1 200px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--faint);
+}
+.lib-search:focus-within {
+  border-color: var(--navy-3);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+.lib-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  height: 36px;
+}
+
+.lib-sel {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  font: inherit;
+  font-size: 13px;
+  color: var(--navy);
+  cursor: pointer;
+}
+.lib-sel:focus {
+  outline: none;
+  border-color: var(--navy-3);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.lib-ms { position: relative; }
+.lib-ms-btn {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  font: inherit;
+  font-size: 13px;
+  color: var(--navy);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.lib-ms-btn:hover { border-color: var(--navy-3); }
+.lib-ms-btn .ct {
+  font-size: 11px;
+  color: #fff;
+  background: var(--gold);
+  border-radius: 999px;
+  padding: 0 7px;
+  line-height: 17px;
+}
+.lib-ms-pop {
+  position: absolute;
+  z-index: 30;
+  top: 44px;
+  left: 0;
+  width: 268px;
+  max-height: 320px;
+  overflow: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+}
+.lib-ms-opt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink);
+}
+.lib-ms-opt:hover { background: var(--bg); }
+.lib-ms-opt .bx {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #c2cad8;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  flex: none;
+}
+.lib-ms-opt.on .bx { background: var(--gold); border-color: var(--gold); }
+.lib-ms-opt .cd {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--faint);
+  margin-left: auto;
+}
+
+.lib-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.lib-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gold-soft);
+  border: 1px solid var(--gold);
+  color: var(--gold-deep);
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 7px 3px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.lib-pill:hover { background: #f6ead0; }
+.lib-pill-clear {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--muted);
+  padding: 3px 11px;
+}
+.lib-pill-clear:hover { background: var(--bg); }
+
+.lib-count {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 12px;
+}
+
+.lib-table { width: 100%; border-collapse: collapse; }
+.lib-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+  padding: 0 12px 9px;
+}
+.lib-table th.num { text-align: right; }
+.lib-table td {
+  padding: 11px 12px;
+  border-top: 1px solid var(--line-2);
+  font-size: 13px;
+  color: var(--ink);
+  vertical-align: top;
+}
+.lib-table td.num { text-align: right; color: var(--muted); }
+.lib-table tbody tr td:first-child { border-left: 3px solid var(--line); }
+.lib-table tbody tr:hover td { background: var(--bg); }
+.lib-dom { font-size: 12px; font-weight: 500; }
+.lib-empty { color: var(--faint); padding: 18px 4px; }
+/* === END TW-LMS-FILTER-V0540 === */
