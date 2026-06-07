@@ -27,7 +27,11 @@ export default async function JobProfilePage({
   const subtitle = [p.grade ? `Grade ${p.grade}` : null, p.department].filter(Boolean).join(" · ");
   const ladder = ladderStageFor(p.grade);
 
-  const jd = await getLatestDocument("job_profile", p.id, "JOB_DESCRIPTION");
+  const [jd, scorecard, training] = await Promise.all([
+    getLatestDocument("job_profile", p.id, "JOB_DESCRIPTION"),
+    getScorecard(p.id),
+    getRoleTraining(p.id),
+  ]);
   const storageReady = storageConfigured();
   const jdView = jd
     ? {
@@ -40,11 +44,7 @@ export default async function JobProfilePage({
         }),
       }
     : null;
-
-  const scorecard = await getScorecard(p.id);
   const scb = scorecard ? scorecardStatusBadge(scorecard.status) : null;
-
-  const training = await getRoleTraining(p.id);
 
   return (
     <>

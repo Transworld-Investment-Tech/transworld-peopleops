@@ -36,7 +36,7 @@
   padding: 0;
 }
 body {
-  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   background: var(--bg);
   color: var(--ink);
   font-size: 14px;
@@ -44,11 +44,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 .mono {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
 }
 .serif {
-  font-family: "Spectral", serif;
+  font-family: var(--font-serif), serif;
 }
 
 /* layout */
@@ -87,13 +87,13 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 .brand-mark span {
-  font-family: "Spectral", serif;
+  font-family: var(--font-serif), serif;
   font-weight: 700;
   color: #fff;
   font-size: 18px;
 }
 .brand-name {
-  font-family: "Spectral", serif;
+  font-family: var(--font-serif), serif;
   color: #fff;
   font-weight: 600;
   font-size: 15px;
@@ -234,7 +234,7 @@ body {
   margin-bottom: 20px;
 }
 .page-h h1 {
-  font-family: "Spectral", serif;
+  font-family: var(--font-serif), serif;
   font-size: 25px;
   font-weight: 600;
   letter-spacing: -0.2px;
@@ -312,7 +312,7 @@ body {
   font-weight: 600;
 }
 .kpi .val {
-  font-family: "Spectral", serif;
+  font-family: var(--font-serif), serif;
   font-size: 27px;
   font-weight: 600;
   margin-top: 7px;
@@ -454,7 +454,7 @@ tbody tr:hover {
   height: 38px;
 }
 .login-title {
-  font-family: "Spectral", serif;
+  font-family: var(--font-serif), serif;
   font-size: 20px;
   font-weight: 600;
   color: var(--ink);
@@ -1988,7 +1988,7 @@ tbody tr:hover {
   max-width: 760px;
 }
 .ln-body h2 {
-  font-family: "Spectral", serif;
+  font-family: var(--font-serif), serif;
   font-size: 20px;
   margin: 22px 0 8px;
 }
@@ -2008,7 +2008,7 @@ tbody tr:hover {
   margin: 3px 0;
 }
 .ln-body code {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono), monospace;
   background: var(--line-2);
   padding: 1px 5px;
   border-radius: 4px;
@@ -2090,7 +2090,7 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
 .pay-bar .card-pad { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
 .pay-totals { display: flex; flex-wrap: wrap; gap: 16px 26px; }
 .pay-totals .t .t-lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--faint); font-weight: 600; }
-.pay-totals .t .t-val { font-family: "Spectral", serif; font-size: 18px; font-weight: 600; margin-top: 1px; letter-spacing: -0.2px; }
+.pay-totals .t .t-val { font-family: var(--font-serif), serif; font-size: 18px; font-weight: 600; margin-top: 1px; letter-spacing: -0.2px; }
 .pay-totals .t.payable .t-val { color: var(--navy); }
 .pay-bar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pay-bar-actions form { display: inline; }
@@ -2419,7 +2419,7 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
   margin-top: 0;
 }
 .lesson h2 {
-  font-family: "Spectral", serif;
+  font-family: var(--font-serif), serif;
   font-size: 1.32rem;
   line-height: 1.3;
   color: var(--navy);
@@ -2522,3 +2522,67 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
   flex: 0 0 auto;
 }
 /* === END TW-LMS-CSS-V0433 === */
+
+
+/* === TW-UI-POLISH-V0520 (marker: do not remove) — KPI/stat-card self-sufficiency,
+   auto-fit stat grid, and route loading skeletons. Appended by the v0.52.0 setup.
+   Additive only; reuses the theme palette. ============================== */
+
+/* The KPI/stat system is now self-contained: it no longer depends on the call
+   site pairing .kpis with .grid (display:grid) or .kpi with .card (chrome).
+   auto-fit lets a 3-stat row fill the width instead of leaving a trailing empty
+   column, and stays responsive without a media query. */
+.kpis {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.kpi:not(.card) {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.kpi .lab,
+.kpi .val {
+  display: block;
+}
+.kpi .val {
+  text-align: left;
+}
+
+/* Route loading skeletons — used by app/(app)/loading.tsx. */
+.sk {
+  position: relative;
+  overflow: hidden;
+  background: var(--line-2);
+  border-radius: 6px;
+}
+.sk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent
+  );
+  animation: tw-shimmer 1.25s ease-in-out infinite;
+}
+@keyframes tw-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.sk-title { height: 24px; width: 220px; }
+.sk-sub { height: 13px; width: 320px; max-width: 70%; margin-top: 10px; }
+.sk-lab { height: 11px; width: 60%; }
+.sk-val { height: 26px; width: 45%; margin-top: 10px; }
+.sk-line { height: 13px; width: 100%; margin: 9px 0; }
+.sk-line.short { width: 55%; }
+@media (prefers-reduced-motion: reduce) {
+  .sk::after { animation: none; }
+}
+/* === END TW-UI-POLISH-V0520 === */

@@ -34,10 +34,12 @@ function isoDay(d: Date): string {
 
 export default async function MyPerformancePage() {
   const me = await requirePermission("performance.self");
-  const data = await getMyPerformance(me.id);
-  const gs = await getMyGoalSetting(me.id);
-  const sa = await getMySelfAssessment(me.id);
-  const mc = await getMyMidCycle(me.id);
+  const [data, gs, sa, mc] = await Promise.all([
+    getMyPerformance(me.id),
+    getMyGoalSetting(me.id),
+    getMySelfAssessment(me.id),
+    getMyMidCycle(me.id),
+  ]);
 
   if (!data.linked) {
     return (

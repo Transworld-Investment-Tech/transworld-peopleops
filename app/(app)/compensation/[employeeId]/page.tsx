@@ -87,7 +87,10 @@ export default async function EmployeeCompensationPage({
   const canManage = hasPermission(me, "compensation.manage");
   const canApprove = hasPermission(me, "compensation.approve");
 
-  const data = await getEmployeeCompensation(employeeId);
+  const [data, sponsorships] = await Promise.all([
+    getEmployeeCompensation(employeeId),
+    getEmployeeSponsorships(employeeId),
+  ]);
   if (!data) notFound();
 
   const { employee, fte, role, grade, payCategory, current, versions, hasActiveRuleSet, breakdown, pending, pendingPreview } =
@@ -95,7 +98,6 @@ export default async function EmployeeCompensationPage({
 
   const monthlyGross = current ? current.basicSalary + current.utilityAllowance : null;
   const positioning = await getEmployeePositioning(grade, monthlyGross, fte);
-  const sponsorships = await getEmployeeSponsorships(employeeId);
   const positionFlagBadge = positioning.bandFlag ? bandFlagBadge(positioning.bandFlag) : null;
 
   return (
