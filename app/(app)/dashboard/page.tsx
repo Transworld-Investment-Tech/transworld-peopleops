@@ -12,6 +12,47 @@ function ngn(n: number): string {
   return `₦${Math.round(n).toLocaleString("en-NG")}`;
 }
 
+// Time-of-day greeting computed in the firm's timezone (Lagos / WAT), never the
+// server's — a Vercel function in us-west-2 must not greet a Lagos user by its
+// own clock.
+function greeting(): string {
+  const hourStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Lagos",
+    hour: "numeric",
+    hour12: false,
+  }).format(new Date());
+  const h = Number.parseInt(hourStr, 10);
+  if (Number.isNaN(h)) return "Welcome";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+// One decorative glyph for every quick-action row (the label carries the
+// meaning; the chip is the affordance, matching the approved mock-up).
+function QAItem({
+  href,
+  label,
+  badge,
+}: {
+  href: string;
+  label: string;
+  badge?: string | null;
+}) {
+  return (
+    <Link href={href} className="qa-item">
+      <span className="qa-ico" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <rect x="2.5" y="2.5" width="11" height="11" rx="2.5" />
+        </svg>
+      </span>
+      <span className="qa-label">{label}</span>
+      {badge ? <span className="b b-gold">{badge}</span> : null}
+      <span className="qa-chev" aria-hidden="true">›</span>
+    </Link>
+  );
+}
+
 export default async function DashboardPage() {
   // dashboard.view is granted to every role, so this only confirms the viewer
   // is authenticated; each tile below is gated by its own module permission
@@ -19,26 +60,52 @@ export default async function DashboardPage() {
   const me = await requirePermission("dashboard.view");
   const d = await getDashboardData(me);
 
+  // A "pure staff" viewer has a personal strip but no org tiles — they get the
+  // welcoming, mobile-first layout (the greeting hero leads, no "Dashboard"
+  // heading). Admin/HR keep the heading + the org grid, with the same personal
+  // strip beneath it.
+  const staffFirst = !d.hasOrgTiles && d.hasPersonal && !!d.identity;
+
+  const myLearn = d.myLearning && d.myLearning.linked ? d.myLearning : null;
+  const learnActive = myLearn ? myLearn.assigned : 0;
+  const learnTotal = myLearn ? myLearn.assigned + myLearn.available : 0;
+  const learnPct = learnTotal ? Math.round((learnActive / learnTotal) * 100) : 0;
+  const learnDue = myLearn ? myLearn.overdue : 0;
+  const handbookDue = !!(d.myHandbook && d.myHandbook.linked && d.myHandbook.published && !d.myHandbook.acknowledged);
+
   return (
     <>
-      <div className="page-h">
-        <div>
-          <h1 className="serif">Dashboard</h1>
-          <p>
-            Signed in to the Transworld PeopleOps control room as {d.viewerName}. You see only the
-            posture for areas your access already covers.
-          </p>
-        </div>
-        {d.roleKeys.length ? (
-          <div className="chips">
-            {d.roleKeys.map((r) => (
-              <span key={r} className="b b-blu">
-                {ROLE_LABELS[r] ?? r}
-              </span>
-            ))}
+      {staffFirst && d.identity ? (
+        <div className="dash-hero">
+          <div className="dash-hero-eyebrow">Transworld PeopleOps</div>
+          <h1 className="serif dash-hero-greet">
+            {greeting()}, {d.identity.firstName}
+          </h1>
+          <div className="dash-hero-sub">
+            {d.identity.title ?? "Team member"}
+            {d.identity.grade ? ` · ${d.identity.grade}` : ""}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <div className="page-h">
+          <div>
+            <h1 className="serif">Dashboard</h1>
+            <p>
+              Signed in to the Transworld PeopleOps control room as {d.viewerName}. You see only the
+              posture for areas your access already covers.
+            </p>
+          </div>
+          {d.roleKeys.length ? (
+            <div className="chips">
+              {d.roleKeys.map((r) => (
+                <span key={r} className="b b-blu">
+                  {ROLE_LABELS[r] ?? r}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* ---------------------------------------------------------------- */}
       {/* Organization posture (each tile gated by its module permission)   */}
@@ -208,76 +275,70 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* ---------------------------------------------------------------- */}
-      {/* Personal strip (useful to every signed-in staff member)          */}
+      {/* Your space — the personal-first layout (greeting hero above when   */}
+      {/* the viewer is pure staff). Heroes + stat row + quick actions.      */}
       {/* ---------------------------------------------------------------- */}
       {d.hasPersonal ? (
         <>
-          <div className={`sec-t${d.hasOrgTiles ? " mt" : ""}`}>Your space</div>
-          <div className="grid kpis">
-            {d.myLeave ? (
-              d.myLeave.linked ? (
-                <div className="card kpi">
-                  <div className="lab">My annual leave left</div>
+          {d.hasOrgTiles ? <div className="sec-t mt">Your space</div> : null}
+
+          {d.myLeave && d.myLeave.linked ? (
+            <Link href="/leave" className="leave-hero">
+              <div className="leave-hero-lab">Annual leave left</div>
+              <div className="leave-hero-val">
+                {d.myLeave.annualRemaining ?? "—"} <span>days</span>
+              </div>
+              <div className="leave-hero-sub">
+                {d.myLeave.pending
+                  ? `${d.myLeave.pending} pending request${d.myLeave.pending === 1 ? "" : "s"}`
+                  : "No pending requests"}
+              </div>
+            </Link>
+          ) : null}
+
+          {d.myPayslip || myLearn ? (
+            <div className="dash-stats">
+              {d.myPayslip ? (
+                <Link href="/payslips" className="dash-stat">
+                  <div className="lab">Latest payslip</div>
+                  <div className="val mono">{ngn(d.myPayslip.net)}</div>
+                  <div className="faint dash-stat-sub">{d.myPayslip.label} · net</div>
+                </Link>
+              ) : null}
+
+              {myLearn ? (
+                <Link href="/learning/my" className="dash-stat">
+                  <div className="lab">My learning</div>
                   <div className="val">
-                    {d.myLeave.annualRemaining ?? "—"} <span className="faint">days</span>
+                    {learnActive} <span className="faint">/ {learnTotal}</span>
                   </div>
-                  <div className="faint" style={capStyle}>
-                    {d.myLeave.pending} pending request{d.myLeave.pending === 1 ? "" : "s"}
+                  <div className="lp-bar" aria-hidden="true">
+                    <span style={{ width: `${learnPct}%` }} />
                   </div>
-                  <Link href="/leave" className="jc-link" style={linkStyle}>
-                    My leave →
-                  </Link>
-                </div>
-              ) : (
-                <div className="card kpi">
-                  <div className="lab">My leave</div>
-                  <div className="faint" style={{ marginTop: 8 }}>
-                    Your login isn&rsquo;t linked to an employee record yet.
-                  </div>
-                </div>
-              )
-            ) : null}
-
-            {d.myLearning && d.myLearning.linked ? (
-              <div className="card kpi">
-                <div className="lab">My learning</div>
-                <div className="val">{d.myLearning.assigned}</div>
-                <div className="faint" style={capStyle}>
-                  assigned / in progress
-                  {d.myLearning.overdue ? ` · ${d.myLearning.overdue} overdue` : ""}
-                  {d.myLearning.available ? ` · ${d.myLearning.available} available` : ""}
-                </div>
-                <Link href="/learning" className="jc-link" style={linkStyle}>
-                  My learning →
                 </Link>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
+          ) : null}
 
-            {d.myHandbook && d.myHandbook.linked ? (
-              <div className="card kpi">
-                <div className="lab">Employee handbook</div>
-                <div style={{ marginTop: 10 }}>
-                  {!d.myHandbook.published ? (
-                    <span className="b b-gry">Not published</span>
-                  ) : d.myHandbook.acknowledged ? (
-                    <span className="b b-grn">Acknowledged</span>
-                  ) : (
-                    <span className="b b-amb">Action needed</span>
-                  )}
-                </div>
-                <div className="faint" style={capStyle}>
-                  {!d.myHandbook.published
-                    ? "no current version yet"
-                    : d.myHandbook.acknowledged
-                    ? "thank you — you're up to date"
-                    : "please read and acknowledge"}
-                </div>
-                <Link href="/learning" className="jc-link" style={linkStyle}>
-                  Open handbook →
-                </Link>
-              </div>
-            ) : null}
-          </div>
+          {d.hasPersonal ? (
+            <div className="qa-list">
+              <QAItem href="/payslips" label="My payslips" />
+              <QAItem href="/learning/my" label="My learning" badge={learnDue ? `${learnDue} due` : null} />
+              <QAItem href="/leave/request" label="Request leave" />
+              <QAItem
+                href="/learning/handbook"
+                label="Employee handbook"
+                badge={handbookDue ? "Action needed" : null}
+              />
+            </div>
+          ) : null}
+
+          {d.myLeave && !d.myLeave.linked ? (
+            <div className="note">
+              <span>ℹ</span>
+              <div>Your login isn&rsquo;t linked to an employee record yet.</div>
+            </div>
+          ) : null}
         </>
       ) : null}
 

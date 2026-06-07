@@ -30,6 +30,8 @@ import { getDeferrals } from "@/lib/bonus-deferrals";
 import { getSponsorshipRegister } from "@/lib/sponsorship-reads";
 import { getCompensationPositioning } from "@/lib/compensation";
 import { getDefaultCycle, getRoster } from "@/lib/performance";
+import { prisma } from "@/lib/db";
+import { getMyPayslips } from "@/lib/my-payslips";
 
 // --- Org-wide tiles --------------------------------------------------------
 export type RosterTile = {
@@ -90,6 +92,17 @@ export type MyHandbookTile = {
   acknowledged: boolean;
 };
 
+export type IdentityTile = {
+  firstName: string;
+  title: string | null;
+  grade: string | null;
+} | null;
+
+export type MyPayslipTile = {
+  label: string;
+  net: number;
+} | null;
+
 // --- New org tiles surfaced in v0.32.0 -------------------------------------
 export type PayrollTile = {
   label: string | null; // most recent cycle label
@@ -130,6 +143,8 @@ export type AppraisalCycleTile = {
 export type DashboardData = {
   viewerName: string;
   roleKeys: string[];
+  identity: IdentityTile;
+  myPayslip: MyPayslipTile;
   // org-wide (null = viewer not permitted)
   roster: RosterTile | null;
   logins: LoginsTile | null;
@@ -164,6 +179,7 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
   const canPayroll = hasPermission(me, "payroll.view");
   const canBonus = hasPermission(me, "bonus.view");
   const canPerformance = hasPermission(me, "performance.view");
+  const canPayslipsOwn = hasPermission(me, "payslips.view_own");
 
   // Every permitted read fires in parallel; unpermitted sections resolve to
   // undefined and are never queried.
@@ -195,6 +211,38 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
   // and only when performance.view holds and a cycle actually exists).
   const appraisalRoster =
     canPerformance && defaultCycle ? await getRoster(defaultCycle.id) : undefined;
+
+  // --- Identity + latest payslip (self-service; powers the employee dashboard) ---
+  const [linkedEmployee, myPayslipData] = await Promise.all([
+    prisma.employee.findUnique({
+      where: { userId: me.id },
+      select: {
+        fullName: true,
+        preferredName: true,
+        grade: true,
+        jobProfile: { select: { title: true, grade: true } },
+      },
+    }),
+    canPayslipsOwn ? getMyPayslips(me.id) : undefined,
+  ]);
+
+  let identity: IdentityTile = null;
+  if (linkedEmployee) {
+    const first =
+      linkedEmployee.preferredName?.trim() ||
+      linkedEmployee.fullName.trim().split(/\s+/)[0] ||
+      me.name;
+    identity = {
+      firstName: first,
+      title: linkedEmployee.jobProfile?.title ?? null,
+      grade: linkedEmployee.grade ?? linkedEmployee.jobProfile?.grade ?? null,
+    };
+  }
+
+  let myPayslip: MyPayslipTile = null;
+  if (myPayslipData && myPayslipData.linked && myPayslipData.latest) {
+    myPayslip = { label: myPayslipData.latest.label, net: myPayslipData.latest.netPay };
+  }
 
   // --- Roster (employees.view) ---
   let roster: RosterTile | null = null;
@@ -382,6 +430,8 @@ export async function getDashboardData(me: CurrentUser): Promise<DashboardData> 
     myLeave,
     myLearning: myLearningTile,
     myHandbook,
+    identity,
+    myPayslip,
     hasPersonal,
   };
 }

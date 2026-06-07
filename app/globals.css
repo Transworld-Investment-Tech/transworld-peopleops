@@ -2939,3 +2939,214 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
   .lib-table td.lib-mod .jc-link { font-size: 14px; }
 }
 /* === END TW-MOBILE-V0550 === */
+
+
+/* === TW-DASH-V0560 (marker: do not remove) — Dashboard design refresh
+   (surface #2): the employee-first layout — a navy greeting hero, a navy
+   annual-leave hero, the self stat row (latest payslip + a gold learning
+   progress bar) and the tappable quick-actions list. Plus a light navy/gold
+   lift on the shared section labels so admins see the same language. Appended
+   by the v0.56.0 setup; additive only; reuses the theme + --gold tokens. ===== */
+
+/* Section labels carry the gold accent now (navy/gold language). */
+.sec-t {
+  color: var(--gold-deep);
+}
+
+/* Greeting hero — leads the pure-staff dashboard. */
+.dash-hero {
+  background: linear-gradient(150deg, var(--navy) 0%, var(--navy-2) 55%, #0a1830 100%);
+  color: #fff;
+  border-radius: 16px;
+  padding: 24px 26px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow);
+}
+.dash-hero-eyebrow {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.62);
+}
+.dash-hero-greet {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  margin-top: 4px;
+  color: #fff;
+}
+.dash-hero-sub {
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.78);
+  margin-top: 5px;
+}
+
+/* Annual-leave hero — prominent navy card; the whole card is a link. */
+.leave-hero {
+  display: block;
+  background: linear-gradient(150deg, var(--navy-2) 0%, var(--navy) 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.leave-hero:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(11, 31, 58, 0.22);
+}
+.leave-hero-lab {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.66);
+}
+.leave-hero-val {
+  font-family: var(--font-serif), serif;
+  font-size: 34px;
+  font-weight: 600;
+  margin-top: 6px;
+  letter-spacing: -0.4px;
+}
+.leave-hero-val span {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 4px;
+}
+.leave-hero-sub {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 6px;
+}
+
+/* Self stat row — two cards, auto-fit, each a link. */
+.dash-stats {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 16px;
+}
+.dash-stat {
+  display: block;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+.dash-stat:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+.dash-stat .lab {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+}
+.dash-stat .val {
+  font-family: var(--font-serif), serif;
+  font-size: 27px;
+  font-weight: 600;
+  margin-top: 7px;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+}
+.dash-stat .val .faint {
+  font-size: 15px;
+}
+.dash-stat-sub {
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* Learning progress bar — gold fill. */
+.lp-bar {
+  margin-top: 11px;
+  height: 7px;
+  border-radius: 5px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.lp-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  min-width: 4px;
+  background: linear-gradient(90deg, var(--gold) 0%, var(--gold-deep) 100%);
+}
+
+/* Quick-actions list — tappable rows. */
+.qa-list {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.qa-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px;
+  text-decoration: none;
+  color: var(--ink);
+  border-top: 1px solid var(--line-2);
+  transition: background 0.12s ease;
+}
+.qa-item:first-child {
+  border-top: 0;
+}
+.qa-item:hover {
+  background: var(--bg);
+}
+.qa-ico {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--blue-soft);
+  color: var(--navy);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.qa-label {
+  flex: 1;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+.qa-chev {
+  color: var(--faint);
+  font-size: 18px;
+  line-height: 1;
+}
+.b-gold {
+  background: var(--gold);
+  color: #fff;
+}
+
+/* Mobile: single-column stack below 640px (the v0.55.0 hamburger drawer keeps
+   navigation; there is no bottom nav). */
+@media (max-width: 640px) {
+  .dash-hero {
+    padding: 20px 18px;
+  }
+  .dash-hero-greet {
+    font-size: 25px;
+  }
+  .dash-stats {
+    grid-template-columns: 1fr;
+  }
+}
+/* === END TW-DASH-V0560 === */
