@@ -1,18 +1,19 @@
 "use client";
 
 // =============================================================================
-// components/learning/LibraryBrowser.tsx — v0.54.0
-// Surface #1 of the portal design refresh. Client-side instant filtering of the
-// L&D course library by LEVEL (single-select: 100/200/300 = F/P/E) and CATEGORY
-// (multi-select across the ten LMS domains), plus a free-text search over code +
-// title. Zero DB round trips — it filters the already-loaded rows the server
-// page hands it. Renders the refreshed "command toolbar + dense table" (the
-// approved Direction C), with a per-domain colour tab on each row and the gold
-// accent on active controls.
+// components/learning/LibraryBrowser.tsx — v0.55.0
+// Client-side instant filtering of the L&D course library. BOTH dimensions are
+// multi-select: LEVEL (100/200/300 = F/P/E, segmented toggles) and CATEGORY (the
+// ten LMS domains, checklist dropdown), combined as AND across dimensions / OR
+// within a dimension; plus a free-text search over code + title. Dismissable
+// gold pills mirror the active filters. Zero DB round trips.
 //
-// Pure/client-safe imports only: lib/lms.ts is import-free; LibraryRow is a
-// type-only import (erased at build, never bundles lib/learning's server code).
-// fmtMinutes + the status badge are re-implemented locally for the same reason.
+// v0.55.0: level is now multi-select (was a single-select dropdown); each table
+// row carries data-labels + a --dom custom property so the table reflows to
+// stacked, domain-tabbed cards on phones (see TW-MOBILE-V0550 in globals.css);
+// search placeholder ellipsis fixed.
+//
+// Client-safe imports only: lib/lms.ts is import-free; LibraryRow is type-only.
 // =============================================================================
 
 import { useMemo, useState } from "react";
@@ -20,8 +21,6 @@ import Link from "next/link";
 import { LMS_DOMAINS, LMS_LEVELS, domainLabel, levelLabel } from "@/lib/lms";
 import type { LibraryRow } from "@/lib/learning";
 
-// Per-domain accent colours for the left row tab + domain text. UI only — these
-// are not stored; they key off the existing domain code.
 const DOMAIN_COLOR: Record<string, string> = {
   FND: "#1c3a66",
   REG: "#8a1c1c",
@@ -60,7 +59,7 @@ export default function LibraryBrowser({
   canManage: boolean;
 }) {
   const [q, setQ] = useState("");
-  const [level, setLevel] = useState<string>("all");
+  const [levels, setLevels] = useState<string[]>([]);
   const [cats, setCats] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -73,7 +72,7 @@ export default function LibraryBrowser({
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
-      if (level !== "all" && r.level !== level) return false;
+      if (levels.length && !(r.level && levels.includes(r.level))) return false;
       if (cats.length && !(r.domain && cats.includes(r.domain))) return false;
       if (needle) {
         const hay = `${r.code ?? ""} ${r.title}`.toLowerCase();
@@ -81,13 +80,16 @@ export default function LibraryBrowser({
       }
       return true;
     });
-  }, [rows, q, level, cats]);
+  }, [rows, q, levels, cats]);
 
+  function toggleLevel(v: string) {
+    setLevels((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]));
+  }
   function toggleCat(v: string) {
     setCats((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]));
   }
 
-  const hasFilters = level !== "all" || cats.length > 0;
+  const hasFilters = levels.length > 0 || cats.length > 0;
 
   return (
     <>
@@ -109,24 +111,28 @@ export default function LibraryBrowser({
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search code or title\u2026"
+            placeholder="Search code or title…"
             aria-label="Search modules"
           />
         </label>
 
-        <select
-          className="lib-sel"
-          value={level}
-          onChange={(e) => setLevel(e.target.value)}
-          aria-label="Filter by level"
-        >
-          <option value="all">All levels</option>
-          {LMS_LEVELS.map((l) => (
-            <option key={l.value} value={l.value}>
-              {LEVEL_NUM[l.value]} &middot; {l.label}
-            </option>
-          ))}
-        </select>
+        <div className="lib-lvl" role="group" aria-label="Filter by level">
+          {LMS_LEVELS.map((l) => {
+            const on = levels.includes(l.value);
+            return (
+              <button
+                key={l.value}
+                type="button"
+                className={"lib-lvl-btn" + (on ? " on" : "")}
+                aria-pressed={on}
+                title={l.label}
+                onClick={() => toggleLevel(l.value)}
+              >
+                {LEVEL_NUM[l.value]}
+              </button>
+            );
+          })}
+        </div>
 
         <div className="lib-ms">
           <button
@@ -158,7 +164,7 @@ export default function LibraryBrowser({
                     </span>
                     <span>{d.label}</span>
                     <span className="cd">
-                      {d.value} &middot; {counts[d.value] ?? 0}
+                      {d.value} · {counts[d.value] ?? 0}
                     </span>
                   </div>
                 );
@@ -170,24 +176,24 @@ export default function LibraryBrowser({
 
       {hasFilters ? (
         <div className="lib-pills">
-          {level !== "all" ? (
-            <button type="button" className="lib-pill" onClick={() => setLevel("all")}>
-              {LEVEL_NUM[level]} &middot; {levelLabel(level)}
-              <span aria-hidden="true">{"\u2715"}</span>
-            </button>
-          ) : null}
-          {cats.map((c) => (
-            <button key={c} type="button" className="lib-pill" onClick={() => toggleCat(c)}>
-              {c} &middot; {domainLabel(c)}
+          {levels.map((lv) => (
+            <button key={lv} type="button" className="lib-pill" onClick={() => toggleLevel(lv)}>
+              {LEVEL_NUM[lv]} · {levelLabel(lv)}
               <span aria-hidden="true">{"\u2715"}</span>
             </button>
           ))}
-          {cats.length > 1 ? (
+          {cats.map((c) => (
+            <button key={c} type="button" className="lib-pill" onClick={() => toggleCat(c)}>
+              {c} · {domainLabel(c)}
+              <span aria-hidden="true">{"\u2715"}</span>
+            </button>
+          ))}
+          {levels.length + cats.length > 1 ? (
             <button
               type="button"
               className="lib-pill lib-pill-clear"
               onClick={() => {
-                setLevel("all");
+                setLevels([]);
                 setCats([]);
               }}
             >
@@ -217,11 +223,11 @@ export default function LibraryBrowser({
               const color = (r.domain && DOMAIN_COLOR[r.domain]) || "var(--line)";
               const sb = statusBadge(r.status);
               return (
-                <tr key={r.id}>
-                  <td className="mono faint" style={{ borderLeftColor: color }}>
+                <tr key={r.id} style={{ ["--dom" as string]: color }}>
+                  <td className="mono faint" data-label="Code">
                     {r.code ?? "\u2014"}
                   </td>
-                  <td>
+                  <td className="lib-mod" data-label="Module">
                     <Link href={`/learning/modules/${r.id}`} className="jc-link">
                       {r.title}
                     </Link>
@@ -230,12 +236,16 @@ export default function LibraryBrowser({
                       {r.isMandatory ? <span className="b b-red">Mandatory</span> : null}
                     </div>
                   </td>
-                  <td className="lib-dom" style={{ color }}>
+                  <td className="lib-dom" data-label="Domain" style={{ color }}>
                     {r.domain ? domainLabel(r.domain) : <span className="faint">{r.category}</span>}
                   </td>
-                  <td className="num faint">{fmtMinutes(r.estimatedMinutes)}</td>
-                  <td className="num mono">{r.enrolled}</td>
-                  <td>
+                  <td className="num faint" data-label="Time">
+                    {fmtMinutes(r.estimatedMinutes)}
+                  </td>
+                  <td className="num mono" data-label="Enrolled">
+                    {r.enrolled}
+                  </td>
+                  <td data-label="Completion">
                     <div className="ln-prog">
                       <span className={"bar" + (r.overdue ? " warn" : "")}>
                         <i style={{ width: `${r.completionPct}%` }} />
@@ -244,7 +254,7 @@ export default function LibraryBrowser({
                     </div>
                   </td>
                   {canManage ? (
-                    <td>
+                    <td data-label="Status">
                       <span className={`b ${sb.cls}`}>{sb.label}</span>
                     </td>
                   ) : null}

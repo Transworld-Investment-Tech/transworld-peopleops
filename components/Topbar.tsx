@@ -5,6 +5,7 @@ import Link from "next/link";
 import { logoutAction } from "@/lib/auth/actions";
 import { ROLE_LABELS } from "@/lib/permissions";
 import HelpDrawer from "@/components/HelpDrawer";
+import NavToggle from "@/components/NavToggle";
 
 function initialsOf(name: string): string {
   return (
@@ -31,6 +32,7 @@ export default function Topbar({
     roleKeys.map((k) => ROLE_LABELS[k] ?? k).join(" · ") || "No role assigned";
   return (
     <header className="topbar">
+      <NavToggle />
       <div className="crumb">
         <b>Transworld PeopleOps</b> · Control Room
       </div>

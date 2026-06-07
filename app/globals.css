@@ -2788,3 +2788,154 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
 .lib-dom { font-size: 12px; font-weight: 500; }
 .lib-empty { color: var(--faint); padding: 18px 4px; }
 /* === END TW-LMS-FILTER-V0540 === */
+
+/* === TW-MOBILE-V0550 (marker: do not remove) — the mobile pass + L&D level
+   multi-select. Three things, appended by the v0.55.0 setup, additive only:
+     1. the L&D LEVEL segmented multi-toggle (100/200/300) + the per-row domain
+        colour tab driven by the --dom custom property the rows now set;
+     2. a responsive app shell below 920px — the sidebar becomes a hamburger-
+        driven off-canvas drawer (it was previously display:none with no
+        replacement, so phones had no navigation), and the top bar compresses so
+        it no longer overflows the viewport;
+     3. the L&D table reflows to stacked, domain-tabbed cards below 640px.
+   Nothing existing is restyled outside these media queries / new classes. ===== */
+
+/* ---- 1. L&D level segmented multi-toggle + domain colour tab -------------- */
+.lib-lvl { display: inline-flex; }
+.lib-lvl-btn {
+  height: 38px;
+  min-width: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font: inherit;
+  font-size: 13px;
+  color: var(--navy);
+  cursor: pointer;
+}
+.lib-lvl-btn:first-child { border-radius: 9px 0 0 9px; }
+.lib-lvl-btn:last-child { border-radius: 0 9px 9px 0; }
+.lib-lvl-btn:not(:last-child) { border-right: 0; }
+.lib-lvl-btn:hover { background: var(--bg); }
+.lib-lvl-btn.on {
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+  font-weight: 600;
+}
+/* the row's domain colour now comes from the inline --dom custom property */
+.lib-table tbody tr td:first-child { border-left-color: var(--dom, var(--line)); }
+
+/* ---- 2. responsive app shell (<= 920px) ----------------------------------- */
+.nav-burger { display: none; }
+.nav-backdrop { display: none; }
+
+@media (max-width: 920px) {
+  /* hamburger sits at the start of the top bar */
+  .nav-burger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    margin-right: 4px;
+  }
+
+  /* sidebar -> off-canvas drawer (overrides the earlier .side { display:none }) */
+  .side {
+    display: flex;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100dvh;
+    width: 264px;
+    max-width: 84vw;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    overflow-y: auto;
+    box-shadow: 0 0 40px rgba(11, 31, 58, 0.35);
+  }
+  :root.nav-open .side { transform: translateX(0); }
+
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(11, 31, 58, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  :root.nav-open .nav-backdrop { opacity: 1; pointer-events: auto; }
+  :root.nav-open { overflow: hidden; }
+
+  /* top bar compresses so it never overflows the viewport */
+  .topbar { padding: 0 14px; gap: 10px; }
+  .crumb { display: none; }
+  .who-meta { display: none; }
+  .topbar-right {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 8px;
+  }
+  .topbar-right .btn { padding: 8px 11px; font-size: 12px; }
+
+  .content { padding: 20px 16px 56px; }
+  .page-h { flex-direction: column; align-items: flex-start; }
+}
+
+/* ---- 3. L&D table -> stacked cards (<= 640px) ----------------------------- */
+@media (max-width: 640px) {
+  .lib-tool { gap: 8px; }
+  .lib-search { flex-basis: 100%; }
+
+  .lib-table,
+  .lib-table tbody,
+  .lib-table tr,
+  .lib-table td { display: block; }
+  .lib-table thead { display: none; }
+
+  .lib-table tbody tr {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--dom, var(--line));
+    border-radius: 11px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: var(--card);
+  }
+  .lib-table tbody tr:hover td { background: transparent; }
+
+  .lib-table td {
+    border: 0;
+    padding: 5px 0;
+    font-size: 13px;
+  }
+  .lib-table td:first-child { border-left: 0; }
+  .lib-table td:not(.lib-mod) {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    text-align: left;
+  }
+  .lib-table td.num { text-align: left; }
+  .lib-table td:not(.lib-mod)::before {
+    content: attr(data-label);
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex: none;
+  }
+  .lib-table td.lib-mod { padding: 0 0 8px; }
+  .lib-table td.lib-mod .jc-link { font-size: 14px; }
+}
+/* === END TW-MOBILE-V0550 === */
