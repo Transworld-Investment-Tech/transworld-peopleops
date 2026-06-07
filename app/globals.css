@@ -2586,3 +2586,12 @@ tfoot td { border-top: 2px solid var(--line); font-weight: 600; background: #faf
   .sk::after { animation: none; }
 }
 /* === END TW-UI-POLISH-V0520 === */
+
+
+/* === TW-AUDIT-WIDE-V0530 (marker: do not remove) — wider canvas + horizontal
+   table scroll so wide data tables (e.g. the Audit Log) use the available width
+   and never clip a column off the right edge. Appended by the v0.53.0 setup.
+   Additive only; mirrors the existing .content:has(.pay-wide) pattern. ===== */
+.content:has(.aud-wide) { max-width: 1480px; }
+.table-scroll { overflow-x: auto; }
+/* === END TW-AUDIT-WIDE-V0530 === */

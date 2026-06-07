@@ -52,7 +52,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <div className="page-h">
+      <div className="page-h aud-wide">
         <div>
           <h1 className="serif">Audit Log</h1>
           <p>
@@ -139,6 +139,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
         </div>
       ) : (
         <div className="card">
+          <div className="table-scroll">
           <table>
             <thead>
               <tr>
@@ -184,6 +185,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
