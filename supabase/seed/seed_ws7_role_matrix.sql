@@ -219,7 +219,11 @@ WITH want (job_profile_id, code, requirement) AS (
   ('jp_bd_officer', 'LDR-101', 'REQUIRED'),
   ('jp_bd_officer', 'INV-201', 'RECOMMENDED'),
   ('jp_bd_officer', 'CLA-301', 'RECOMMENDED'),
-  ('jp_bd_officer', 'LDR-201', 'RECOMMENDED')
+  ('jp_bd_officer', 'LDR-201', 'RECOMMENDED'),
+  ('jp_peopleops_officer', 'PPL-201', 'REQUIRED'),
+  ('jp_peopleops_officer', 'PPL-202', 'REQUIRED'),
+  ('jp_peopleops_officer', 'PPL-203', 'REQUIRED'),
+  ('jp_peopleops_officer', 'PPL-204', 'REQUIRED')
 )
 INSERT INTO learning_assignment_rules (id, module_id, scope, grade, job_profile_id, requirement, active, created_at, updated_at)
 SELECT 'lar_' || substr(md5(w.job_profile_id || ':' || m.id || ':JOB_PROFILE'), 1, 18),
@@ -232,5 +236,5 @@ WHERE NOT EXISTS (
     AND COALESCE(r.grade,'') = '' AND COALESCE(r.job_profile_id,'') = w.job_profile_id
 );
 
--- Expected: up to 8 profiles + 164 rules (139 required, 25 recommended) on first run.
+-- Expected: up to 8 profiles + 168 rules (143 required, 25 recommended) on first run.
 COMMIT;
