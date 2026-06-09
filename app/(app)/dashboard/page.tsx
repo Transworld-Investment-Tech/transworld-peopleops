@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requirePermission, hasPermission } from "@/lib/auth/rbac";
 import { ROLE_LABELS } from "@/lib/permissions";
 import { getDashboardData } from "@/lib/dashboard";
+import { getFeatureFlags } from "@/lib/feature-flags";
 
 export const metadata = { title: "Dashboard · Transworld PeopleOps" };
 
@@ -59,7 +60,8 @@ export default async function DashboardPage() {
   // inside getDashboardData().
   const me = await requirePermission("dashboard.view");
   const d = await getDashboardData(me);
-  const canMyPay = hasPermission(me, "compensation.view_own");
+  const flags = await getFeatureFlags();
+  const canMyPay = hasPermission(me, "compensation.view_own") && flags.my_pay;
 
   // A "pure staff" viewer has a personal strip but no org tiles — they get the
   // welcoming, mobile-first layout (the greeting hero leads, no "Dashboard"

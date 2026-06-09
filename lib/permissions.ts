@@ -78,6 +78,7 @@ export const PERMISSIONS: Permission[] = [
   { key: "evidence.view", label: "View evidence vault" },
   { key: "controls.view", label: "View internal controls" },
   { key: "admin.users", label: "Administer users & roles" },
+  { key: "admin.settings", label: "Manage app settings (Super Admin)" },
   { key: "documents.manage", label: "Manage staff documents & templates" },
   { key: "documents.view_own", label: "View, sign & upload own documents" },
   // v0.37.0 — WS5 conduct & cases
@@ -382,14 +383,26 @@ export const NAV: NavSection[] = [
       { slug: "admin/users", label: "User Management", perm: "admin.users", icon: I.admin },
       { slug: "admin/templates", label: "Document Templates", perm: "documents.manage", icon: I.docs },
       { slug: "admin/audit", label: "Audit Log", perm: "admin.users", icon: I.docs },
+      { slug: "admin/settings", label: "Settings", perm: "admin.settings", icon: I.admin },
     ],
   },
 ];
 
-export function buildNav(permissions: Set<string>): NavSection[] {
+// Slugs whose visibility is also gated by a runtime feature flag (v0.66.0).
+const SLUG_FLAG: Record<string, string> = { "my-pay": "my_pay" };
+
+export function buildNav(
+  permissions: Set<string>,
+  flags: Record<string, boolean> = {}
+): NavSection[] {
   return NAV.map((sec) => ({
     label: sec.label,
-    items: sec.items.filter((it) => permissions.has(it.perm)),
+    items: sec.items.filter((it) => {
+      if (!permissions.has(it.perm)) return false;
+      const fk = SLUG_FLAG[it.slug];
+      if (fk && flags[fk] === false) return false;
+      return true;
+    }),
   })).filter((sec) => sec.items.length > 0);
 }
 

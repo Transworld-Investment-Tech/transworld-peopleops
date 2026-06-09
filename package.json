@@ -1,6 +1,6 @@
 {
   "name": "transworld-peopleops",
-  "version": "0.57.0",
+  "version": "0.66.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth/rbac";
 import { buildNav } from "@/lib/permissions";
+import { getFeatureFlags } from "@/lib/feature-flags";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 
@@ -11,7 +12,8 @@ export default async function AppLayout({
   // Server-enforced: unauthenticated visitors are redirected to /login here,
   // covering every route inside this group.
   const me = await requireUser();
-  const sections = buildNav(me.permissions);
+  const flags = await getFeatureFlags();
+  const sections = buildNav(me.permissions, flags);
 
   return (
     <div className="app">

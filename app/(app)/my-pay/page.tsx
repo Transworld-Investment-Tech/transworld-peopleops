@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requirePermission } from "@/lib/auth/rbac";
 import { fmtNaira, fmtPct, treatmentBadge } from "@/lib/compensation";
 import { getMyCompensation } from "@/lib/my-compensation";
+import { getFeatureFlags } from "@/lib/feature-flags";
 
 export const metadata = { title: "My Pay · Transworld PeopleOps" };
 
@@ -22,6 +23,23 @@ function fmtDate(d: Date): string {
 
 export default async function MyPayPage() {
   const me = await requirePermission("compensation.view_own");
+  const flags = await getFeatureFlags();
+  if (!flags.my_pay) {
+    return (
+      <>
+        <div className="page-h">
+          <div>
+            <h1 className="serif">My Pay</h1>
+            <p>Your standing pay structure.</p>
+          </div>
+        </div>
+        <div className="note">
+          <span>ℹ</span>
+          <div>My Pay isn&rsquo;t available yet. It will appear here once HR switches it on.</div>
+        </div>
+      </>
+    );
+  }
   const data = await getMyCompensation(me.id);
 
   if (!data.linked) {

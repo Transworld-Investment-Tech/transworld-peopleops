@@ -1810,3 +1810,18 @@ model LearningQuizQuestion {
   @@map("learning_quiz_questions")
 }
 // === END TW-WS7-LMS-V0420 ====================================================
+
+// === TW-FEATUREFLAGS-V0660 (marker: do not remove) ==========================
+// v0.66.0 feature flags: a small Super-Admin-toggled switch table for soft
+// launches. Standalone; updated_by is a bare FK column to users (DB-level
+// only, no Prisma @relation) per the cross-module convention. Appended by
+// setup.sh only if this marker is absent.
+model FeatureFlag {
+  key         String   @id
+  enabled     Boolean  @default(false)
+  updatedById String?  @map("updated_by")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+// === END TW-FEATUREFLAGS-V0660 ==============================================
