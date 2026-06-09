@@ -227,7 +227,27 @@ WITH want (job_profile_id, code, requirement) AS (
   ('jp_peopleops_officer', 'PPL-205', 'REQUIRED'),
   ('jp_peopleops_officer', 'PPL-206', 'REQUIRED'),
   ('jp_peopleops_officer', 'PPL-207', 'REQUIRED'),
-  ('jp_peopleops_officer', 'PPL-208', 'REQUIRED')
+  ('jp_peopleops_officer', 'PPL-208', 'REQUIRED'),
+  ('jp_bd_officer', 'BDV-201', 'REQUIRED'),
+  ('jp_bd_officer', 'BDV-202', 'REQUIRED'),
+  ('jp_bd_officer', 'BDV-203', 'REQUIRED'),
+  ('jp_bd_officer', 'BDV-204', 'REQUIRED'),
+  ('jp_bd_officer', 'BDV-205', 'REQUIRED'),
+  ('jp_marketing_comms', 'BDV-201', 'RECOMMENDED'),
+  ('jp_marketing_comms', 'BDV-202', 'REQUIRED'),
+  ('jp_marketing_comms', 'BDV-203', 'RECOMMENDED'),
+  ('jp_marketing_comms', 'BDV-204', 'RECOMMENDED'),
+  ('jp_marketing_comms', 'BDV-205', 'REQUIRED'),
+  ('cmpssxs6s0005vbm1fupr2cez', 'BDV-201', 'REQUIRED'),
+  ('cmpssxs6s0005vbm1fupr2cez', 'BDV-202', 'RECOMMENDED'),
+  ('cmpssxs6s0005vbm1fupr2cez', 'BDV-203', 'RECOMMENDED'),
+  ('cmpssxs6s0005vbm1fupr2cez', 'BDV-204', 'RECOMMENDED'),
+  ('cmpssxs6s0005vbm1fupr2cez', 'BDV-205', 'REQUIRED'),
+  ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-201', 'RECOMMENDED'),
+  ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-202', 'RECOMMENDED'),
+  ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-203', 'RECOMMENDED'),
+  ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-204', 'RECOMMENDED'),
+  ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-205', 'REQUIRED')
 )
 INSERT INTO learning_assignment_rules (id, module_id, scope, grade, job_profile_id, requirement, active, created_at, updated_at)
 SELECT 'lar_' || substr(md5(w.job_profile_id || ':' || m.id || ':JOB_PROFILE'), 1, 18),
@@ -241,4 +261,5 @@ WHERE NOT EXISTS (
 );
 
 -- Expected: up to 8 profiles + 172 rules (147 required, 25 recommended) on first run.
+-- v0.67.0: + BDV-2xx => +20 rules (10 required, 10 recommended) across 4 profiles.
 COMMIT;
