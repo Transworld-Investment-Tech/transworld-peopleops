@@ -247,7 +247,27 @@ WITH want (job_profile_id, code, requirement) AS (
   ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-202', 'RECOMMENDED'),
   ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-203', 'RECOMMENDED'),
   ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-204', 'RECOMMENDED'),
-  ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-205', 'REQUIRED')
+  ('cmpssxrl40004vbm1rkcnkjy7', 'BDV-205', 'REQUIRED'),
+  ('cmpssxs6s0005vbm1fupr2cez', 'FND-201', 'REQUIRED'),
+  ('cmpssxtep0007vbm1jdkgdk5a', 'FND-201', 'REQUIRED'),
+  ('jp_procurement_officer', 'FND-201', 'REQUIRED'),
+  ('jp_marketing_comms', 'FND-201', 'REQUIRED'),
+  ('jp_accounting_officer', 'FND-201', 'REQUIRED'),
+  ('jp_finance_officer', 'FND-201', 'REQUIRED'),
+  ('jp_bd_officer', 'FND-201', 'REQUIRED'),
+  ('cmpssxssk0006vbm115c0xb73', 'FND-201', 'RECOMMENDED'),
+  ('jp_office_admin', 'FND-201', 'RECOMMENDED'),
+  ('cmpssxs6s0005vbm1fupr2cez', 'FND-202', 'REQUIRED'),
+  ('cmpssxtep0007vbm1jdkgdk5a', 'FND-202', 'REQUIRED'),
+  ('cmpssxssk0006vbm115c0xb73', 'FND-202', 'REQUIRED'),
+  ('jp_inv_associate', 'FND-202', 'REQUIRED'),
+  ('jp_bd_officer', 'FND-202', 'REQUIRED'),
+  ('jp_marketing_comms', 'FND-202', 'REQUIRED'),
+  ('jp_peopleops_officer', 'FND-202', 'REQUIRED'),
+  ('jp_procurement_officer', 'FND-202', 'RECOMMENDED'),
+  ('jp_accounting_officer', 'FND-202', 'RECOMMENDED'),
+  ('jp_finance_officer', 'FND-202', 'RECOMMENDED'),
+  ('jp_office_admin', 'FND-202', 'RECOMMENDED')
 )
 INSERT INTO learning_assignment_rules (id, module_id, scope, grade, job_profile_id, requirement, active, created_at, updated_at)
 SELECT 'lar_' || substr(md5(w.job_profile_id || ':' || m.id || ':JOB_PROFILE'), 1, 18),
@@ -262,4 +282,5 @@ WHERE NOT EXISTS (
 
 -- Expected: up to 8 profiles + 172 rules (147 required, 25 recommended) on first run.
 -- v0.67.0: + BDV-2xx => +20 rules (10 required, 10 recommended) across 4 profiles.
+-- v0.69.0: + FND-2xx => +20 rules (14 required, 6 recommended) across 11 profiles.
 COMMIT;
