@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePermission, hasPermission } from "@/lib/auth/rbac";
+import { requirePermission, hasPermission, isOversight } from "@/lib/auth/rbac";
 import EmployeesTabs from "@/components/employees/EmployeesTabs";
 import { getPresentCategoriesByEmployee } from "@/lib/staff-documents";
 import {
@@ -16,6 +16,7 @@ export const metadata = { title: "Employees · Transworld PeopleOps" };
 export default async function EmployeesPage() {
   const me = await requirePermission("employees.view");
   const canManage = hasPermission(me, "employees.manage");
+  const oversight = isOversight(me);
   const rows = await getEmployeesForList();
 
   const catMap = await getPresentCategoriesByEmployee(rows.map((r) => r.id));
@@ -77,12 +78,12 @@ export default async function EmployeesPage() {
           <thead>
             <tr>
               <th>Employee</th>
-              <th>Entity</th>
+              {oversight && <th>Entity</th>}
               <th>Department</th>
-              <th>Category</th>
-              <th>Type</th>
+              {oversight && <th>Category</th>}
+              {oversight && <th>Type</th>}
               <th>Status</th>
-              <th>Documents</th>
+              {oversight && <th>Documents</th>}
             </tr>
           </thead>
           <tbody>
@@ -102,16 +103,17 @@ export default async function EmployeesPage() {
                       </span>
                     </Link>
                   </td>
-                  <td>{r.entity?.code ?? "—"}</td>
+                  {oversight && <td>{r.entity?.code ?? "—"}</td>}
                   <td>{r.department?.name ?? "—"}</td>
-                  <td>{r.payCategory?.name ?? "—"}</td>
-                  <td>{typeLabel(r.employmentType)}</td>
+                  {oversight && <td>{r.payCategory?.name ?? "—"}</td>}
+                  {oversight && <td>{typeLabel(r.employmentType)}</td>}
                   <td>
                     <span className={"b " + s.cls}>
                       <span className="dot" />
                       {s.label}
                     </span>
                   </td>
+                  {oversight && (
                   <td>
                     <div className="docbar">
                       <div className={"bar " + barClass(c.pct)}>
@@ -127,6 +129,7 @@ export default async function EmployeesPage() {
                       )}
                     </div>
                   </td>
+                  )}
                 </tr>
               );
             })}

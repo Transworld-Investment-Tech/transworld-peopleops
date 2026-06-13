@@ -65,7 +65,11 @@ export default async function MyLearningPage() {
                             <Link href={`/learning/modules/${r.moduleId}`} className="jc-link">
                               {r.title}
                             </Link>
-                            <div className="faint">{r.category}</div>
+                            <div className="faint">
+                              {r.code ? <span className="mono">{r.code}</span> : null}
+                              {r.code ? " · " : ""}
+                              {r.category}
+                            </div>
                           </td>
                           <td>
                             <span className={`b ${src.cls}`}>{src.label}</span>
@@ -110,6 +114,7 @@ export default async function MyLearningPage() {
                           <Link href={`/learning/modules/${m.id}`} className="jc-link">
                             {m.title}
                           </Link>
+                          {m.code ? <div className="faint mono">{m.code}</div> : null}
                         </td>
                         <td>{m.category}</td>
                         <td className="num faint">{fmtMinutes(m.estimatedMinutes)}</td>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePermission, hasPermission } from "@/lib/auth/rbac";
+import { requirePermission, hasPermission, isOversight } from "@/lib/auth/rbac";
 import {
   getCycles,
   getCycle,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/performance";
 import { getGoalsOverview } from "@/lib/performance-toolkit";
 import { multiplierFor } from "@/lib/scorecard-scoring";
-import { getGoalSettingRoster, reviewStateBadge } from "@/lib/goal-agreement";
+import { getGoalSettingRoster, reviewStateBadge, myEmployeeLite, getDirectReports } from "@/lib/goal-agreement";
 import CycleControls from "@/components/performance/CycleControls";
 
 export const metadata = { title: "Performance · Transworld PeopleOps" };
@@ -45,6 +45,13 @@ export default async function PerformancePage({
   const me = await requirePermission("performance.view");
   const canManage = hasPermission(me, "performance.manage");
   const canSelf = hasPermission(me, "performance.self");
+  const oversight = isOversight(me);
+  let visibleIds: Set<string> | null = null;
+  if (!oversight) {
+    const meEmp = await myEmployeeLite(me.id);
+    const reports = meEmp ? await getDirectReports(meEmp.id) : [];
+    visibleIds = new Set(reports.map((r) => r.id));
+  }
   const { cycle: cycleParam } = await searchParams;
 
   const cycles = await getCycles();
@@ -142,6 +149,7 @@ export default async function PerformancePage({
           selected={selected}
           cycles={cycles}
           canManage={canManage}
+          visibleIds={visibleIds}
           fmt={fmtRange}
         />
       )}
@@ -153,6 +161,7 @@ async function PerformanceCycle({
   selected,
   cycles,
   canManage,
+  visibleIds,
   fmt,
 }: {
   selected: {
@@ -165,12 +174,14 @@ async function PerformanceCycle({
   };
   cycles: { id: string; name: string; status: string }[];
   canManage: boolean;
+  visibleIds: Set<string> | null;
   fmt: (a: Date | null, b: Date | null) => string | null;
 }) {
-  const [roster, goalsOverview] = await Promise.all([
+  const [rosterAll, goalsOverview] = await Promise.all([
     getRoster(selected.id),
     getGoalsOverview(selected.id),
   ]);
+  const roster = visibleIds ? rosterAll.filter((r) => visibleIds.has(r.employeeId)) : rosterAll;
   const goalSetting = canManage ? await getGoalSettingRoster(selected.id) : null;
   const started = roster.filter((r) => r.appraisalId).length;
   const finalized = roster.filter((r) => r.status.key === "FINALIZED").length;

@@ -78,6 +78,54 @@ export default async function MyDocumentsPage() {
 
           <div className="card mt">
             <div className="card-h">
+              <h3>Pending HR approval</h3>
+              <span className="hint">{data.pending.length}</span>
+            </div>
+            <div className="card-pad">
+              {data.pending.length === 0 ? (
+                <p className="faint" style={{ marginTop: 0 }}>
+                  Nothing waiting on HR. Documents you upload are reviewed by HR before they count as on file.
+                </p>
+              ) : (
+                <div className="doc-list">
+                  {data.pending.map((d) => {
+                    const sb = statusBadge(d.status);
+                    const src = sourceBadge(d.source);
+                    return (
+                      <div className="doc-row" key={d.id}>
+                        <span className="doc-ic" aria-hidden>
+                          📄
+                        </span>
+                        <div className="doc-meta">
+                          {d.fileKey ? (
+                            <a
+                              className="doc-name"
+                              href={`/staff-documents/${d.id}/file`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {d.title}
+                            </a>
+                          ) : (
+                            <span className="doc-name">{d.title}</span>
+                          )}
+                          <span className="doc-sub">
+                            {d.category}
+                            {d.sizeBytes ? ` · ${prettySize(d.sizeBytes)}` : ""} · {fmtDate(d.createdAt)}
+                          </span>
+                        </div>
+                        <span className={`b ${src.cls}`}>{src.label}</span>
+                        <span className={`b ${sb.cls}`}>{sb.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="card mt">
+            <div className="card-h">
               <h3>Your documents on file</h3>
               <span className="hint">{data.others.length}</span>
             </div>

@@ -51,6 +51,8 @@ export function statusBadge(status: string): { cls: string; label: string } {
       return { cls: "b-amb", label: "Awaiting signature" };
     case "DRAFT":
       return { cls: "b-blu", label: "Draft" };
+    case "PENDING_APPROVAL":
+      return { cls: "b-amb", label: "Pending approval" };
     case "VOID":
       return { cls: "b-red", label: "Void" };
     default:
@@ -140,7 +142,7 @@ export async function getCandidateDocsLite(
 /** Distinct, non-void document categories on file for one employee. */
 export async function getPresentCategories(employeeId: string): Promise<string[]> {
   const rows = await prisma.staffDocument.findMany({
-    where: { employeeId, status: { not: "VOID" } },
+    where: { employeeId, status: { notIn: ["VOID", "PENDING_APPROVAL"] } },
     select: { category: true },
     distinct: ["category"],
   });
@@ -154,7 +156,7 @@ export async function getPresentCategoriesByEmployee(
   const map = new Map<string, string[]>();
   if (!ids.length) return map;
   const rows = await prisma.staffDocument.findMany({
-    where: { employeeId: { in: ids }, status: { not: "VOID" } },
+    where: { employeeId: { in: ids }, status: { notIn: ["VOID", "PENDING_APPROVAL"] } },
     select: { employeeId: true, category: true },
   });
   for (const r of rows) {
@@ -181,7 +183,8 @@ export async function getMyDocuments(userId: string) {
     linked: true as const,
     employee,
     awaiting: docs.filter((d) => d.status === "AWAITING_SIGNATURE"),
-    others: docs.filter((d) => d.status !== "AWAITING_SIGNATURE"),
+    pending: docs.filter((d) => d.status === "PENDING_APPROVAL"),
+    others: docs.filter((d) => d.status !== "AWAITING_SIGNATURE" && d.status !== "PENDING_APPROVAL"),
   };
 }
 

@@ -63,3 +63,21 @@ export async function requirePermission(perm: string): Promise<CurrentUser> {
 export function hasPermission(u: CurrentUser, perm: string): boolean {
   return u.permissions.has(perm);
 }
+
+// v0.70.0 — soft-launch visibility gates.
+// "Oversight" = HR, Super-Admin, and the control/exec functions (Exec, Finance,
+// Compliance, Internal Control, Auditor). We key this on `evidence.view`, which
+// today is held by exactly that population and is NEVER held by the line-manager
+// role — so it cleanly separates oversight (full employee record + firm-wide
+// performance) from a line manager (directory-lite + team-scoped views).
+// Swap this for a dedicated permission once auth:bootstrap can run.
+export function isOversight(u: CurrentUser): boolean {
+  return u.permissions.has("evidence.view");
+}
+
+// Super-Admin only (the Chairman). Used for destructive cleanup such as the
+// permanent deletion of a staff document. Keyed on the role, not a permission,
+// because no new permission can be granted live until auth:bootstrap runs.
+export function isSuperAdmin(u: CurrentUser): boolean {
+  return u.roleKeys.includes("SUPER_ADMIN");
+}

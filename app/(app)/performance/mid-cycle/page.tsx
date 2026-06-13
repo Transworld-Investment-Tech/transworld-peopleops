@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { requirePermission, hasPermission } from "@/lib/auth/rbac";
+import { requirePermission, hasPermission, isOversight } from "@/lib/auth/rbac";
 import { getOpenCycle, getMidCycleReviews } from "@/lib/midcycle";
+import { myEmployeeLite, getDirectReports } from "@/lib/goal-agreement";
 import { OpenMidCycleButton, MidCycleReviewForm } from "@/components/performance/MidCycleControls";
 
 export const metadata = { title: "Mid-cycle reviews · Transworld PeopleOps" };
@@ -12,8 +13,16 @@ function badge(ok: boolean) {
 export default async function MidCyclePage() {
   const me = await requirePermission("performance.view");
   const canRun = hasPermission(me, "performance.team") || hasPermission(me, "performance.manage");
+  const oversight = isOversight(me);
   const cycle = await getOpenCycle();
-  const reviews = cycle ? await getMidCycleReviews(cycle.id) : [];
+  const allReviews = cycle ? await getMidCycleReviews(cycle.id) : [];
+  let reviews = allReviews;
+  if (!oversight) {
+    const meEmp = await myEmployeeLite(me.id);
+    const reports = meEmp ? await getDirectReports(meEmp.id) : [];
+    const visibleIds = new Set(reports.map((r) => r.id));
+    reviews = allReviews.filter((r) => visibleIds.has(r.employeeId));
+  }
 
   return (
     <>

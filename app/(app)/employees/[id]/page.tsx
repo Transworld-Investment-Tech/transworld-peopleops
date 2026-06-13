@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requirePermission, hasPermission } from "@/lib/auth/rbac";
+import { requirePermission, hasPermission, isOversight, isSuperAdmin } from "@/lib/auth/rbac";
 import { writeAudit } from "@/lib/auth/audit";
 import {
   getEmployeeDetail,
@@ -58,6 +58,8 @@ export default async function EmployeeProfilePage({
 
   const canManage = hasPermission(me, "employees.manage");
   const canManageDocs = hasPermission(me, "documents.manage");
+  const oversight = isOversight(me);
+  const canHardDelete = isSuperAdmin(me);
   const s = statusBadge(emp.status);
 
   const [presentCategories, staffDocs, templates, dependents] = await Promise.all([
@@ -86,6 +88,8 @@ export default async function EmployeeProfilePage({
       hasFile: Boolean(d.fileKey),
       isGeneratedDraft: d.source === "GENERATED" && d.status === "DRAFT",
       awaiting: d.status === "AWAITING_SIGNATURE",
+      status: d.status,
+      pending: d.status === "PENDING_APPROVAL",
       signerName: d.signerName ?? null,
       signedAt: d.signedAt ? fmtDateTime(d.signedAt) : null,
     };
@@ -140,13 +144,17 @@ export default async function EmployeeProfilePage({
           </div>
           <div className="card-pad">
             <div className="kv">
-              <div className="row"><span className="k">Employee ID</span><span className="v mono">{emp.eeId}</span></div>
-              <div className="row"><span className="k">Entity</span><span className="v">{emp.entity?.name ?? "—"}</span></div>
               <div className="row"><span className="k">Department</span><span className="v">{emp.department?.name ?? "—"}</span></div>
-              <div className="row"><span className="k">Pay category</span><span className="v">{emp.payCategory?.name ?? "—"}</span></div>
               <div className="row"><span className="k">Job profile</span><span className="v">{emp.jobProfile?.title ?? "—"}</span></div>
-              <div className="row"><span className="k">Employment type</span><span className="v">{typeLabel(emp.employmentType)}</span></div>
-              <div className="row"><span className="k">Work location</span><span className="v">{optLabel(WORK_LOCATIONS, emp.workLocation)}</span></div>
+              {oversight && (
+                <>
+                  <div className="row"><span className="k">Employee ID</span><span className="v mono">{emp.eeId}</span></div>
+                  <div className="row"><span className="k">Entity</span><span className="v">{emp.entity?.name ?? "—"}</span></div>
+                  <div className="row"><span className="k">Pay category</span><span className="v">{emp.payCategory?.name ?? "—"}</span></div>
+                  <div className="row"><span className="k">Employment type</span><span className="v">{typeLabel(emp.employmentType)}</span></div>
+                  <div className="row"><span className="k">Work location</span><span className="v">{optLabel(WORK_LOCATIONS, emp.workLocation)}</span></div>
+                </>
+              )}
               <div className="row">
                 <span className="k">Manager</span>
                 <span className="v">
@@ -155,9 +163,13 @@ export default async function EmployeeProfilePage({
                   ) : ("—")}
                 </span>
               </div>
-              <div className="row"><span className="k">Start date</span><span className="v">{fmtDate(emp.startDate)}</span></div>
-              {emp.exitDate && (
-                <div className="row"><span className="k">Exit date</span><span className="v">{fmtDate(emp.exitDate)}</span></div>
+              {oversight && (
+                <>
+                  <div className="row"><span className="k">Start date</span><span className="v">{fmtDate(emp.startDate)}</span></div>
+                  {emp.exitDate && (
+                    <div className="row"><span className="k">Exit date</span><span className="v">{fmtDate(emp.exitDate)}</span></div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -165,20 +177,25 @@ export default async function EmployeeProfilePage({
 
         <div className="card">
           <div className="card-h">
-            <h3>Contact &amp; banking</h3>
-            <span className="hint">Bank details stored masked</span>
+            <h3>{oversight ? "Contact & banking" : "Contact"}</h3>
+            {oversight ? <span className="hint">Bank details stored masked</span> : null}
           </div>
           <div className="card-pad">
             <div className="kv">
               <div className="row"><span className="k">Work email</span><span className="v">{emp.workEmail ?? "—"}</span></div>
               <div className="row"><span className="k">Phone</span><span className="v">{emp.phone ?? "—"}</span></div>
-              <div className="row"><span className="k">Bank</span><span className="v">{emp.bankNameMasked ?? "—"}</span></div>
-              <div className="row"><span className="k">Account</span><span className="v mono">{emp.bankAcctMasked ? `•••• ${emp.bankAcctMasked}` : "—"}</span></div>
+              {oversight && (
+                <>
+                  <div className="row"><span className="k">Bank</span><span className="v">{emp.bankNameMasked ?? "—"}</span></div>
+                  <div className="row"><span className="k">Account</span><span className="v mono">{emp.bankAcctMasked ? `•••• ${emp.bankAcctMasked}` : "—"}</span></div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
+      {oversight && (
       <div className="grid two-col mt">
         <div className="card">
           <div className="card-h">
@@ -211,7 +228,9 @@ export default async function EmployeeProfilePage({
           </div>
         </div>
       </div>
+      )}
 
+      {oversight && (
       <div className="grid two-col mt">
         <div className="card">
           <div className="card-h">
@@ -240,8 +259,10 @@ export default async function EmployeeProfilePage({
           </div>
         </div>
       </div>
+      )}
 
       <div className="grid two-col mt">
+        {oversight && (
         <div className="card">
           <div className="card-h">
             <h3>Document completeness</h3>
@@ -275,6 +296,7 @@ export default async function EmployeeProfilePage({
             )}
           </div>
         </div>
+        )}
 
         <div className="card">
           <div className="card-h">
@@ -301,11 +323,14 @@ export default async function EmployeeProfilePage({
         </div>
       </div>
 
+      {oversight && (
+      <>
       <DependentsEditor employeeId={emp.id} dependents={dependentViews} canManage={canManage} />
 
       <StaffDocumentsPanel
         employeeId={emp.id}
         canManage={canManageDocs}
+        canHardDelete={canHardDelete}
         storageReady={storageReady}
         docs={docViews}
         templates={templateOpts}
@@ -360,6 +385,8 @@ export default async function EmployeeProfilePage({
           </div>
         ) : null}
       </div>
+      </>
+      )}
 
       <div className="faint" style={{ fontSize: 11.5, marginTop: 14 }}>
         This record view was written to the audit log.

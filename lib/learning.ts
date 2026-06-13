@@ -358,6 +358,7 @@ export type LearningRecordRow = {
   recordId: string;
   moduleId: string;
   title: string;
+  code: string | null;
   category: string;
   source: string;
   status: string;
@@ -371,7 +372,7 @@ export type LearningRecordRow = {
 export async function getEmployeeRecords(employeeId: string): Promise<LearningRecordRow[]> {
   const records = await prisma.learningRecord.findMany({
     where: { employeeId },
-    include: { module: { select: { title: true, category: true } } },
+    include: { module: { select: { title: true, code: true, category: true } } },
     orderBy: [{ assignedAt: "desc" }],
   });
   if (records.length === 0) return [];
@@ -382,6 +383,7 @@ export async function getEmployeeRecords(employeeId: string): Promise<LearningRe
     recordId: r.id,
     moduleId: r.moduleId,
     title: r.module.title,
+    code: r.module.code,
     category: r.module.category,
     source: r.source,
     status: r.status,
@@ -411,7 +413,7 @@ export type MyLearningView =
       linked: true;
       employee: { id: string; eeId: string; name: string };
       records: LearningRecordRow[];
-      available: { id: string; title: string; category: string; estimatedMinutes: number | null }[];
+      available: { id: string; title: string; code: string | null; category: string; estimatedMinutes: number | null }[];
     };
 
 export async function getMyLearning(userId: string): Promise<MyLearningView> {
@@ -423,7 +425,7 @@ export async function getMyLearning(userId: string): Promise<MyLearningView> {
 
   const published = await prisma.learningModule.findMany({
     where: { status: "PUBLISHED" },
-    select: { id: true, title: true, category: true, estimatedMinutes: true },
+    select: { id: true, title: true, code: true, category: true, estimatedMinutes: true },
     orderBy: [{ category: "asc" }, { title: "asc" }],
   });
 

@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { requirePermission } from "@/lib/auth/rbac";
+import { requirePermission, requireUser, isSuperAdmin } from "@/lib/auth/rbac";
 import { writeAudit } from "@/lib/auth/audit";
 import { putObject, removeObject, signedUrl, storageConfigured } from "@/lib/storage";
 import {
@@ -350,7 +350,7 @@ export async function uploadOwnDocumentAction(_prev: FormState, fd: FormData): P
     category,
     expiry: parseExpiry(fd.get("expiry")),
     accessLevel: "HR",
-    status: "UPLOADED",
+    status: "PENDING_APPROVAL",
     action: "stafdoc.upload_own",
     fd,
   });
@@ -527,4 +527,88 @@ export async function updateTemplateAction(_prev: FormState, fd: FormData): Prom
   });
   revalidatePath("/admin/templates");
   redirect("/admin/templates");
+}
+
+// ===========================================================================
+// HR: approve / reject a staff self-uploaded document (v0.70.0)
+// A staff upload lands as PENDING_APPROVAL and does NOT count as on file until
+// HR approves it: approving promotes it to UPLOADED, rejecting voids it.
+// ===========================================================================
+export async function approveDocumentAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requirePermission("documents.manage");
+  const docId = String(fd.get("docId") ?? "");
+  const doc = docId ? await prisma.staffDocument.findUnique({ where: { id: docId } }) : null;
+  if (!doc) return { ok: false, error: "Document not found." };
+  if (doc.status !== "PENDING_APPROVAL") return { ok: false, error: "This document is not awaiting approval." };
+  await prisma.staffDocument.update({ where: { id: doc.id }, data: { status: "UPLOADED" } });
+  await writeAudit({
+    actorId: me.id,
+    action: "stafdoc.approve",
+    entityType: "staff_document",
+    entityId: doc.id,
+    metadata: { category: doc.category },
+  });
+  if (doc.employeeId) revalidatePath(`/employees/${doc.employeeId}`);
+  revalidatePath("/my-documents");
+  return OK("Approved.");
+}
+
+export async function rejectDocumentAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requirePermission("documents.manage");
+  const docId = String(fd.get("docId") ?? "");
+  const doc = docId ? await prisma.staffDocument.findUnique({ where: { id: docId } }) : null;
+  if (!doc) return { ok: false, error: "Document not found." };
+  if (doc.status !== "PENDING_APPROVAL") return { ok: false, error: "This document is not awaiting approval." };
+  if (doc.fileKey && storageConfigured()) {
+    try {
+      await removeObject(doc.fileKey);
+    } catch {
+      /* ignore */
+    }
+  }
+  await prisma.staffDocument.update({ where: { id: doc.id }, data: { status: "VOID", fileKey: null } });
+  await writeAudit({
+    actorId: me.id,
+    action: "stafdoc.reject",
+    entityType: "staff_document",
+    entityId: doc.id,
+    metadata: { category: doc.category },
+  });
+  if (doc.employeeId) revalidatePath(`/employees/${doc.employeeId}`);
+  revalidatePath("/my-documents");
+  return OK("Rejected.");
+}
+
+// ===========================================================================
+// Super-Admin: permanently delete a document (HARD delete — row + file).
+// For cleanup of test artefacts. Distinct from HR void (soft-delete to VOID).
+// ===========================================================================
+export async function deleteDocumentAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireUser();
+  if (!isSuperAdmin(me)) redirect("/access-denied");
+  const docId = String(fd.get("docId") ?? "");
+  const doc = docId ? await prisma.staffDocument.findUnique({ where: { id: docId } }) : null;
+  if (!doc) return { ok: false, error: "Document not found." };
+  if (doc.fileKey && storageConfigured()) {
+    try {
+      await removeObject(doc.fileKey);
+    } catch {
+      /* ignore */
+    }
+  }
+  await prisma.staffDocument.delete({ where: { id: doc.id } });
+  await writeAudit({
+    actorId: me.id,
+    action: "stafdoc.delete",
+    entityType: "staff_document",
+    entityId: doc.id,
+    metadata: { category: doc.category, title: doc.title, hard: true },
+  });
+  if (doc.employeeId) revalidatePath(`/employees/${doc.employeeId}`);
+  if (doc.candidateId) {
+    const c = await prisma.candidate.findUnique({ where: { id: doc.candidateId }, select: { openingId: true } });
+    if (c) revalidatePath(`/recruitment/${c.openingId}`);
+  }
+  revalidatePath("/my-documents");
+  return OK("Deleted permanently.");
 }

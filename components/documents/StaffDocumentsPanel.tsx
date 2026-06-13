@@ -5,6 +5,9 @@ import {
   uploadDocumentAction,
   voidDocumentAction,
   uploadSignedCopyAction,
+  approveDocumentAction,
+  rejectDocumentAction,
+  deleteDocumentAction,
   type FormState,
 } from "@/lib/staff-documents-actions";
 
@@ -24,6 +27,8 @@ export type DocView = {
   hasFile: boolean;
   isGeneratedDraft: boolean;
   awaiting: boolean;
+  status: string;
+  pending: boolean;
   signerName: string | null;
   signedAt: string | null;
 };
@@ -34,6 +39,7 @@ export type CategoryOpt = { key: string; label: string };
 export default function StaffDocumentsPanel({
   employeeId,
   canManage,
+  canHardDelete,
   storageReady,
   docs,
   templates,
@@ -41,6 +47,7 @@ export default function StaffDocumentsPanel({
 }: {
   employeeId: string;
   canManage: boolean;
+  canHardDelete: boolean;
   storageReady: boolean;
   docs: DocView[];
   templates: TemplateOpt[];
@@ -50,6 +57,9 @@ export default function StaffDocumentsPanel({
   const [upState, upAction, upPending] = useActionState(uploadDocumentAction, EMPTY);
   const [, voidAction, voidPending] = useActionState(voidDocumentAction, EMPTY);
   const [signedState, signedAction, signedPending] = useActionState(uploadSignedCopyAction, EMPTY);
+  const [, approveAction, approvePending] = useActionState(approveDocumentAction, EMPTY);
+  const [, rejectAction, rejectPending] = useActionState(rejectDocumentAction, EMPTY);
+  const [, deleteAction, deletePending] = useActionState(deleteDocumentAction, EMPTY);
 
   return (
     <div className="card mt">
@@ -101,11 +111,52 @@ export default function StaffDocumentsPanel({
                 </div>
                 <span className={`b ${d.sourceCls}`}>{d.sourceLabel}</span>
                 <span className={`b ${d.statusCls}`}>{d.statusLabel}</span>
-                {canManage ? (
+                {canManage && d.pending ? (
+                  <>
+                    <form action={approveAction} className="doc-actions">
+                      <input type="hidden" name="docId" value={d.id} />
+                      <button className="btn btn-pri" type="submit" disabled={approvePending}>
+                        Approve
+                      </button>
+                    </form>
+                    <form action={rejectAction} className="doc-actions">
+                      <input type="hidden" name="docId" value={d.id} />
+                      <button className="btn" type="submit" disabled={rejectPending}>
+                        Reject
+                      </button>
+                    </form>
+                  </>
+                ) : null}
+                {canManage && !d.pending ? (
                   <form action={voidAction} className="doc-actions">
                     <input type="hidden" name="docId" value={d.id} />
                     <button className="btn" type="submit" disabled={voidPending}>
                       Remove
+                    </button>
+                  </form>
+                ) : null}
+                {canHardDelete ? (
+                  <form
+                    action={deleteAction}
+                    className="doc-actions"
+                    onSubmit={(e) => {
+                      if (
+                        !window.confirm(
+                          `Permanently delete “${d.title}”? This removes the file and the record and cannot be undone.`,
+                        )
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="docId" value={d.id} />
+                    <button
+                      className="btn"
+                      type="submit"
+                      disabled={deletePending}
+                      style={{ color: "var(--red, #b91c1c)" }}
+                    >
+                      Delete
                     </button>
                   </form>
                 ) : null}

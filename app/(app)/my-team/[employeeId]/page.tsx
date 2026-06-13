@@ -10,6 +10,7 @@ import {
 } from "@/lib/goal-agreement";
 import TeamReviewPanel from "@/components/performance/TeamReviewPanel";
 import AmendmentsPanel from "@/components/performance/AmendmentsPanel";
+import { getWeeklyReports, weekRangeLabel } from "@/lib/performance-toolkit";
 
 export const metadata = { title: "Review goals · Transworld PeopleOps" };
 
@@ -84,6 +85,7 @@ export default async function ReviewReportPage({
   }
 
   const { cycle, employee, sheet, goals, amendments } = res;
+  const weekly = await getWeeklyReports(employee.id, 8);
   const state = sheet?.reviewState ?? "DRAFT";
   const sb = reviewStateBadge(state);
   const sealed = !!sheet?.sealed;
@@ -124,6 +126,59 @@ export default async function ReviewReportPage({
           status: g.status,
         }))}
       />
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="card-h">
+          <h3>Weekly check-ins</h3>
+          <span className="hint">{weekly.length}</span>
+        </div>
+        <div className="card-pad">
+          {weekly.length === 0 ? (
+            <p className="faint" style={{ marginTop: 0 }}>
+              No weekly check-ins filed yet. {employee.name} files these in My Performance.
+            </p>
+          ) : (
+            <div className="doc-list">
+              {weekly.map((w) => (
+                <details key={w.id} className="card" style={{ margin: 0, marginBottom: 10 }}>
+                  <summary
+                    style={{
+                      listStyle: "none",
+                      cursor: "pointer",
+                      padding: "12px 14px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <b>{weekRangeLabel(w.weekStart)}</b>
+                    <span className={"b " + (w.status === "SUBMITTED" ? "b-grn" : "b-amb")}>
+                      {w.status === "SUBMITTED" ? "Submitted" : "Draft"}
+                    </span>
+                  </summary>
+                  <div className="card-pad" style={{ borderTop: "1px solid var(--line)" }}>
+                    <div className="kv">
+                      <div className="row" style={{ alignItems: "flex-start" }}>
+                        <span className="k">Accomplished</span>
+                        <span className="v" style={{ whiteSpace: "pre-wrap" }}>{w.accomplishments || "—"}</span>
+                      </div>
+                      <div className="row" style={{ alignItems: "flex-start" }}>
+                        <span className="k">Next priorities</span>
+                        <span className="v" style={{ whiteSpace: "pre-wrap" }}>{w.priorities || "—"}</span>
+                      </div>
+                      <div className="row" style={{ alignItems: "flex-start" }}>
+                        <span className="k">Blockers</span>
+                        <span className="v" style={{ whiteSpace: "pre-wrap" }}>{w.blockers || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {sealed && sheet ? (
         <div className="card" style={{ marginBottom: 18 }}>
